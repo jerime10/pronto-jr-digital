@@ -1,0 +1,31 @@
+project_id = "vtthxoovjswtrwfrdlha"
+
+[api]
+port = 54321
+
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[inbucket]
+port = 54324
+
+[functions.auth-login]
+verify_jwt = false
+
+[functions.auth-validate]
+verify_jwt = false
+
+[functions.auth-register]
+verify_jwt = false
+
+[functions.auth-logout]
+verify_jwt = false
+
+[functions.ai-webhook]
+verify_jwt = false
+
+[functions.create-admin]
+verify_jwt = false
