@@ -56,7 +56,7 @@ const ClinicInfoSettings: React.FC = () => {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="clinicName">Nome da Clínica</Label>
+            <Label htmlFor="clinicName">Nome do consultorio</Label>
             <Input 
               id="clinicName" 
               name="clinicName" 
