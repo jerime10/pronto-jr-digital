@@ -31,9 +31,9 @@ export function useActiveAttendants() {
   return useQuery({
     queryKey: ['attendants', 'active'],
     queryFn: fetchActiveAttendants,
-    staleTime: 0, // Desabilitar cache temporariamente
-    cacheTime: 0, // Não manter em cache
-    refetchOnMount: true, // Sempre refetch ao montar
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnMount: false,
   });
 }
 

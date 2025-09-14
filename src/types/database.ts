@@ -290,6 +290,24 @@ export type ScheduleAssignmentWithDetails = ScheduleAssignment & {
   schedule?: Schedule;
 };
 
+// Tipo para a nova tabela schedule_assignments
+export type ScheduleAssignments = {
+  id: string;
+  schedule_id: string;
+  schedule_info: string;
+  attendant_id: string;
+  attendant_name: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ScheduleAssignmentsFormData = {
+  schedule_id: string;
+  schedule_info: string;
+  attendant_id: string;
+  attendant_name: string;
+};
+
 export type SiteSettings = {
   id: string;
   logo_url: string | null;

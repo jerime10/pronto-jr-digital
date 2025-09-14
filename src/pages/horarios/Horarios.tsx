@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import { useSchedules } from '@/hooks/useSchedules';
 import { useActiveAttendants } from '@/hooks/useAttendants';
 import { toast } from 'sonner';
 import AvailableTimesGrid from '@/components/schedule/AvailableTimesGrid';
+import { scheduleAssignmentsService } from '@/services/scheduleAssignmentsService';
 
 interface EditScheduleData {
   id: string;
@@ -72,11 +73,50 @@ const calculateDurationMinutes = (startTime: string, endTime: string): number =>
   return endMinutes - startMinutes;
 };
 
+const groupSchedulesByDayInterval = (schedules: any[]) => {
+  const grouped = schedules.reduce((acc: any, schedule: any) => {
+    const days = schedule.days || [];
+    const daysLabel = formatDaysInterval(days);
+    
+    if (!acc[daysLabel]) {
+      acc[daysLabel] = {
+        daysLabel,
+        days,
+        times: []
+      };
+    }
+    
+    // Verifica se já existe esse horário para este intervalo de dias
+    const existingTime = acc[daysLabel].times.find((t: any) => t.start_time === schedule.start_time);
+    if (!existingTime) {
+      acc[daysLabel].times.push({
+        id: schedule.id, // Adicionar o ID do schedule
+        start_time: schedule.start_time,
+        duration: schedule.duration || 0,
+        available: schedule.available !== false,
+        schedules: [schedule]
+      });
+    } else {
+      existingTime.schedules.push(schedule);
+    }
+    
+    return acc;
+  }, {});
+
+  // Ordena os horários dentro de cada grupo
+  Object.values(grouped).forEach((group: any) => {
+    group.times.sort((a: any, b: any) => a.start_time.localeCompare(b.start_time));
+  });
+
+  return Object.values(grouped);
+};
+
 const groupSchedulesByTime = (schedules: any[]) => {
   const grouped = schedules.reduce((acc: any, schedule: any) => {
     const key = `${schedule.start_time}`;
     if (!acc[key]) {
       acc[key] = {
+        id: schedule.id, // Preservar o ID do schedule
         start_time: schedule.start_time,
         duration: schedule.duration || 0, // Usa a duração diretamente do banco
         available: schedule.available !== false,
@@ -164,7 +204,7 @@ const toggleDayInArray = (days: number[], day: number): number[] => {
 const Horarios: React.FC = () => {
   const navigate = useNavigate();
   const { schedules, isLoading, createSchedule, updateSchedule, deleteSchedule, toggleScheduleStatus } = useSchedules();
-  const { attendants, isLoading: isLoadingAttendants } = useActiveAttendants();
+  const { data: attendants, isLoading: isLoadingAttendants } = useActiveAttendants();
   
   const [selectedAttendant, setSelectedAttendant] = useState<string>('');
   const [editingSchedule, setEditingSchedule] = useState<any | null>(null);
@@ -178,23 +218,146 @@ const Horarios: React.FC = () => {
     available: true
   });
   const [availableSchedulesForAttendant, setAvailableSchedulesForAttendant] = useState<any[]>([]);
-  const [selectedTimesForAssignment, setSelectedTimesForAssignment] = useState<any[]>([]);
+  const [selectedTimesForAssignment, setSelectedTimesForAssignment] = useState<{
+    id: string;
+    scheduleId: string;
+    time: string;
+    duration: number;
+    days: string;
+  }[]>([]);
   const [assignedSchedules, setAssignedSchedules] = useState<{[key: string]: any[]}>({});
   const [isAssigning, setIsAssigning] = useState(false);
+
+  // Carregar horários atribuídos do banco de dados na inicialização
+  useEffect(() => {
+    const loadAssignedSchedules = async () => {
+      try {
+        const allAssignments = await scheduleAssignmentsService.getAllAssignments();
+        
+        // Agrupar atribuições por atendente
+        const groupedByAttendant: {[key: string]: any[]} = {};
+        
+        allAssignments.forEach(assignment => {
+          if (!groupedByAttendant[assignment.attendant_id]) {
+            groupedByAttendant[assignment.attendant_id] = [];
+          }
+          
+          groupedByAttendant[assignment.attendant_id].push({
+            id: assignment.id,
+            scheduleId: assignment.schedule_id,
+            time: assignment.schedule_info?.split(' - ')[1]?.split(' (')[0] || 'Horário não definido',
+            duration: parseInt(assignment.schedule_info?.match(/\((\d+) minutos\)/)?.[1] || '30'),
+            days: assignment.schedule_info?.split(' - ')[0] || 'Dias não definidos'
+          });
+        });
+        
+        setAssignedSchedules(groupedByAttendant);
+      } catch (error) {
+        console.error('Erro ao carregar horários atribuídos:', error);
+        toast.error('Erro ao carregar horários atribuídos');
+      }
+    };
+
+    loadAssignedSchedules();
+  }, []);
+
+  const handleAssignSchedules = async () => {
+    if (!selectedAttendant || selectedTimesForAssignment.length === 0) {
+      toast.error('Selecione um atendente e pelo menos um horário');
+      return;
+    }
+
+    setIsAssigning(true);
+    try {
+      // Buscar o nome do atendente selecionado
+      const selectedAttendantData = attendants?.find(att => att.id === selectedAttendant);
+      const attendantName = selectedAttendantData?.name || 'Atendente não encontrado';
+
+      // Preparar dados para salvar na tabela schedule_assignments
+      const assignmentsData = selectedTimesForAssignment.map(timeSlot => ({
+        schedule_id: timeSlot.scheduleId,
+        schedule_info: `${timeSlot.days} - ${timeSlot.time} (${timeSlot.duration} minutos)`,
+        attendant_id: selectedAttendant,
+        attendant_name: attendantName
+      }));
+
+      // Salvar múltiplas atribuições na tabela schedule_assignments
+      await scheduleAssignmentsService.createMultipleAssignments(assignmentsData);
+
+      // Adicionar horários à seção de horários atribuídos
+      setAssignedSchedules(prev => {
+        const updated = { ...prev };
+        if (!updated[selectedAttendant]) {
+          updated[selectedAttendant] = [];
+        }
+        
+        // Adicionar os novos horários selecionados
+        const newAssignments = selectedTimesForAssignment.map(selected => ({
+          id: selected.id,
+          scheduleId: selected.scheduleId,
+          time: selected.time,
+          duration: selected.duration,
+          days: selected.days
+        }));
+        
+        updated[selectedAttendant] = [...updated[selectedAttendant], ...newAssignments];
+        return updated;
+      });
+
+      toast.success(`${selectedTimesForAssignment.length} horário(s) atribuído(s) com sucesso!`);
+      
+      // Limpar seleções
+      setSelectedTimesForAssignment([]);
+      
+      // Atualizar horários disponíveis (remover os que foram atribuídos)
+      setAvailableSchedulesForAttendant(prev => 
+        prev.filter(schedule => 
+          !selectedTimesForAssignment.some(selected => 
+            selected.scheduleId === schedule.id
+          )
+        )
+      );
+      
+    } catch (error) {
+      console.error('Erro ao atribuir horários:', error);
+      toast.error('Erro ao atribuir horários. Tente novamente.');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
 
   // Agrupar os horários sem filtros
   const groupedSchedules = schedules ? groupSchedulesByTime(schedules) : [];
 
 
 
-  const handleAttendantChange = (attendantId: string) => {
+  const handleAttendantChange = async (attendantId: string) => {
     setSelectedAttendant(attendantId);
     setSelectedTimesForAssignment([]);
-    // Filtrar horários disponíveis para este atendente (excluir já atribuídos)
-    const availableSchedules = schedules?.filter(schedule => 
-      !schedule.attendant_id || schedule.attendant_id !== attendantId
-    ) || [];
-    setAvailableSchedulesForAttendant(availableSchedules);
+    
+    try {
+      // Buscar horários já atribuídos ao atendente
+      const assignedSchedules = await scheduleAssignmentsService.getAssignmentsByAttendant(attendantId);
+      const assignedScheduleIds = assignedSchedules.map(assignment => assignment.schedule_id);
+      
+      // Filtrar horários disponíveis (schedules que estão marcados como available)
+      // e que não estão já atribuídos ao atendente
+      const availableSchedules = schedules?.filter(schedule => 
+        schedule.available === true && !assignedScheduleIds.includes(schedule.id)
+      ) || [];
+      
+      setAvailableSchedulesForAttendant(availableSchedules);
+    } catch (error) {
+      console.error('Erro ao filtrar horários disponíveis:', error);
+      toast.error('Erro ao carregar horários disponíveis');
+      
+      // Em caso de erro, mostrar apenas horários disponíveis sem filtro de atribuição
+      const availableSchedules = schedules?.filter(schedule => 
+        schedule.available === true
+      ) || [];
+      
+      setAvailableSchedulesForAttendant(availableSchedules);
+    }
   };
 
   const handleNewSchedule = () => {
@@ -265,8 +428,10 @@ const Horarios: React.FC = () => {
       }
       setShowDeleteDialog(false);
       setScheduleToDelete(null);
+      toast.success('Horário excluído com sucesso!');
     } catch (error) {
       console.error('Erro ao excluir horário:', error);
+      toast.error('Erro ao excluir horário. Tente novamente.');
     }
   };
 
@@ -372,7 +537,7 @@ const Horarios: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Horários</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Horarios</h1>
         </div>
         <Button onClick={handleNewSchedule}>
           <Plus className="h-4 w-4 mr-2" />
@@ -472,16 +637,209 @@ const Horarios: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="atribuir" className="space-y-4">
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Funcionalidade em desenvolvimento</p>
+              <div className="space-y-6">
+                {/* Seleção de Atendente */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Selecionar Atendente</Label>
+                  <Select value={selectedAttendant} onValueChange={handleAttendantChange}>
+                    <SelectTrigger className="w-full max-w-md">
+                      <SelectValue placeholder="Selecione um atendente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {isLoadingAttendants ? (
+                        <SelectItem value="loading" disabled>
+                          Carregando atendentes...
+                        </SelectItem>
+                      ) : attendants && attendants.length > 0 ? (
+                        attendants.map((attendant) => (
+                          <SelectItem key={attendant.id} value={attendant.id}>
+                            {attendant.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-attendants" disabled>
+                          Nenhum atendente ativo encontrado
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Horários Disponíveis */}
+                {selectedAttendant && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Horários Disponíveis</h3>
+                    
+                    {availableSchedulesForAttendant.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p className="text-base font-medium mb-1 text-gray-700">Nenhum horário disponível</p>
+                        <p className="text-sm text-gray-500">Todos os horários já foram atribuídos ou não há horários cadastrados</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {groupSchedulesByDayInterval(availableSchedulesForAttendant).map((dayGroup, groupIndex) => (
+                          <div key={`${dayGroup.daysLabel}-${groupIndex}`} className="space-y-3">
+                            {/* Cabeçalho do grupo de dias */}
+                            <div className="bg-gray-50 px-4 py-3 rounded-lg border">
+                              <h4 className="text-base font-semibold text-gray-900">
+                                {dayGroup.daysLabel}
+                              </h4>
+                            </div>
+                            
+                            {/* Horários do grupo */}
+                            <div className="bg-white border rounded-lg p-4 space-y-3">
+                              {dayGroup.times.map((schedule, timeIndex) => {
+                                const uniqueScheduleId = `${schedule.id}-${groupIndex}-${timeIndex}`;
+                                const isSelected = selectedTimesForAssignment.some(t => t.id === uniqueScheduleId);
+                                
+                                return (
+                                  <div key={uniqueScheduleId} className="flex items-center justify-between p-3 border rounded-md hover:bg-gray-50">
+                                    <div>
+                                      <p className="font-semibold text-gray-900">{schedule.start_time}</p>
+                                      <p className="text-sm text-gray-500">{schedule.duration} minutos</p>
+                                    </div>
+                                    <Checkbox 
+                                      checked={isSelected}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setSelectedTimesForAssignment(prev => [...prev, {
+                                            id: uniqueScheduleId,
+                                            scheduleId: schedule.id,
+                                            time: schedule.start_time,
+                                            duration: schedule.duration,
+                                            days: dayGroup.daysLabel
+                                          }]);
+                                        } else {
+                                          setSelectedTimesForAssignment(prev => prev.filter(t => t.id !== uniqueScheduleId));
+                                        }
+                                      }}
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Botão Atribuir Horários */}
+                    <div className="flex justify-end pt-4">
+                      <Button 
+                        onClick={handleAssignSchedules}
+                        disabled={selectedTimesForAssignment.length === 0 || isAssigning}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        {isAssigning ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Atribuindo...
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="h-4 w-4 mr-2" />
+                            Atribuir Horários ({selectedTimesForAssignment.length})
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Mensagem quando nenhum atendente está selecionado */}
+                {!selectedAttendant && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-base font-medium mb-1 text-gray-700">Selecione um atendente</p>
+                    <p className="text-sm text-gray-500">Escolha um atendente para visualizar os horários disponíveis</p>
+                  </div>
+                )}
               </div>
             </TabsContent>
 
             <TabsContent value="atribuidos" className="space-y-4">
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Funcionalidade em desenvolvimento</p>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Horários Atribuídos</h3>
+                </div>
+                
+                {Object.keys(assignedSchedules).length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-base font-medium mb-1 text-gray-700">Nenhum horário atribuído</p>
+                    <p className="text-sm text-gray-500">Use a aba "Atribuir Horários" para atribuir horários aos atendentes</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {Object.entries(assignedSchedules).map(([attendantId, schedules]) => {
+                      const attendant = attendants?.find(a => a.id === attendantId);
+                      return (
+                        <div key={attendantId} className="space-y-3">
+                          <div className="bg-blue-50 px-4 py-3 rounded-lg border border-blue-200">
+                            <h4 className="text-base font-semibold text-blue-900">
+                              {attendant?.name || 'Atendente não encontrado'}
+                            </h4>
+                          </div>
+                          
+                          <div className="bg-white rounded-lg border overflow-hidden">
+                            <div className="grid grid-cols-4 gap-6 px-6 py-4 bg-gray-50 border-b font-medium text-sm text-gray-700">
+                              <div>Dia</div>
+                              <div>Horário</div>
+                              <div>Duração</div>
+                              <div>Ações</div>
+                            </div>
+                            
+                            {schedules.map((schedule, index) => (
+                              <div key={`${schedule.id}-${index}`} className="grid grid-cols-4 gap-6 px-6 py-4 border-b last:border-b-0 hover:bg-gray-50 transition-colors">
+                                <div className="text-gray-600 text-sm">
+                                  {schedule.days}
+                                </div>
+                                <div className="font-medium text-gray-900 text-sm">
+                                  {schedule.time}
+                                </div>
+                                <div className="text-gray-600 text-sm">
+                                  {schedule.duration} minutos
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                      try {
+                                        // Remover do banco de dados
+                                        await scheduleAssignmentsService.deleteAssignment(schedule.id);
+                                        
+                                        // Remover do estado local
+                                        setAssignedSchedules(prev => {
+                                          const updated = { ...prev };
+                                          updated[attendantId] = updated[attendantId].filter((_, i) => i !== index);
+                                          if (updated[attendantId].length === 0) {
+                                            delete updated[attendantId];
+                                          }
+                                          return updated;
+                                        });
+                                        
+                                        toast.success('Horário removido da atribuição');
+                                      } catch (error) {
+                                        console.error('Erro ao remover horário atribuído:', error);
+                                        toast.error('Erro ao remover horário atribuído');
+                                      }
+                                    }}
+                                    className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+                                    title="Remover atribuição"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </TabsContent>
           </Tabs>
