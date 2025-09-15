@@ -14,30 +14,145 @@ export type Database = {
   }
   public: {
     Tables: {
-      completed_exams: {
+      appointments: {
         Row: {
+          appointment_date: string | null
+          appointment_datetime: string | null
+          appointment_time: string | null
+          attendant_id: string
+          attendant_name: string | null
           created_at: string | null
+          end_time: string | null
           id: string
-          name: string
-          result: string | null
-          result_template: string | null
+          notes: string | null
+          patient_id: string | null
+          patient_name: string | null
+          patient_phone: string | null
+          service_duration: number | null
+          service_id: string
+          service_name: string | null
+          service_price: number | null
+          start_time: string | null
+          status: string | null
           updated_at: string | null
         }
         Insert: {
+          appointment_date?: string | null
+          appointment_datetime?: string | null
+          appointment_time?: string | null
+          attendant_id: string
+          attendant_name?: string | null
           created_at?: string | null
+          end_time?: string | null
           id?: string
-          name: string
-          result?: string | null
-          result_template?: string | null
+          notes?: string | null
+          patient_id?: string | null
+          patient_name?: string | null
+          patient_phone?: string | null
+          service_duration?: number | null
+          service_id: string
+          service_name?: string | null
+          service_price?: number | null
+          start_time?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Update: {
+          appointment_date?: string | null
+          appointment_datetime?: string | null
+          appointment_time?: string | null
+          attendant_id?: string
+          attendant_name?: string | null
           created_at?: string | null
+          end_time?: string | null
           id?: string
-          name?: string
-          result?: string | null
-          result_template?: string | null
+          notes?: string | null
+          patient_id?: string | null
+          patient_name?: string | null
+          patient_phone?: string | null
+          service_duration?: number | null
+          service_id?: string
+          service_name?: string | null
+          service_price?: number | null
+          start_time?: string | null
+          status?: string | null
           updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_attendant_id_fkey"
+            columns: ["attendant_id"]
+            isOneToOne: false
+            referencedRelation: "attendants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendants: {
+        Row: {
+          available: boolean | null
+          bio: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          phone: string | null
+          photo_url: string | null
+          position: string | null
+          services: string[] | null
+          share_link: string | null
+          specialties: string[] | null
+          updated_at: string | null
+          working_days: number[] | null
+        }
+        Insert: {
+          available?: boolean | null
+          bio?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          phone?: string | null
+          photo_url?: string | null
+          position?: string | null
+          services?: string[] | null
+          share_link?: string | null
+          specialties?: string[] | null
+          updated_at?: string | null
+          working_days?: number[] | null
+        }
+        Update: {
+          available?: boolean | null
+          bio?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          phone?: string | null
+          photo_url?: string | null
+          position?: string | null
+          services?: string[] | null
+          share_link?: string | null
+          specialties?: string[] | null
+          updated_at?: string | null
+          working_days?: number[] | null
         }
         Relationships: []
       }
@@ -121,13 +236,6 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "generated_documents_professional_id_fkey"
-            columns: ["professional_id"]
-            isOneToOne: false
-            referencedRelation: "professionals"
             referencedColumns: ["id"]
           },
         ]
@@ -243,19 +351,40 @@ export type Database = {
             referencedRelation: "prescription_models"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "medical_records_professional_id_fkey"
-            columns: ["professional_id"]
-            isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
-          },
         ]
+      }
+      "modelo-result-exames": {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          result: string | null
+          result_template: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          result?: string | null
+          result_template?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          result?: string | null
+          result_template?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       patients: {
         Row: {
           address: string
           age: number | null
+          bairro: string | null
           created_at: string | null
           date_of_birth: string | null
           gender: string | null
@@ -268,6 +397,7 @@ export type Database = {
         Insert: {
           address: string
           age?: number | null
+          bairro?: string | null
           created_at?: string | null
           date_of_birth?: string | null
           gender?: string | null
@@ -280,6 +410,7 @@ export type Database = {
         Update: {
           address?: string
           age?: number | null
+          bairro?: string | null
           created_at?: string | null
           date_of_birth?: string | null
           gender?: string | null
@@ -317,46 +448,240 @@ export type Database = {
       }
       professionals: {
         Row: {
-          contact: string
-          created_at: string | null
+          contact: string | null
+          created_at: string
           custom_user_id: string | null
           id: string
-          license_number: string
-          license_type: string
+          license_number: string | null
+          license_type: string | null
           name: string
           profile_image: string | null
           signature: string | null
-          specialty: string
-          updated_at: string | null
-          user_id: string | null
+          specialty: string | null
+          updated_at: string
         }
         Insert: {
-          contact: string
-          created_at?: string | null
+          contact?: string | null
+          created_at?: string
           custom_user_id?: string | null
           id?: string
-          license_number: string
-          license_type: string
+          license_number?: string | null
+          license_type?: string | null
           name: string
           profile_image?: string | null
           signature?: string | null
-          specialty: string
-          updated_at?: string | null
-          user_id?: string | null
+          specialty?: string | null
+          updated_at?: string
         }
         Update: {
-          contact?: string
-          created_at?: string | null
+          contact?: string | null
+          created_at?: string
           custom_user_id?: string | null
           id?: string
-          license_number?: string
-          license_type?: string
+          license_number?: string | null
+          license_type?: string | null
           name?: string
           profile_image?: string | null
           signature?: string | null
-          specialty?: string
+          specialty?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professionals_custom_user_id_fkey"
+            columns: ["custom_user_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_assignments: {
+        Row: {
+          attendant_id: string
+          attendant_name: string
+          created_at: string | null
+          end_time: string | null
+          id: string
+          is_available: boolean | null
+          schedule_id: string
+          schedule_info: string
+          service_id: string | null
+          specific_date: string | null
+          start_time: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attendant_id: string
+          attendant_name: string
+          created_at?: string | null
+          end_time?: string | null
+          id?: string
+          is_available?: boolean | null
+          schedule_id: string
+          schedule_info: string
+          service_id?: string | null
+          specific_date?: string | null
+          start_time?: string | null
           updated_at?: string | null
-          user_id?: string | null
+        }
+        Update: {
+          attendant_id?: string
+          attendant_name?: string
+          created_at?: string | null
+          end_time?: string | null
+          id?: string
+          is_available?: boolean | null
+          schedule_id?: string
+          schedule_info?: string
+          service_id?: string | null
+          specific_date?: string | null
+          start_time?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_assignments_attendant_id_fkey"
+            columns: ["attendant_id"]
+            isOneToOne: false
+            referencedRelation: "attendants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_assignments_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "schedules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_assignments_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedules: {
+        Row: {
+          attendant_id: string | null
+          available: boolean | null
+          created_at: string | null
+          day: string
+          day_of_week: number | null
+          days: string[] | null
+          duration: number
+          end_time: string | null
+          id: string
+          is_active: boolean | null
+          start_time: string
+          updated_at: string | null
+        }
+        Insert: {
+          attendant_id?: string | null
+          available?: boolean | null
+          created_at?: string | null
+          day: string
+          day_of_week?: number | null
+          days?: string[] | null
+          duration: number
+          end_time?: string | null
+          id?: string
+          is_active?: boolean | null
+          start_time: string
+          updated_at?: string | null
+        }
+        Update: {
+          attendant_id?: string | null
+          available?: boolean | null
+          created_at?: string | null
+          day?: string
+          day_of_week?: number | null
+          days?: string[] | null
+          duration?: number
+          end_time?: string | null
+          id?: string
+          is_active?: boolean | null
+          start_time?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedules_attendant_id_fkey"
+            columns: ["attendant_id"]
+            isOneToOne: false
+            referencedRelation: "attendants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_assignments: {
+        Row: {
+          attendant_id: string
+          attendant_name: string
+          attendant_position: string
+          created_at: string | null
+          id: string
+          service_duration: number
+          service_id: string
+          service_name: string
+          service_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          attendant_id: string
+          attendant_name: string
+          attendant_position: string
+          created_at?: string | null
+          id?: string
+          service_duration: number
+          service_id: string
+          service_name: string
+          service_price: number
+          updated_at?: string | null
+        }
+        Update: {
+          attendant_id?: string
+          attendant_name?: string
+          attendant_position?: string
+          created_at?: string | null
+          id?: string
+          service_duration?: number
+          service_id?: string
+          service_name?: string
+          service_price?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          available: boolean | null
+          created_at: string | null
+          duration: number
+          id: string
+          name: string
+          price: number
+          updated_at: string | null
+        }
+        Insert: {
+          available?: boolean | null
+          created_at?: string | null
+          duration: number
+          id?: string
+          name: string
+          price: number
+          updated_at?: string | null
+        }
+        Update: {
+          available?: boolean | null
+          created_at?: string | null
+          duration?: number
+          id?: string
+          name?: string
+          price?: number
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -379,6 +704,8 @@ export type Database = {
           pdf_patient_info_template: string | null
           pdf_prescription_template: string | null
           primary_color: string | null
+          setting_key: string | null
+          setting_value: string | null
           signature_data: string | null
           signature_professional_name: string | null
           signature_professional_registry: string | null
@@ -404,6 +731,8 @@ export type Database = {
           pdf_patient_info_template?: string | null
           pdf_prescription_template?: string | null
           primary_color?: string | null
+          setting_key?: string | null
+          setting_value?: string | null
           signature_data?: string | null
           signature_professional_name?: string | null
           signature_professional_registry?: string | null
@@ -429,45 +758,14 @@ export type Database = {
           pdf_patient_info_template?: string | null
           pdf_prescription_template?: string | null
           primary_color?: string | null
+          setting_key?: string | null
+          setting_value?: string | null
           signature_data?: string | null
           signature_professional_name?: string | null
           signature_professional_registry?: string | null
           signature_professional_title?: string | null
           updated_at?: string | null
           updated_by?: string | null
-        }
-        Relationships: []
-      }
-      user_sessions: {
-        Row: {
-          created_at: string
-          expires_at: string
-          id: string
-          ip_address: unknown | null
-          is_active: boolean
-          token: string
-          user_agent: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at: string
-          id?: string
-          ip_address?: unknown | null
-          is_active?: boolean
-          token: string
-          user_agent?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          ip_address?: unknown | null
-          is_active?: boolean
-          token?: string
-          user_agent?: string | null
-          user_id?: string
         }
         Relationships: []
       }
@@ -552,6 +850,16 @@ export type Database = {
       get_current_user_id: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_modelo_result_exames: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          result_template: string
+          updated_at: string
+        }[]
       }
       get_patients_for_search: {
         Args: { search_term?: string }
