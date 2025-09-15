@@ -334,8 +334,7 @@ export const availabilityService = {
       console.error('Erro ao buscar próximos horários:', error);
       return [];
     }
-  }
-},
+  },
 
   /**
    * Busca horários disponíveis para um atendente específico
