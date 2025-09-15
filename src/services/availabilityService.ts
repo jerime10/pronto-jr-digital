@@ -335,7 +335,7 @@ export const availabilityService = {
       return [];
     }
   }
-};
+},
 
   /**
    * Busca horários disponíveis para um atendente específico
