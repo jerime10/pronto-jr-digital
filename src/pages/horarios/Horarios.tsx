@@ -896,7 +896,7 @@ const Horarios: React.FC = () => {
                 <Input
                   id="start_time"
                   type="time"
-                  step="3600"
+                  step="60"
                   data-format="24"
                   data-time-format="24"
                   pattern="[0-9]{2}:[0-9]{2}"

@@ -120,12 +120,18 @@ export type AttendantService = {
 export type Service = {
   id: string;
   name: string;
-  description: string | null;
-  duration_minutes: number;
-  price: number | null;
-  is_active: boolean;
+  price: number;
+  duration: number;
+  available: boolean;
   created_at: string;
   updated_at: string;
+};
+
+export type ServiceFormData = {
+  name: string;
+  price: number;
+  duration: number;
+  available?: boolean;
 };
 
 export type AttendantFormData = {
@@ -172,16 +178,19 @@ export type ScheduleAssignment = {
 
 export type Appointment = {
   id: string;
-  patient_id: string | null;
-  attendant_id: string;
-  service_id: string | null;
-  appointment_date: string;
-  start_time: string;
-  end_time: string;
-  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
-  notes: string | null;
-  patient_name: string | null; // Para casos onde patient_id é NULL
+  patient_name: string | null;
   patient_phone: string | null;
+  attendant_id: string;
+  attendant_name: string | null;
+  service_id: string;
+  service_name: string | null;
+  service_price: number | null;
+  service_duration: number | null;
+  appointment_date: string; // Data do agendamento
+  appointment_time: string; // Hora do agendamento
+  appointment_datetime: string; // Tratamento de fuso horário
+  notes: string | null;
+  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
   created_at: string;
   updated_at: string;
 };
@@ -210,16 +219,15 @@ export type ScheduleAssignmentFormData = {
 };
 
 export type AppointmentFormData = {
-  patient_id?: string;
-  attendant_id: string;
-  service_id?: string;
-  appointment_date: string;
-  start_time: string;
-  end_time: string;
-  status?: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
-  notes?: string;
-  patient_name?: string; // Para agendamentos sem cadastro
+  patient_name?: string;
   patient_phone?: string;
+  attendant_id: string;
+  service_id: string;
+  appointment_date: string; // Data do agendamento
+  appointment_time: string; // Hora do agendamento
+  appointment_datetime?: string; // Será calculado automaticamente
+  notes?: string;
+  status?: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
 };
 
 // ============================================
