@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { DurationField } from '@/components/ui/duration-field';
 import { ArrowLeft } from 'lucide-react';
-import { enhancedSupabase } from '@/lib/enhancedSupabaseClient';
 import { toast } from 'sonner';
+import { serviceService } from '@/services/serviceService';
 
 const NovoServico: React.FC = () => {
   const navigate = useNavigate();
@@ -16,20 +16,48 @@ const NovoServico: React.FC = () => {
     name: '',
     price: '',
     duration: '30',
-    description: '',
-    is_active: true
+    available: true
   });
+  const [isLoading, setIsLoading] = useState(false);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.name.trim()) {
+      toast.error('Nome do serviço é obrigatório');
+      return;
+    }
+
+    if (!formData.price || parseFloat(formData.price) <= 0) {
+      toast.error('Preço deve ser maior que zero');
+      return;
+    }
+
+    if (!formData.duration || parseInt(formData.duration) <= 0) {
+      toast.error('Duração deve ser maior que zero');
+      return;
+    }
+    
+    setIsLoading(true);
+    
     try {
-      console.log('Creating service:', formData);
-      // Mock service creation - in real implementation would call API
+      const serviceData = {
+        name: formData.name.trim(),
+        price: parseFloat(formData.price),
+        duration: parseInt(formData.duration),
+        available: formData.available
+      };
+      
+      console.log('🔍 DEBUG - Criando serviço:', serviceData);
+      
+      await serviceService.createService(serviceData);
+      
       toast.success('Serviço criado com sucesso!');
       navigate('/servicos');
     } catch (error) {
-      console.error('Error creating service:', error);
-      toast.error('Erro ao criar serviço');
+      console.error('Erro ao criar serviço:', error);
+      toast.error(error instanceof Error ? error.message : 'Erro ao criar serviço');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -83,11 +111,11 @@ const NovoServico: React.FC = () => {
 
             <div className="flex items-center space-x-3">
               <Switch
-                id="is_active"
-                checked={formData.is_active}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+                id="available"
+                checked={formData.available}
+                onCheckedChange={(checked) => setFormData({ ...formData, available: checked })}
               />
-              <Label htmlFor="is_active" className="text-green-600">
+              <Label htmlFor="available" className="text-green-600">
                 Disponível
               </Label>
             </div>
@@ -100,8 +128,8 @@ const NovoServico: React.FC = () => {
               >
                 Cancelar
               </Button>
-              <Button type="submit">
-                Adicionar
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? 'Salvando...' : 'Adicionar'}
               </Button>
             </div>
           </form>

@@ -97,7 +97,7 @@ CREATE INDEX IF NOT EXISTS idx_appointments_service ON appointments(service_id);
 CREATE INDEX IF NOT EXISTS idx_appointments_patient ON appointments(patient_id);
 CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(appointment_date);
 CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status);
-CREATE INDEX IF NOT EXISTS idx_appointments_datetime ON appointments(appointment_date, start_time);
+CREATE INDEX IF NOT EXISTS idx_appointments_datetime ON appointments(appointment_date, appointment_time);
 CREATE INDEX IF NOT EXISTS idx_appointments_attendant_date 
     ON appointments(attendant_id, appointment_date);
 CREATE INDEX IF NOT EXISTS idx_appointments_active_status 

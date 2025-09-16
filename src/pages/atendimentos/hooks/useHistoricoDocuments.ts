@@ -71,7 +71,7 @@ export const useHistoricoDocuments = () => {
               sus
             )
           `)
-          .or('file_url_storage.is.null,file_url_storage.eq.,file_url_storage.eq.processing_error')
+          .or('file_url_storage.is.null,file_url_storage.eq."",file_url_storage.eq."processing_error"')
           .order('created_at', { ascending: false });
 
         if (processingError) {
