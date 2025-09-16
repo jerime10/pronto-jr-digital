@@ -73,9 +73,11 @@ export async function testScheduleSystem() {
       console.log('🔗 [Test] Teste 4: Criando atribuição de horário...');
       const assignmentData: ScheduleAssignmentFormData = {
         schedule_id: createdScheduleId,
-        attendant_id: 'test-attendant-id',
-        attendant_name: 'Test Attendant',
-        schedule_info: 'Horário de teste'
+        service_id: 'test-service-id',
+        max_appointments: 8,
+        appointment_duration: 30,
+        break_duration: 5,
+        is_active: true
       };
       
       const createdAssignment = await scheduleAssignmentService.createAssignment(assignmentData);
@@ -94,7 +96,7 @@ export async function testScheduleSystem() {
       
       if (createdAssignmentId) {
         console.log('📝 [Test] Teste 6: Atualizando atribuição...');
-        const updateData = { schedule_info: 'Horário de teste atualizado' };
+        const updateData = { max_appointments: 10 };
         const updatedAssignment = await scheduleAssignmentService.updateAssignment(createdAssignmentId, updateData);
         if (updatedAssignment) {
           testResults.assignments.update = true;
