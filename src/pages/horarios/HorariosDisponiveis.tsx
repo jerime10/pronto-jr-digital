@@ -20,9 +20,6 @@ export const HorariosDisponiveis: React.FC<HorariosDisponiveisProps> = ({ onHora
   // Usar o hook para buscar apenas atendentes ativos
   const { data: attendants, isLoading: isLoadingAttendants, error, refetch: refetchAttendants } = useActiveAttendants();
 
-
-  }, []);
-
   // Função para forçar recarregamento dos atendentes
   const handleRefreshAttendants = () => {
     console.log('🔄 Forçando refresh dos atendentes...');
