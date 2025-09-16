@@ -23,7 +23,6 @@ import HistoricoAtendimentos from './pages/atendimentos/HistoricoAtendimentos';
 import DiagnosticPage from './pages/DiagnosticPage';
 import SimpleAuthGuard from './components/SimpleAuthGuard';
 import PublicPatientRegistration from './pages/public/PublicPatientRegistration';
-import PublicAppointmentBooking from './pages/public/PublicAppointmentBooking';
 import Agendamentos from './pages/agendamentos/Agendamentos';
 import Atendentes from './pages/atendentes/Atendentes';
 import Horarios from './pages/horarios/Horarios';
@@ -67,9 +66,6 @@ function App() {
               
               {/* Public Patient Registration - Accessible without auth */}
               <Route path="/cadastro-paciente" element={<PublicPatientRegistration />} />
-              
-              {/* Public Appointment Booking - Accessible without auth */}
-              <Route path="/public/agendamento" element={<PublicAppointmentBooking />} />
               
               {/* Index redirect */}
               <Route path="/" element={

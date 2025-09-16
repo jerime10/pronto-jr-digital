@@ -6,39 +6,32 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-
-import { Calendar, Clock, Search, MoreVertical, Plus, Phone, Eye, Edit, Trash2, CheckCircle, XCircle, Archive, Loader2, User, MapPin } from 'lucide-react';
+import { Calendar, Clock, Search, MoreVertical, Plus, Phone, Eye, Edit, Trash2, CheckCircle, XCircle, Archive, Loader2 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useAppointments } from '@/hooks/useAppointments';
-import { AppointmentData } from '@/services/appointmentsService';
+import { useAppointments } from '@/hooks/useSchedules';
+import { AppointmentWithDetails } from '@/types/database';
 import { toast } from 'sonner';
 
 // Tipos de status de agendamento
-type AppointmentStatus = 'aguardando_atendimento' | 'atendimento_iniciado' | 'atendimento_finalizado' | 'agendamento_cancelado' | 'scheduled' | 'completed' | 'canceled' | 'archived';
+type AppointmentStatus = 'aguardando' | 'em_atendimento' | 'finalizado' | 'cancelado' | 'arquivado';
 
 // Mapeamento de status para exibição
 const statusLabels: Record<AppointmentStatus, string> = {
-  aguardando_atendimento: 'Aguardando Atendimento',
-  atendimento_iniciado: 'Atendimento Iniciado',
-  atendimento_finalizado: 'Atendimento Finalizado',
-  agendamento_cancelado: 'Agendamento Cancelado',
-  scheduled: 'Agendado',
-  completed: 'Finalizado',
-  canceled: 'Cancelado',
-  archived: 'Arquivado'
+  aguardando: 'Aguardando',
+  em_atendimento: 'Em Atendimento',
+  finalizado: 'Finalizado',
+  cancelado: 'Cancelado',
+  arquivado: 'Arquivado'
 };
 
 // Mapeamento de cores para status
 const statusColors: Record<AppointmentStatus, string> = {
-  aguardando_atendimento: 'bg-yellow-100 text-yellow-800',
-  atendimento_iniciado: 'bg-blue-100 text-blue-800',
-  atendimento_finalizado: 'bg-green-100 text-green-800',
-  agendamento_cancelado: 'bg-red-100 text-red-800',
-  scheduled: 'bg-yellow-100 text-yellow-800',
-  completed: 'bg-green-100 text-green-800',
-  canceled: 'bg-red-100 text-red-800',
-  archived: 'bg-gray-100 text-gray-800'
+  aguardando: 'bg-yellow-100 text-yellow-800',
+  em_atendimento: 'bg-blue-100 text-blue-800',
+  finalizado: 'bg-green-100 text-green-800',
+  cancelado: 'bg-red-100 text-red-800',
+  arquivado: 'bg-gray-100 text-gray-800'
 };
 const getStatusBadge = (status: AppointmentStatus) => {
   return (
@@ -49,120 +42,124 @@ const getStatusBadge = (status: AppointmentStatus) => {
 };
 
 const getActionOptions = (status: AppointmentStatus) => {
-  const baseOptions = [
-    { action: 'view', label: 'Visualizar', icon: Eye },
-    { action: 'edit', label: 'Editar', icon: Edit },
-  ];
-
   switch (status) {
-    case 'scheduled':
-    case 'aguardando_atendimento':
+    case 'aguardando':
+    case 'em_atendimento':
       return [
-        ...baseOptions,
-        { action: 'atendimento_iniciado', label: 'Iniciar Atendimento', icon: Clock },
-        { action: 'agendamento_cancelado', label: 'Cancelar', icon: XCircle },
+        { label: 'Finalizar', icon: CheckCircle, action: 'finalizar' },
+        { label: 'Cancelar', icon: XCircle, action: 'cancelar' },
+        { label: 'Arquivar', icon: Archive, action: 'arquivar' }
       ];
-    case 'atendimento_iniciado':
+    case 'finalizado':
       return [
-        ...baseOptions,
-        { action: 'atendimento_finalizado', label: 'Finalizar Atendimento', icon: CheckCircle },
-        { action: 'agendamento_cancelado', label: 'Cancelar', icon: XCircle },
+        { label: 'Cancelar', icon: XCircle, action: 'cancelar' },
+        { label: 'Arquivar', icon: Archive, action: 'arquivar' }
       ];
-    case 'atendimento_finalizado':
-    case 'completed':
+    case 'cancelado':
       return [
-        ...baseOptions,
-        { action: 'archived', label: 'Arquivar', icon: Archive },
+        { label: 'Finalizar', icon: CheckCircle, action: 'finalizar' },
+        { label: 'Arquivar', icon: Archive, action: 'arquivar' }
       ];
-    case 'agendamento_cancelado':
-    case 'canceled':
-    case 'archived':
-      return baseOptions;
+    case 'arquivado':
+      return [
+        { label: 'Finalizar', icon: CheckCircle, action: 'finalizar' },
+        { label: 'Cancelar', icon: XCircle, action: 'cancelar' }
+      ];
     default:
-      return baseOptions;
+      return [];
   }
 };
 
 interface AppointmentCardProps {
-  appointment: AppointmentData;
-  onAction: (appointmentId: string, action: string) => void;
+  appointment: AppointmentWithDetails;
+  onStatusChange: (appointmentId: string, newStatus: AppointmentStatus) => void;
 }
 
-const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction }) => {
-  
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  };
-
-  const formatDateTime = (dateTime: string) => {
-    try {
-      const appointmentDate = new Date(dateTime);
-      
-      return {
-        date: format(appointmentDate, 'dd/MM/yyyy', { locale: ptBR }),
-        time: format(appointmentDate, 'HH:mm', { locale: ptBR }),
-        dayOfWeek: format(appointmentDate, 'EEEE', { locale: ptBR })
-      };
-    } catch (error) {
-      return {
-        date: 'Data inválida',
-        time: 'Hora inválida',
-        dayOfWeek: ''
-      };
+const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onStatusChange }) => {
+  const handleAction = (action: string) => {
+    const statusMap: Record<string, AppointmentStatus> = {
+      finalizar: 'finalizado',
+      cancelar: 'cancelado',
+      arquivar: 'arquivado'
+    };
+    
+    const newStatus = statusMap[action];
+    if (newStatus) {
+      onStatusChange(appointment.id, newStatus);
     }
   };
 
-  const { date, time, dayOfWeek } = formatDateTime(appointment.appointment_datetime);
-  const actionOptions = getActionOptions(appointment.status as AppointmentStatus);
-
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-6">
+    <Card className="mb-4">
+      <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Avatar className="h-12 w-12">
-              <AvatarFallback className="bg-blue-100 text-blue-600">
-                {getInitials(appointment.patient_name)}
+            <Avatar className="h-10 w-10">
+              <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                {appointment.patient?.name ? 
+                  appointment.patient.name.split(' ').map(n => n[0]).join('').substring(0, 2) : 
+                  'PA'
+                }
               </AvatarFallback>
             </Avatar>
             
             <div className="flex-1">
-              <h3 className="font-semibold text-gray-900">{appointment.patient_name}</h3>
-              <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                <div className="flex items-center">
-                  <Calendar className="w-4 h-4 mr-1" />
-                  <span>{date} - {dayOfWeek}</span>
+              <div className="flex items-center space-x-2 mb-1">
+                <h3 className="font-medium text-sm">{appointment.patient?.name || 'Paciente não informado'}</h3>
+                {getStatusBadge(appointment.status as AppointmentStatus)}
+              </div>
+              
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div className="flex items-center space-x-4">
+                  <span className="flex items-center space-x-1">
+                    <Phone className="h-3 w-3" />
+                    <span>{appointment.patient?.phone || 'Não informado'}</span>
+                  </span>
+                  <span>{appointment.service?.name || 'Serviço não informado'}</span>
                 </div>
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 mr-1" />
-                  <span>{time}</span>
+                <div className="flex items-center space-x-4">
+                  <span className="flex items-center space-x-1">
+                    <Calendar className="h-3 w-3" />
+                    <span>{format(new Date(appointment.date), 'dd/MM/yyyy', { locale: ptBR })}</span>
+                  </span>
+                  <span className="flex items-center space-x-1">
+                    <Clock className="h-3 w-3" />
+                    <span>{appointment.time}</span>
+                  </span>
+                  <span>{appointment.professional?.name || 'Profissional não informado'}</span>
                 </div>
               </div>
             </div>
           </div>
           
-          <div className="flex items-center space-x-3">
-            {getStatusBadge(appointment.status as AppointmentStatus)}
+          <div className="flex items-center space-x-2">
+            <Button variant="ghost" size="sm">
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm">
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm">
+              <Phone className="h-4 w-4" />
+            </Button>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm">
-                  <MoreVertical className="w-4 h-4" />
+                  <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {actionOptions.map((option) => {
-                  const Icon = option.icon;
-                  return (
-                    <DropdownMenuItem
-                      key={option.action}
-                      onClick={() => onAction(appointment.id, option.action)}
-                    >
-                      <Icon className="w-4 h-4 mr-2" />
-                      {option.label}
-                    </DropdownMenuItem>
-                  );
-                })}
+                {getActionOptions(appointment.status as AppointmentStatus).map((option) => (
+                  <DropdownMenuItem
+                    key={option.action}
+                    onClick={() => handleAction(option.action)}
+                    className="flex items-center space-x-2"
+                  >
+                    <option.icon className="h-4 w-4" />
+                    <span>{option.label}</span>
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -174,41 +171,29 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
 
 const Agendamentos: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus | 'todos'>('todos');
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [activeTab, setActiveTab] = useState('todos');
   
+  // Hooks para gerenciar agendamentos
   const { 
-    data: appointments, 
+    data: appointments = [], 
     isLoading, 
-    error, 
-    updateAppointmentStatus,
-    refetch: refreshAppointments,
-    counts
-  } = useAppointments({
-    searchTerm,
-    status: selectedStatus === 'todos' ? undefined : selectedStatus,
-    date: selectedDate
-  });
+    error,
+    refetch,
+    updateAppointmentStatus 
+  } = useAppointments();
 
   const handleStatusChange = async (appointmentId: string, newStatus: AppointmentStatus) => {
     try {
-      await updateAppointmentStatus({ id: appointmentId, status: newStatus });
+      await updateAppointmentStatus.mutateAsync({
+        appointmentId,
+        status: newStatus
+      });
+      toast.success('Status do agendamento atualizado com sucesso!');
+      refetch();
     } catch (error) {
-      console.error('Erro ao atualizar status:', error);
       toast.error('Erro ao atualizar status do agendamento');
+      console.error('Erro ao atualizar status:', error);
     }
-  };
-
-
-
-  const handleAction = async (appointmentId: string, action: string) => {
-    await handleStatusChange(appointmentId, action as AppointmentStatus);
-  };
-
-  // Contar agendamentos por status usando os dados do hook
-  const getStatusCount = (status: AppointmentStatus | 'todos') => {
-    if (status === 'todos') return counts?.total || 0;
-    return counts?.[status] || 0;
   };
 
   const filterAppointmentsByStatus = (status?: string) => {
@@ -246,7 +231,7 @@ const Agendamentos: React.FC = () => {
     return (
       <div className="text-center py-8">
         <p className="text-red-600 mb-4">Erro ao carregar agendamentos</p>
-        <Button onClick={() => refreshAppointments()}>Tentar novamente</Button>
+        <Button onClick={() => refetch()}>Tentar novamente</Button>
       </div>
     );
   }
@@ -259,10 +244,7 @@ const Agendamentos: React.FC = () => {
           <p className="text-muted-foreground">Gerencie os agendamentos da clínica</p>
         </div>
         
-        <Button 
-          className="bg-blue-600 hover:bg-blue-700"
-          onClick={() => window.open('/public/agendamento', '_blank')}
-        >
+        <Button>
           <Plus className="h-4 w-4 mr-2" />
           Novo Agendamento
         </Button>
@@ -284,62 +266,51 @@ const Agendamentos: React.FC = () => {
         </CardHeader>
         
         <CardContent>
-          <Tabs value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as AppointmentStatus | 'todos')} className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="todos">
-                Todos ({getStatusCount('todos')})
+              <TabsTrigger value="todos" className="text-xs">
+                Todos ({getTabCount()})
               </TabsTrigger>
-              <TabsTrigger value="scheduled">
-                Agendados ({getStatusCount('scheduled')})
+              <TabsTrigger value="aguardando" className="text-xs">
+                Aguardando ({getTabCount('aguardando')})
               </TabsTrigger>
-              <TabsTrigger value="confirmed">
-                Confirmados ({getStatusCount('confirmed')})
+              <TabsTrigger value="em_atendimento" className="text-xs">
+                Em Atendimento ({getTabCount('em_atendimento')})
               </TabsTrigger>
-              <TabsTrigger value="in_progress">
-                Em Atendimento ({getStatusCount('in_progress')})
+              <TabsTrigger value="finalizado" className="text-xs">
+                Finalizados ({getTabCount('finalizado')})
               </TabsTrigger>
-              <TabsTrigger value="completed">
-                Finalizados ({getStatusCount('completed')})
+              <TabsTrigger value="cancelado" className="text-xs">
+                Cancelados ({getTabCount('cancelado')})
               </TabsTrigger>
-              <TabsTrigger value="cancelled">
-                Cancelados ({getStatusCount('cancelled')})
+              <TabsTrigger value="arquivado" className="text-xs">
+                Arquivados ({getTabCount('arquivado')})
               </TabsTrigger>
             </TabsList>
             
-            {['todos', 'scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled'].map((status) => (
+            {['todos', 'aguardando', 'em_atendimento', 'finalizado', 'cancelado', 'arquivado'].map((status) => (
               <TabsContent key={status} value={status} className="mt-6">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                    <span className="ml-2">Carregando agendamentos...</span>
-                  </div>
-                ) : error ? (
-                  <div className="text-center py-8 text-red-600">
-                    Erro ao carregar agendamentos: {error}
-                  </div>
-                ) : appointments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-500">Nenhum agendamento encontrado</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {appointments.map((appointment) => (
-                      <AppointmentCard
-                        key={appointment.id}
-                        appointment={appointment}
-                        onAction={handleAction}
+                <div className="space-y-4">
+                  {filterAppointmentsByStatus(status === 'todos' ? undefined : status).length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhum agendamento encontrado</p>
+                    </div>
+                  ) : (
+                    filterAppointmentsByStatus(status === 'todos' ? undefined : status).map((appointment) => (
+                      <AppointmentCard 
+                        key={appointment.id} 
+                        appointment={appointment} 
+                        onStatusChange={handleStatusChange}
                       />
-                    ))}
-                  </div>
-                )}
+                    ))
+                  )}
+                </div>
               </TabsContent>
             ))}
           </Tabs>
         </CardContent>
       </Card>
-
-
     </div>
   );
 };
