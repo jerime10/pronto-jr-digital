@@ -81,17 +81,18 @@ export function useDiagnostics() {
   return useQuery({
     queryKey: ['diagnostics'],
     queryFn: async () => {
-      const results = await Promise.allSettled([
+    const results = await Promise.allSettled([
         supabase.from('patients').select('id').limit(1),
         supabase.from('prescription_models').select('id').limit(1),
         supabase.from('exam_models').select('id').limit(1),
+        supabase.from('professionals').select('id').limit(1),
       ]);
 
       return {
         patients: results[0].status === 'fulfilled' && !results[0].value.error,
         prescriptions: results[1].status === 'fulfilled' && !results[1].value.error,
         exams: results[2].status === 'fulfilled' && !results[2].value.error,
-        professionals: true,
+        professionals: results[3].status === 'fulfilled' && !results[3].value.error,
       };
     },
     refetchInterval: 10000,
