@@ -100,7 +100,7 @@ const MainLayout: React.FC = () => {
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <div className="w-8 h-8 rounded-full bg-medical-primary text-white flex items-center justify-center">
                       <span className="font-medium text-sm">
-                        {user?.username?.substring(0, 2).toUpperCase() || 'US'}
+                        {user?.username ? user.username.substring(0, 2).toUpperCase() : 'US'}
                       </span>
                     </div>
                   </Button>

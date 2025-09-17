@@ -550,7 +550,7 @@ export const PublicPatientRegistration: React.FC = () => {
                   <PatientFormFields 
                     formData={{
                       ...formData,
-                      name: formData.name.toUpperCase(),
+                      name: formData.name ? formData.name.toUpperCase() : '',
                       sus: formData.sus,
                       gender: formData.gender,
                       phone: formData.phone,

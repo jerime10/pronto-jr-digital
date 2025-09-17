@@ -3,10 +3,11 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Calendar, Download, Eye, FileText, Phone, User, AlertCircle, Loader2, Trash2, MessageCircle, Clock } from 'lucide-react';
+import { Calendar, Download, Eye, FileText, Phone, User, AlertCircle, Loader2, Trash2, MessageCircle, Clock, Baby } from 'lucide-react';
 import { HistoricoDocument } from '../hooks/useHistoricoDocuments';
 import { format, differenceInMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatPregnancyDisplay } from '@/utils/pregnancyUtils';
 import {
   downloadHistoricoDocument,
   viewHistoricoDocument,
@@ -99,7 +100,7 @@ export const HistoricoDocumentListView: React.FC<HistoricoDocumentListViewProps>
             <TableHead>Início Atendimento</TableHead>
             <TableHead>Término Atendimento</TableHead>
             <TableHead>Duração</TableHead>
-            <TableHead>Data Criação</TableHead>
+            <TableHead>Informações Obstétricas</TableHead>
             <TableHead>Ações</TableHead>
           </TableRow>
         </TableHeader>
@@ -154,7 +155,16 @@ export const HistoricoDocumentListView: React.FC<HistoricoDocumentListViewProps>
                   )}
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm">{formatDate(document.created_at)}</span>
+                  {document.dum ? (
+                    <div className="flex items-center gap-2 text-pink-600">
+                      <Baby className="w-4 h-4" />
+                      <span className="text-sm font-medium">
+                        {formatPregnancyDisplay(document.dum)}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-500">-</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">

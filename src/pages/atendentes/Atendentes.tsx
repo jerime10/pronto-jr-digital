@@ -274,7 +274,7 @@ const AttendantForm: React.FC<AttendantFormProps> = ({ attendant, onClose }) => 
               <ImageUploader
                 currentImage={formData.photo_url}
                 onImageChange={(imageUrl) => setFormData({ ...formData, photo_url: imageUrl || '' })}
-                placeholder={formData.name ? formData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'AT'}
+                placeholder={formData.name && typeof formData.name === 'string' ? formData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'AT'}
                 size="md"
                 disabled={isLoading}
               />

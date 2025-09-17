@@ -192,6 +192,7 @@ export type Appointment = {
   appointment_datetime: string; // Tratamento de fuso horário
   notes: string | null;
   status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+  dum: string | null; // Data da Última Menstruação para serviços obstétricos
   created_at: string;
   updated_at: string;
 };
@@ -223,12 +224,17 @@ export type AppointmentFormData = {
   patient_name?: string;
   patient_phone?: string;
   attendant_id: string;
+  attendant_name?: string;
   service_id: string;
+  service_name?: string;
+  service_price?: number;
+  service_duration?: number;
   appointment_date: string; // Data do agendamento
   appointment_time: string; // Hora do agendamento
   appointment_datetime?: string; // Será calculado automaticamente
   notes?: string;
   status?: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+  dum?: string; // Data da Última Menstruação para serviços obstétricos
 };
 
 // ============================================

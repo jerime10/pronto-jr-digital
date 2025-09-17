@@ -53,7 +53,7 @@ const PacienteBusca: React.FC<PacienteBuscaProps> = ({
             <Avatar className="h-12 w-12">
               <AvatarImage src={`https://avatar.vercel.sh/${pacienteSelecionado.name}.png`} />
               <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                {pacienteSelecionado.name.substring(0, 2).toUpperCase()}
+                {pacienteSelecionado.name ? pacienteSelecionado.name.substring(0, 2).toUpperCase() : 'PA'}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
@@ -132,7 +132,7 @@ const PacienteBusca: React.FC<PacienteBuscaProps> = ({
                       <Avatar className="h-10 w-10">
                         <AvatarImage src={`https://avatar.vercel.sh/${paciente.name}.png`} />
                         <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                          {paciente.name.substring(0, 2).toUpperCase()}
+                          {paciente.name ? paciente.name.substring(0, 2).toUpperCase() : 'PA'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">

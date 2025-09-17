@@ -16,6 +16,12 @@ export interface HistoricoDocument {
   attendance_end_at: string | null;
   created_at: string;
   status: 'ready' | 'processing' | 'error';
+  // Informações obstétricas
+  dum?: string | null; // Data da Última Menstruação
+  appointment?: {
+    dum?: string | null;
+    service?: string | null;
+  } | null;
 }
 
 export const useHistoricoDocuments = () => {
@@ -39,11 +45,18 @@ export const useHistoricoDocuments = () => {
             attendance_start_at,
             attendance_end_at,
             created_at,
+            dum,
+            appointment_id,
             patients!inner(
               id,
               name,
               phone,
               sus
+            ),
+            appointments(
+              id,
+              dum,
+              service
             )
           `)
           .not('file_url_storage', 'is', null)
@@ -64,11 +77,18 @@ export const useHistoricoDocuments = () => {
             attendance_start_at,
             attendance_end_at,
             created_at,
+            dum,
+            appointment_id,
             patients!inner(
               id,
               name,
               phone,
               sus
+            ),
+            appointments(
+              id,
+              dum,
+              service
             )
           `)
           .or('file_url_storage.is.null,file_url_storage.eq."",file_url_storage.eq."processing_error"')
@@ -99,7 +119,12 @@ export const useHistoricoDocuments = () => {
                 attendance_start_at: record.attendance_start_at,
                 attendance_end_at: record.attendance_end_at,
                 created_at: record.created_at,
-                status: 'ready' as const
+                status: 'ready' as const,
+                dum: record.dum || record.appointments?.dum || null,
+                appointment: record.appointments ? {
+                  dum: record.appointments.dum,
+                  service: record.appointments.service
+                } : null
               });
             } catch (error) {
               console.error('Erro ao processar prontuário pronto:', record.id, error);
@@ -130,7 +155,12 @@ export const useHistoricoDocuments = () => {
                 attendance_start_at: record.attendance_start_at,
                 attendance_end_at: record.attendance_end_at,
                 created_at: record.created_at,
-                status
+                status,
+                dum: record.dum || record.appointments?.dum || null,
+                appointment: record.appointments ? {
+                  dum: record.appointments.dum,
+                  service: record.appointments.service
+                } : null
               });
             } catch (error) {
               console.error('Erro ao processar prontuário em processamento:', record.id, error);

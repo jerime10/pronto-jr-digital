@@ -8,12 +8,14 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 
-import { Calendar, Clock, Search, MoreVertical, Plus, Phone, Trash2, CheckCircle, XCircle, Archive, Loader2, User, MapPin } from 'lucide-react';
+import { Calendar, Clock, Search, MoreVertical, Plus, Phone, Trash2, CheckCircle, XCircle, Archive, Loader2, User, MapPin, Baby } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAppointments } from '@/hooks/useAppointments';
 import { AppointmentData } from '@/services/appointmentsService';
 import { toast } from 'sonner';
+import { formatPregnancyDisplay } from '@/utils/pregnancyUtils';
+import { isObstetricService } from '@/utils/obstetricUtils';
 
 // Tipos de status de agendamento
 type AppointmentStatus = 'aguardando_atendimento' | 'atendimento_iniciado' | 'atendimento_finalizado' | 'agendamento_cancelado' | 'scheduled' | 'completed' | 'canceled' | 'archived';
@@ -85,7 +87,11 @@ interface AppointmentCardProps {
 
 const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction }) => {
   
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | null | undefined) => {
+    // Verificação de segurança para evitar erro com valores null/undefined
+    if (!name || typeof name !== 'string') {
+      return 'PA'; // Fallback para "Paciente"
+    }
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
@@ -133,6 +139,13 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
                   <span>{time}</span>
                 </div>
               </div>
+              {/* Exibir informações obstétricas se disponíveis */}
+              {appointment.dum && isObstetricService(appointment.service_name) && (
+                <div className="flex items-center text-sm text-pink-600 mt-2 bg-pink-50 px-2 py-1 rounded-md">
+                  <Baby className="w-4 h-4 mr-1" />
+                  <span className="font-medium">{formatPregnancyDisplay(appointment.dum)}</span>
+                </div>
+              )}
             </div>
           </div>
           
@@ -173,6 +186,20 @@ const Agendamentos: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus | 'todos'>('todos');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
+  // Mapear status da interface para status do banco para o hook
+  const getDbStatusForHook = (status: AppointmentStatus | 'todos') => {
+    if (status === 'todos') return undefined;
+    
+    const statusMapping: Record<string, string> = {
+      'aguardando_atendimento': 'scheduled',
+      'atendimento_iniciado': 'atendimento_iniciado',
+      'atendimento_finalizado': 'completed',
+      'agendamento_cancelado': 'cancelled'
+    };
+    
+    return statusMapping[status] || status;
+  };
+
   const { 
     data: appointments, 
     isLoading, 
@@ -183,8 +210,7 @@ const Agendamentos: React.FC = () => {
     counts
   } = useAppointments({
     searchTerm,
-    status: selectedStatus === 'todos' ? undefined : selectedStatus,
-    date: selectedDate
+    status: getDbStatusForHook(selectedStatus)
   });
 
   const handleStatusChange = async (appointmentId: string, newStatus: AppointmentStatus) => {

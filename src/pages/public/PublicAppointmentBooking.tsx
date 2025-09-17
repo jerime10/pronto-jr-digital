@@ -7,12 +7,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar, Search, CheckCircle, AlertCircle, Sparkles, Shield, Clock, User, Phone, ChevronLeft, ChevronRight, ArrowRight, FileText, Save } from 'lucide-react';
-import Logo from '@/components/Logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { formatPhoneNumber, isValidPhoneNumber, cleanPhoneNumber } from '@/utils/phoneUtils';
 import { formatCpfOrSus, isValidCpfOrSus, cleanCpfOrSus } from '@/utils/cpfSusUtils';
+import { formatDateForDB } from '@/utils/dateUtils';
 import { appointmentService } from '@/services/scheduleService';
 import { serviceAssignmentService } from '@/services/serviceAssignmentService';
 import { debugLogger, startTimer, endTimer } from '@/utils/debugLogger';
@@ -833,6 +833,17 @@ export const PublicAppointmentBooking: React.FC = () => {
   // Função para confirmar data e horário
   const confirmDateTime = () => {
     if (selectedDate && selectedTime) {
+      // Formatar data no padrão ISO (YYYY-MM-DD) para o banco
+      const appointmentDate = selectedDate.toISOString().split('T')[0];
+      const appointmentDateTime = `${appointmentDate} ${selectedTime}:00`;
+      
+      // Atualizar formData com os valores corretos
+      setFormData(prev => ({
+        ...prev,
+        appointment_date: appointmentDate,
+        appointment_datetime: appointmentDateTime
+      }));
+      
       setCurrentStep('confirmation');
     }
   };
@@ -851,7 +862,7 @@ export const PublicAppointmentBooking: React.FC = () => {
       const appointmentDate = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
       const appointmentDateTime = `${appointmentDate} ${selectedTime}:00`; // YYYY-MM-DD HH:MM:SS
       
-      // Dados do agendamento
+      // Dados do agendamento - mapeando corretamente para a interface AppointmentFormData do database.ts
       const appointmentData = {
         patient_name: patient.name,
         patient_phone: patient.phone,
@@ -862,13 +873,13 @@ export const PublicAppointmentBooking: React.FC = () => {
         service_price: formData.service_price,
         service_duration: formData.service_duration,
         appointment_date: appointmentDate,
-        appointment_datetime: appointmentDateTime,
         appointment_time: selectedTime, // Hora escolhida pelo usuário
+        appointment_datetime: appointmentDateTime,
         notes: formData.notes || null,
-        status: 'scheduled',
-        // Incluir DUM apenas para serviços obstétricos
+        status: 'scheduled' as const,
+        // Incluir DUM apenas para serviços obstétricos (convertendo para formato ISO)
         ...(isObstetricService(formData.service_name) && obstetricData.dum && {
-          dum: obstetricData.dum
+          dum: formatDateForDB(obstetricData.dum)
         })
       };
 
@@ -1076,14 +1087,12 @@ export const PublicAppointmentBooking: React.FC = () => {
               </div>
             </div>
             {/* Logo AGENDA ABERTA */}
-            <div className="flex justify-center mb-4 mt-2">
-              <div className="text-center animate-fade-in">
-                <Logo className="justify-center mb-2" showText={true} />
-                <h2 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 tracking-wider">
-                  AGENDA ABERTA
-                </h2>
-                <p className="text-slate-400 text-sm mt-1">Sistema de Agendamento Online</p>
-              </div>
+            <div className="flex justify-center mb -40 mt -25 px -15">
+              <img 
+                src="/LOGO_AGENDA_ABERTA-removebg-preview.png" 
+                alt="Agenda Aberta" 
+                className="h-56 sm:h-64 md:h-72 lg:h-80 xl:h-88 2xl:h-96 w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl object-contain animate-fade-in"
+              />
             </div>
           </CardHeader>
           
@@ -1372,7 +1381,7 @@ export const PublicAppointmentBooking: React.FC = () => {
                                 />
                               )}
                               <AvatarFallback className="bg-blue-500/20 text-blue-400 font-semibold">
-                                {attendant.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                {attendant.name ? attendant.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'AT'}
                               </AvatarFallback>
                             </Avatar>
                             <div>

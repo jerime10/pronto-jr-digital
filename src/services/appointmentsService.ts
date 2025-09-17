@@ -15,6 +15,9 @@ export interface AppointmentData {
   appointment_datetime: string;
   notes?: string;
   status: string;
+  dum?: string | null; // Data da Última Menstruação para serviços obstétricos
+  patient_id?: string | null; // Nova coluna adicionada
+  end_time?: string | null; // Nova coluna adicionada
   created_at: string;
   updated_at: string;
 }
@@ -29,6 +32,8 @@ export interface AppointmentFilters {
 export const appointmentsService = {
   // Buscar todos os agendamentos
   async getAllAppointments(filters?: AppointmentFilters): Promise<AppointmentData[]> {
+    console.log('🔍 getAllAppointments chamado com filtros:', filters);
+    
     let query = supabase
       .from('appointments')
       .select('*')
