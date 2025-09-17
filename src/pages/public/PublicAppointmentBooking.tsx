@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar, Search, CheckCircle, AlertCircle, Sparkles, Shield, Clock, User, Phone, ChevronLeft, ChevronRight, ArrowRight, FileText, Save } from 'lucide-react';
+import Logo from '@/components/Logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +17,8 @@ import { appointmentService } from '@/services/scheduleService';
 import { serviceAssignmentService } from '@/services/serviceAssignmentService';
 import { debugLogger, startTimer, endTimer } from '@/utils/debugLogger';
 import { useDocumentAssets } from '@/hooks/useDocumentAssets';
+import { ObstetricFields, ObstetricData } from '@/components/schedule/ObstetricFields';
+import { isObstetricService } from '@/utils/obstetricUtils';
 import '../../styles/animations.css';
 
 interface Patient {
@@ -51,6 +54,13 @@ interface AppointmentFormData {
   appointment_date: string;
   appointment_datetime: string;
   notes: string;
+  // Campos obstétricos
+  obstetric_data?: {
+    dum: string;
+    gestational_age: string;
+    dpp: string;
+    is_obstetric: boolean;
+  };
 }
 
 type BookingStep = 'cpf_input' | 'welcome_update' | 'attendant_selection' | 'service_selection' | 'datetime_selection' | 'confirmation';
@@ -89,6 +99,15 @@ export const PublicAppointmentBooking: React.FC = () => {
   const [tempPhone, setTempPhone] = useState('');
   const [isUpdatingPhone, setIsUpdatingPhone] = useState(false);
   const [greeting, setGreeting] = useState('');
+  
+  // Estados para dados obstétricos
+  const [isObstetricSelected, setIsObstetricSelected] = useState(false);
+  const [obstetricData, setObstetricData] = useState<ObstetricData>({
+    dum: '',
+    gestationalAge: '',
+    dpp: '',
+    isValid: false
+  });
 
   // Hook para acessar os assets de documentos
   const { attendantLogoData } = useDocumentAssets();
@@ -361,7 +380,7 @@ export const PublicAppointmentBooking: React.FC = () => {
         toast.error('Paciente não encontrado. É necessário realizar o cadastro primeiro.');
         // Redirecionar para cadastro público
         setTimeout(() => {
-          window.location.href = '/public/patient-registration';
+          window.location.href = '/cadastro-paciente';
         }, 2000);
       }
       
@@ -418,7 +437,7 @@ export const PublicAppointmentBooking: React.FC = () => {
       } else {
         toast.error('Paciente não encontrado. É necessário realizar o cadastro primeiro.');
         setTimeout(() => {
-          window.location.href = '/public/patient-registration';
+          window.location.href = '/cadastro-paciente';
         }, 2000);
       }
       
@@ -466,15 +485,65 @@ export const PublicAppointmentBooking: React.FC = () => {
   const handleServiceSelection = (serviceId: string) => {
     const selectedService = services.find(s => s.id === serviceId);
     if (selectedService) {
+      const isObstetric = isObstetricService(selectedService.name);
+      
       setFormData(prev => ({
         ...prev,
         service_id: serviceId,
         service_name: selectedService.name,
         service_price: selectedService.price,
-        service_duration: selectedService.duration
+        service_duration: selectedService.duration,
+        obstetric_data: isObstetric ? {
+          dum: '',
+          gestational_age: '',
+          dpp: '',
+          is_obstetric: true
+        } : undefined
       }));
       
+      setIsObstetricSelected(isObstetric);
+      
+      // Se for obstétrico, resetar dados obstétricos
+      if (isObstetric) {
+        setObstetricData({
+          dum: '',
+          gestationalAge: '',
+          dpp: '',
+          isValid: false
+        });
+      }
+      
+      // Se não for obstétrico, vai direto para seleção de data/hora
+      if (!isObstetric) {
+        setCurrentStep('datetime_selection');
+      }
+    }
+  };
+
+  // Função para lidar com dados obstétricos
+  const handleObstetricDataChange = useCallback((data: ObstetricData) => {
+    setObstetricData(data);
+    
+    // Atualiza os dados no formulário
+    if (data.isValid) {
+      setFormData(prev => ({
+        ...prev,
+        obstetric_data: {
+          dum: data.dum,
+          gestational_age: data.gestationalAge,
+          dpp: data.dpp,
+          is_obstetric: true
+        }
+      }));
+    }
+  }, []);
+
+  // Função para prosseguir após preencher dados obstétricos
+  const proceedFromObstetricData = () => {
+    if (obstetricData.isValid) {
       setCurrentStep('datetime_selection');
+    } else {
+      toast.error('Por favor, preencha corretamente a data da última menstruação');
     }
   };
 
@@ -796,7 +865,11 @@ export const PublicAppointmentBooking: React.FC = () => {
         appointment_datetime: appointmentDateTime,
         appointment_time: selectedTime, // Hora escolhida pelo usuário
         notes: formData.notes || null,
-        status: 'scheduled'
+        status: 'scheduled',
+        // Incluir DUM apenas para serviços obstétricos
+        ...(isObstetricService(formData.service_name) && obstetricData.dum && {
+          dum: obstetricData.dum
+        })
       };
 
       // Usar o appointmentService que já inclui validação de conflitos
@@ -810,10 +883,11 @@ export const PublicAppointmentBooking: React.FC = () => {
       // Sucesso
       toast.success('Agendamento criado com sucesso!');
       
-      // Resetar formulário e redirecionar para a primeira etapa após sucesso
+      // Resetar formulário e direcionar para novo agendamento após sucesso
       setTimeout(() => {
         resetForm();
         setCurrentStep('cpf_input');
+        toast.info('Você pode fazer um novo agendamento agora!');
       }, 2000);
       
     } catch (error) {
@@ -867,9 +941,10 @@ export const PublicAppointmentBooking: React.FC = () => {
       toast.success('Agendamento realizado com sucesso!');
       
       setTimeout(() => {
-        if (publicLinks.exit_url) {
-          window.location.href = publicLinks.exit_url;
-        }
+        // Ao invés de sair, direcionar para novo agendamento
+        resetForm();
+        setCurrentStep('cpf_input');
+        toast.info('Você pode fazer um novo agendamento agora!');
       }, 2000);
       
     } catch (error) {
@@ -889,6 +964,18 @@ export const PublicAppointmentBooking: React.FC = () => {
   const resetForm = () => {
     setSusNumber('');
     setPatient(null);
+    setCpfSusInput('');
+    setTempPhone('');
+    setIsUpdatingPhone(false);
+    setSelectedDate(null);
+    setSelectedTime('');
+    setObstetricData({
+      dum: '',
+      gestationalAge: '',
+      dpp: '',
+      isValid: false
+    });
+    setIsObstetricSelected(false);
     setFormData({
       client_name: '',
       client_phone: '',
@@ -902,7 +989,7 @@ export const PublicAppointmentBooking: React.FC = () => {
       appointment_datetime: '',
       notes: ''
     });
-    setCurrentStep('patient_validation');
+    setCurrentStep('cpf_input');
   };
 
   const goBack = () => {
@@ -989,12 +1076,14 @@ export const PublicAppointmentBooking: React.FC = () => {
               </div>
             </div>
             {/* Logo AGENDA ABERTA */}
-            <div className="flex justify-center mb -40 mt -25 px -15">
-              <img 
-                src="/LOGO_AGENDA_ABERTA-removebg-preview.png" 
-                alt="Agenda Aberta" 
-                className="h-56 sm:h-64 md:h-72 lg:h-80 xl:h-88 2xl:h-96 w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl object-contain animate-fade-in"
-              />
+            <div className="flex justify-center mb-4 mt-2">
+              <div className="text-center animate-fade-in">
+                <Logo className="justify-center mb-2" showText={true} />
+                <h2 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 tracking-wider">
+                  AGENDA ABERTA
+                </h2>
+                <p className="text-slate-400 text-sm mt-1">Sistema de Agendamento Online</p>
+              </div>
             </div>
           </CardHeader>
           
@@ -1185,6 +1274,58 @@ export const PublicAppointmentBooking: React.FC = () => {
                     className="w-full h-12 sm:h-14 bg-slate-700/50 border-slate-600/50 text-slate-200 hover:bg-slate-600/50 hover:text-white font-semibold text-sm sm:text-base tracking-wide transition-all duration-300 focus-glow smooth-transition"
                   >
                     VOLTAR
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Etapa 2.5: Campos Obstétricos (quando serviço obstétrico é selecionado) */}
+            {isObstetricSelected && (
+              <div className="space-y-6">
+                <div className="text-center space-y-4">
+                  <div className="flex justify-center mb-4">
+                    <div className="relative animate-float">
+                      <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
+                      <div className="relative bg-gradient-to-r from-pink-500 to-purple-500 p-3 rounded-full gradient-button">
+                        <CheckCircle className="h-8 w-8 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">
+                    DADOS GESTACIONAIS
+                  </h3>
+                  
+                  <p className="text-slate-300 text-sm sm:text-base mb-2">
+                    SERVIÇO SELECIONADO: <span className="text-pink-400 font-semibold">{formData.service_name}</span>
+                  </p>
+                  
+                  <p className="text-slate-300 text-sm sm:text-base mb-6">
+                    PREENCHA OS DADOS OBSTÉTRICOS
+                  </p>
+                </div>
+
+                <ObstetricFields 
+                  onDataChange={handleObstetricDataChange}
+                  className="animate-fade-in"
+                />
+
+                <div className="flex gap-4">
+                  <Button 
+                    onClick={goBack}
+                    variant="outline"
+                    className="w-full h-12 sm:h-14 bg-slate-700/50 border-slate-600/50 text-slate-200 hover:bg-slate-600/50 hover:text-white font-semibold text-sm sm:text-base tracking-wide transition-all duration-300 focus-glow smooth-transition"
+                  >
+                    VOLTAR
+                  </Button>
+                  
+                  <Button 
+                    onClick={proceedFromObstetricData}
+                    disabled={!obstetricData.isValid}
+                    className="w-full h-12 sm:h-14 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold text-sm sm:text-base tracking-wide transition-all duration-300 focus-glow smooth-transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    CONTINUAR
+                    <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </div>
               </div>
