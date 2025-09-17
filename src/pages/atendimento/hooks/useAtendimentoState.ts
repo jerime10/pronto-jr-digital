@@ -8,7 +8,11 @@ import { useSaveActions } from './useSaveActions';
 import { useAtendimentoHelpers } from './useAtendimentoHelpers';
 import { useLocalStoragePersistence } from './useLocalStoragePersistence';
 
-export const useAtendimentoState = (selectedModelTitle?: string | null) => {
+export const useAtendimentoState = (selectedModelTitle?: string | null, initialPatient?: any, appointmentId?: string) => {
+  // Debug logs para rastrear dados do paciente e appointment
+  console.log('🔍 useAtendimentoState - initialPatient recebido:', initialPatient);
+  console.log('🔍 useAtendimentoState - appointmentId recebido:', appointmentId);
+  
   const { activeTab, setActiveTab } = useTabState();
   const { 
     buscarPaciente, 
@@ -21,7 +25,7 @@ export const useAtendimentoState = (selectedModelTitle?: string | null) => {
     handleClearPaciente,
     handleInputFocus,
     handleInputBlur
-  } = usePacienteSearch();
+  } = usePacienteSearch(initialPatient);
   
   const { professional: profissionalAtual, isLoadingProfessional } = useProfessionalData();
   
@@ -61,7 +65,8 @@ export const useAtendimentoState = (selectedModelTitle?: string | null) => {
     form,
     examModels,
     resetForm, // Passando a função resetForm para o hook
-    selectedModelTitle
+    selectedModelTitle,
+    appointmentId
   });
 
   // Use our new helper hook to handle AI content processing

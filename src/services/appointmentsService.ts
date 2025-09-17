@@ -98,6 +98,19 @@ export const appointmentsService = {
     return appointment;
   },
 
+  // Excluir agendamento permanentemente
+  async deleteAppointment(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('appointments')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Erro ao excluir agendamento:', error);
+      throw new Error(`Erro ao excluir agendamento: ${error.message}`);
+    }
+  },
+
   // Contar agendamentos por status
   async getAppointmentCounts(): Promise<Record<string, number>> {
     const { data: appointments, error } = await supabase
@@ -113,6 +126,7 @@ export const appointmentsService = {
       todos: appointments?.length || 0,
       scheduled: 0,
       confirmed: 0,
+      atendimento_iniciado: 0,
       in_progress: 0,
       completed: 0,
       cancelled: 0,

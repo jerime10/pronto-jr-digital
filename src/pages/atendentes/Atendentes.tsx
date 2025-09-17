@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
@@ -22,6 +22,7 @@ import {
   searchAttendants 
 } from '@/services/attendantService';
 import { supabase } from '@/integrations/supabase/client';
+import ImageUploader from '@/components/ui/ImageUploader';
 
 
 
@@ -270,17 +271,13 @@ const AttendantForm: React.FC<AttendantFormProps> = ({ attendant, onClose }) => 
             
             <div className="space-y-2">
               <Label>Foto do Atendente</Label>
-              <div className="flex flex-col items-center space-y-4">
-                <Avatar className="w-24 h-24">
-                  <AvatarFallback className="text-2xl bg-gray-200">
-                    {formData.name ? formData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'AT'}
-                  </AvatarFallback>
-                </Avatar>
-                <Button type="button" variant="outline" size="sm">
-                  <Camera className="w-4 h-4 mr-2" />
-                  Adicionar foto
-                </Button>
-              </div>
+              <ImageUploader
+                currentImage={formData.photo_url}
+                onImageChange={(imageUrl) => setFormData({ ...formData, photo_url: imageUrl || '' })}
+                placeholder={formData.name ? formData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'AT'}
+                size="md"
+                disabled={isLoading}
+              />
             </div>
           </div>
         </TabsContent>
@@ -534,6 +531,9 @@ const Atendentes: React.FC = () => {
                   <div key={attendant.id} className="grid grid-cols-12 gap-4 items-center py-3 border-b border-gray-100 last:border-0">
                     <div className="col-span-3 flex items-center space-x-3">
                       <Avatar className="h-10 w-10">
+                        {attendant.photo_url ? (
+                          <AvatarImage src={attendant.photo_url} alt={attendant.name} />
+                        ) : null}
                         <AvatarFallback className="bg-primary/10 text-primary font-medium">
                           {attendant.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                         </AvatarFallback>

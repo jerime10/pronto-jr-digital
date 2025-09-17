@@ -37,6 +37,7 @@ interface UseSaveActionsProps {
   examModels: ExamModel[];
   resetForm: () => void;
   selectedModelTitle?: string | null;
+  appointmentId?: string;
 }
 
 export const useSaveActions = ({
@@ -45,7 +46,8 @@ export const useSaveActions = ({
   form,
   examModels,
   resetForm,
-  selectedModelTitle
+  selectedModelTitle,
+  appointmentId
 }: UseSaveActionsProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -236,11 +238,13 @@ export const useSaveActions = ({
       
       // Salvar no banco de dados com o ID correto do profissional
       console.log('Salvando prontuário no banco de dados...');
+      console.log('🔍 appointmentId para salvar:', appointmentId);
       const { data: savedRecord, error: saveError } = await supabase
         .from('medical_records')
         .insert({
           patient_id: pacienteSelecionado.id,
           professional_id: professionalIdToUse,
+          appointment_id: appointmentId || null,
           main_complaint: form.queixaPrincipal,
           history: form.antecedentes,
           allergies: form.alergias,
@@ -321,6 +325,27 @@ export const useSaveActions = ({
       }
 
       console.log('Prontuário enviado com sucesso via webhook:', webhookResult);
+      
+      // Atualizar status do agendamento para 'finalizado' se appointmentId estiver disponível
+      if (appointmentId) {
+        console.log('🔍 Atualizando status do agendamento para finalizado:', appointmentId);
+        try {
+          const { error: updateError } = await supabase
+            .from('appointments')
+            .update({ status: 'finalizado' })
+            .eq('id', appointmentId);
+
+          if (updateError) {
+            console.error('Erro ao atualizar status do agendamento:', updateError);
+            // Não interrompe o fluxo, apenas loga o erro
+          } else {
+            console.log('Status do agendamento atualizado para finalizado com sucesso');
+          }
+        } catch (error) {
+          console.error('Erro ao atualizar status do agendamento:', error);
+          // Não interrompe o fluxo, apenas loga o erro
+        }
+      }
       
       // Limpar dados temporários do localStorage após sucesso
       clearLocalStorage();

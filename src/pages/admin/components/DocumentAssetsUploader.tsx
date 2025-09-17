@@ -20,13 +20,17 @@ const DocumentAssetsUploader: React.FC = () => {
     isSaving,
     uploadLogo,
     uploadSignature,
+    uploadAttendantLogo,
     updateProfessionalInfo,
     removeLogo,
     removeSignature,
+    removeAttendantLogo,
+    attendantLogoData,
   } = useDocumentAssets();
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
+  const attendantLogoInputRef = useRef<HTMLInputElement>(null);
 
   // Professional info state
   const [professionalInfo, setProfessionalInfo] = useState<ProfessionalSignatureInfo>({
@@ -38,6 +42,7 @@ const DocumentAssetsUploader: React.FC = () => {
   // Drag and drop states
   const [dragOverLogo, setDragOverLogo] = useState(false);
   const [dragOverSignature, setDragOverSignature] = useState(false);
+  const [dragOverAttendantLogo, setDragOverAttendantLogo] = useState(false);
 
   // Update professional info when assets change
   useEffect(() => {
@@ -92,6 +97,22 @@ const DocumentAssetsUploader: React.FC = () => {
     }
   };
 
+  const handleAttendantLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        validateFile(file);
+        uploadAttendantLogo(file);
+      } catch (error) {
+        console.error('File validation error:', error);
+      }
+    }
+    // Clear input to allow re-upload of same file
+    if (attendantLogoInputRef.current) {
+      attendantLogoInputRef.current.value = '';
+    }
+  };
+
   const handleLogoDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOverLogo(false);
@@ -122,6 +143,21 @@ const DocumentAssetsUploader: React.FC = () => {
     }
   };
 
+  const handleAttendantLogoDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOverAttendantLogo(false);
+    
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      try {
+        validateFile(file);
+        uploadAttendantLogo(file);
+      } catch (error) {
+        console.error('File validation error:', error);
+      }
+    }
+  };
+
   const handleLogoDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOverLogo(true);
@@ -140,6 +176,16 @@ const DocumentAssetsUploader: React.FC = () => {
   const handleSignatureDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOverSignature(false);
+  };
+
+  const handleAttendantLogoDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOverAttendantLogo(true);
+  };
+
+  const handleAttendantLogoDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOverAttendantLogo(false);
   };
 
   const handleProfessionalInfoChange = (field: keyof ProfessionalSignatureInfo, value: string) => {
@@ -186,7 +232,7 @@ const DocumentAssetsUploader: React.FC = () => {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
               <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
@@ -498,15 +544,123 @@ const DocumentAssetsUploader: React.FC = () => {
             />
           </CardContent>
         </Card>
+
+        {/* Attendant Logo Upload */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Logo do Atendente
+            </CardTitle>
+            <CardDescription>
+              Upload do logo do atendente que será incluído nos documentos (JPG, JPEG, PNG - máx. 10MB)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {attendantLogoData ? (
+              <div className="space-y-4">
+                <div className="relative group">
+                  <img
+                    src={attendantLogoData}
+                    alt="Logo do Atendente"
+                    className="w-full h-32 object-contain bg-gray-50 rounded border"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all rounded flex items-center justify-center">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Visualizar
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl">
+                        <img
+                          src={attendantLogoData}
+                          alt="Logo do Atendente - Visualização"
+                          className="w-full h-auto max-h-96 object-contain"
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Tamanho: {formatFileSize(getFileSizeFromBase64(attendantLogoData))}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => attendantLogoInputRef.current?.click()}
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploading || isSaving}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Substituir
+                  </Button>
+                  <Button
+                    onClick={removeAttendantLogo}
+                    variant="destructive"
+                    size="sm"
+                    disabled={isUploading || isSaving}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Remover
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+                    dragOverAttendantLogo 
+                      ? 'border-primary bg-primary/5' 
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                  onClick={() => attendantLogoInputRef.current?.click()}
+                  onDrop={handleAttendantLogoDrop}
+                  onDragOver={handleAttendantLogoDragOver}
+                  onDragLeave={handleAttendantLogoDragLeave}
+                >
+                  <User className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">
+                    Clique ou arraste o logo do atendente aqui
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    JPG, JPEG, PNG - máximo 10MB
+                  </p>
+                </div>
+                <Button
+                  onClick={() => attendantLogoInputRef.current?.click()}
+                  className="w-full"
+                  disabled={isUploading || isSaving}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Selecionar Logo do Atendente
+                </Button>
+              </div>
+            )}
+            <input
+              ref={attendantLogoInputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,image/jpeg,image/jpg,image/png"
+              onChange={handleAttendantLogoUpload}
+              className="hidden"
+            />
+          </CardContent>
+        </Card>
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 className="font-medium text-blue-900 mb-2">ℹ️ Como funciona</h3>
         <ul className="text-sm text-blue-800 space-y-1">
-          <li>• O logo e assinatura serão incluídos automaticamente em todos os documentos enviados via n8n</li>
+          <li>• O logo da clínica, assinatura e logo do atendente serão incluídos automaticamente em todos os documentos enviados via n8n</li>
           <li>• Use imagens JPG, JPEG ou PNG com fundo transparente para melhor resultado</li>
           <li>• Recomendamos logo com largura máxima de 200px e assinatura com altura máxima de 100px</li>
           <li>• As informações do profissional são obrigatórias quando há assinatura e serão enviadas junto com a imagem</li>
+          <li>• O logo do atendente é opcional e pode ser usado para personalizar documentos específicos</li>
           <li>• Os assets são armazenados em base64 e enviados junto com os dados dos documentos</li>
           <li>• Suporte para arrastar e soltar arquivos para facilitar o upload</li>
         </ul>

@@ -7,6 +7,7 @@ export interface MedicalRecord {
   id: string;
   patient_id: string;
   professional_id: string;
+  appointment_id: string | null;
   main_complaint: string | null;
   history: string | null;
   allergies: string | null;
@@ -46,6 +47,7 @@ export const useMedicalRecords = () => {
             id,
             patient_id,
             professional_id,
+            appointment_id,
             main_complaint,
             history,
             allergies,
@@ -80,6 +82,7 @@ export const useMedicalRecords = () => {
           id: record.id,
           patient_id: record.patient_id,
           professional_id: record.professional_id,
+          appointment_id: record.appointment_id,
           main_complaint: record.main_complaint,
           history: record.history,
           allergies: record.allergies,

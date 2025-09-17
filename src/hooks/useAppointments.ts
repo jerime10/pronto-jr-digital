@@ -42,6 +42,20 @@ export function useAppointments(filters?: AppointmentFilters) {
     },
   });
 
+  // Excluir agendamento
+  const deleteAppointment = useMutation({
+    mutationFn: (id: string) => appointmentsService.deleteAppointment(id),
+    onSuccess: () => {
+      toast.success('Agendamento excluído com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['appointment-counts'] });
+    },
+    onError: (error: Error) => {
+      console.error('Erro ao excluir agendamento:', error);
+      toast.error(`Erro ao excluir agendamento: ${error.message}`);
+    },
+  });
+
   return {
     data: appointments,
     counts,
@@ -50,7 +64,9 @@ export function useAppointments(filters?: AppointmentFilters) {
     error,
     refetch,
     updateAppointmentStatus: updateAppointmentStatus.mutate,
+    deleteAppointment: deleteAppointment.mutate,
     isUpdating: updateAppointmentStatus.isPending,
+    isDeleting: deleteAppointment.isPending,
   };
 }
 

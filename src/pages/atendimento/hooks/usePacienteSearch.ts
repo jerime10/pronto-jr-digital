@@ -4,10 +4,20 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Patient } from '@/types/database';
 
-export const usePacienteSearch = () => {
+export const usePacienteSearch = (initialPatient?: Patient | null) => {
+  // Debug logs para rastrear dados do paciente
+  console.log('🔍 usePacienteSearch - initialPatient recebido:', initialPatient);
+  
   const [buscarPaciente, setBuscarPaciente] = useState('');
-  const [pacienteSelecionado, setPacienteSelecionado] = useState<Patient | null>(null);
+  const [pacienteSelecionado, setPacienteSelecionado] = useState<Patient | null>(initialPatient || null);
   const [mostrarResultadosBusca, setMostrarResultadosBusca] = useState(false);
+  
+  // Efeito para definir paciente inicial quando fornecido
+  useEffect(() => {
+    if (initialPatient && !pacienteSelecionado) {
+      setPacienteSelecionado(initialPatient);
+    }
+  }, [initialPatient, pacienteSelecionado]);
   
   // Query para buscar todos os pacientes ou filtrados
   const { data: filteredPacientes, isLoading: isSearchingPacientes } = useQuery({

@@ -16,7 +16,8 @@ export const SUPPORTED_ASSET_TYPES = ['image/jpeg', 'image/jpg', 'image/png'] as
 export const MAX_ASSET_SIZE = 10 * 1024 * 1024; // 10MB
 export const ASSET_TYPES = {
   LOGO: 'logo',
-  SIGNATURE: 'signature'
+  SIGNATURE: 'signature',
+  ATTENDANT_LOGO: 'attendant_logo'
 } as const;
 
 export type AssetType = typeof ASSET_TYPES[keyof typeof ASSET_TYPES];

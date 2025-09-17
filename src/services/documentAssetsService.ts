@@ -174,7 +174,7 @@ export async function fetchDocumentAssets() {
     
     const { data, error } = await supabase
       .from('site_settings')
-      .select('logo_data, signature_data, signature_professional_name, signature_professional_title, signature_professional_registry')
+      .select('logo_data, signature_data, signature_professional_name, signature_professional_title, signature_professional_registry, attendant_logo_data')
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -187,7 +187,8 @@ export async function fetchDocumentAssets() {
         signatureData: null,
         signatureProfessionalName: null,
         signatureProfessionalTitle: null,
-        signatureProfessionalRegistry: null
+        signatureProfessionalRegistry: null,
+        attendantLogoData: null
       };
     }
 
@@ -198,7 +199,8 @@ export async function fetchDocumentAssets() {
         signatureData: null,
         signatureProfessionalName: null,
         signatureProfessionalTitle: null,
-        signatureProfessionalRegistry: null
+        signatureProfessionalRegistry: null,
+        attendantLogoData: null
       };
     }
 
@@ -208,7 +210,8 @@ export async function fetchDocumentAssets() {
       signatureData: data.signature_data,
       signatureProfessionalName: data.signature_professional_name,
       signatureProfessionalTitle: data.signature_professional_title,
-      signatureProfessionalRegistry: data.signature_professional_registry
+      signatureProfessionalRegistry: data.signature_professional_registry,
+      attendantLogoData: data.attendant_logo_data
     };
   } catch (error) {
     console.error('Error fetching document assets:', error);
@@ -218,7 +221,8 @@ export async function fetchDocumentAssets() {
       signatureData: null,
       signatureProfessionalName: null,
       signatureProfessionalTitle: null,
-      signatureProfessionalRegistry: null
+      signatureProfessionalRegistry: null,
+      attendantLogoData: null
     };
   }
 }
@@ -247,6 +251,7 @@ export async function saveDocumentAssets(assets: any) {
       signature_professional_name: assets.signatureProfessionalName || null,
       signature_professional_title: assets.signatureProfessionalTitle || null,
       signature_professional_registry: assets.signatureProfessionalRegistry || null,
+      attendant_logo_data: assets.attendantLogoData || null,
       primary_color: existingSettings?.primary_color || '#10b981',
       accent_color: existingSettings?.accent_color || '#3b82f6',
       font_family: existingSettings?.font_family || 'Inter',

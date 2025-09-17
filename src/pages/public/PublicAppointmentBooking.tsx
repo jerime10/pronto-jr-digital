@@ -6,13 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Search, CheckCircle, AlertCircle, Sparkles, Shield, Clock, User, Phone, ChevronLeft, ChevronRight, ArrowRight, FileText } from 'lucide-react';
+import { Calendar, Search, CheckCircle, AlertCircle, Sparkles, Shield, Clock, User, Phone, ChevronLeft, ChevronRight, ArrowRight, FileText, Save } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { formatPhoneNumber, isValidPhoneNumber, cleanPhoneNumber } from '@/utils/phoneUtils';
 import { formatCpfOrSus, isValidCpfOrSus, cleanCpfOrSus } from '@/utils/cpfSusUtils';
 import { appointmentService } from '@/services/scheduleService';
 import { debugLogger, startTimer, endTimer } from '@/utils/debugLogger';
+import { useDocumentAssets } from '@/hooks/useDocumentAssets';
 import '../../styles/animations.css';
 
 interface Patient {
@@ -33,6 +35,7 @@ interface Attendant {
   id: string;
   name: string;
   services: string[];
+  photo_url?: string;
 }
 
 interface AppointmentFormData {
@@ -49,10 +52,10 @@ interface AppointmentFormData {
   notes: string;
 }
 
-type BookingStep = 'patient_validation' | 'attendant_selection' | 'service_selection' | 'datetime_selection' | 'confirmation';
+type BookingStep = 'cpf_input' | 'welcome_update' | 'attendant_selection' | 'service_selection' | 'datetime_selection' | 'confirmation';
 
 export const PublicAppointmentBooking: React.FC = () => {
-  const [currentStep, setCurrentStep] = useState<BookingStep>('patient_validation');
+  const [currentStep, setCurrentStep] = useState<BookingStep>('cpf_input');
   const [susNumber, setSusNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [patient, setPatient] = useState<Patient | null>(null);
@@ -79,6 +82,15 @@ export const PublicAppointmentBooking: React.FC = () => {
     appointment_datetime: '',
     notes: ''
   });
+
+  // Novos estados para as etapas melhoradas
+  const [cpfSusInput, setCpfSusInput] = useState('');
+  const [tempPhone, setTempPhone] = useState('');
+  const [isUpdatingPhone, setIsUpdatingPhone] = useState(false);
+  const [greeting, setGreeting] = useState('');
+
+  // Hook para acessar os assets de documentos
+  const { attendantLogoData } = useDocumentAssets();
 
   useEffect(() => {
     loadInitialData();
@@ -237,7 +249,7 @@ export const PublicAppointmentBooking: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('attendants')
-        .select('id, name, services')
+        .select('id, name, services, photo_url')
         .eq('is_active', true)
         .order('name');
 
@@ -308,6 +320,97 @@ export const PublicAppointmentBooking: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Novas funções para as etapas melhoradas
+
+  const validateCpfSus = async () => {
+    if (!cpfSusInput.trim()) {
+      toast.error('Por favor, insira o CPF ou SUS.');
+      return;
+    }
+
+    if (!isValidCpfOrSus(cpfSusInput.trim())) {
+      toast.error('CPF deve ter 11 dígitos ou SUS deve ter 15 dígitos.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      const cleanNumber = cleanCpfOrSus(cpfSusInput.trim());
+      
+      const { data, error } = await supabase
+        .from('patients')
+        .select('id, name, phone, sus')
+        .eq('sus', cleanNumber)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      if (data) {
+        setPatient(data);
+        setTempPhone(data.phone || '');
+        setFormData(prev => ({
+          ...prev,
+          client_name: data.name,
+          client_phone: data.phone || ''
+        }));
+        
+        const firstName = data.name.split(' ')[0];
+        const timeGreeting = getTimeGreeting();
+        setGreeting(`${timeGreeting}, ${firstName}!`);
+        
+        setCurrentStep('welcome_update');
+        toast.success(`${timeGreeting}, ${firstName}! Vamos agendar sua consulta.`);
+      } else {
+        toast.error('Paciente não encontrado. É necessário realizar o cadastro primeiro.');
+        setTimeout(() => {
+          window.location.href = '/public/patient-registration';
+        }, 2000);
+      }
+      
+    } catch (error) {
+      console.error('Erro ao validar paciente:', error);
+      toast.error('Erro ao validar documento. Tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updatePatientPhone = async () => {
+    if (!patient || !tempPhone.trim()) {
+      toast.error('Telefone é obrigatório.');
+      return;
+    }
+
+    try {
+      setIsUpdatingPhone(true);
+      
+      const { error } = await supabase
+        .from('patients')
+        .update({ phone: tempPhone.trim() })
+        .eq('id', patient.id);
+
+      if (error) throw error;
+
+      setPatient(prev => prev ? { ...prev, phone: tempPhone.trim() } : null);
+      setFormData(prev => ({ ...prev, client_phone: tempPhone.trim() }));
+      
+      toast.success('Telefone atualizado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar telefone:', error);
+      toast.error('Erro ao atualizar telefone. Tente novamente.');
+    } finally {
+      setIsUpdatingPhone(false);
+    }
+  };
+
+  const proceedToAttendantSelection = () => {
+    setAvailableAttendants(attendants);
+    setCurrentStep('attendant_selection');
   };
 
   const handleServiceSelection = (serviceId: string) => {
@@ -753,14 +856,17 @@ export const PublicAppointmentBooking: React.FC = () => {
 
   const goBack = () => {
     switch (currentStep) {
-      case 'service_selection':
-        setCurrentStep('patient_validation');
+      case 'welcome_update':
+        setCurrentStep('cpf_input');
         break;
       case 'attendant_selection':
-        setCurrentStep('service_selection');
+        setCurrentStep('welcome_update');
+        break;
+      case 'service_selection':
+        setCurrentStep('attendant_selection');
         break;
       case 'datetime_selection':
-        setCurrentStep('attendant_selection');
+        setCurrentStep('service_selection');
         break;
       case 'confirmation':
         setCurrentStep('datetime_selection');
@@ -774,8 +880,8 @@ export const PublicAppointmentBooking: React.FC = () => {
       
       const { data, error } = await supabase
         .from('attendants')
-        .select('*')
-        .eq('active', true)
+        .select('id, name, services, photo_url')
+        .eq('is_active', true)
         .order('name');
 
       if (error) throw error;
@@ -819,7 +925,15 @@ export const PublicAppointmentBooking: React.FC = () => {
               <div className="relative animate-float">
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
                 <div className="relative bg-gradient-to-r from-purple-500 to-cyan-500 p-3 rounded-full gradient-button">
-                  <Calendar className="h-8 w-8 text-white" />
+                  {attendantLogoData ? (
+                    <img 
+                      src={attendantLogoData} 
+                      alt="Logo do Atendente" 
+                      className="h-8 w-8 object-contain rounded-full"
+                    />
+                  ) : (
+                    <Calendar className="h-8 w-8 text-white" />
+                  )}
                 </div>
               </div>
             </div>
@@ -836,8 +950,8 @@ export const PublicAppointmentBooking: React.FC = () => {
           </CardHeader>
           
           <CardContent className="p-6 sm:p-8">
-            {/* Etapa 1: Validação do Paciente */}
-            {currentStep === 'patient_validation' && (
+            {/* Etapa 1: Entrada CPF/SUS */}
+            {currentStep === 'cpf_input' && (
               <div className="space-y-6">
                 <Alert className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 border-blue-500/30 backdrop-blur-sm">
                   <div className="flex items-center gap-3">
@@ -851,14 +965,14 @@ export const PublicAppointmentBooking: React.FC = () => {
                 </Alert>
                 
                 <div className="space-y-3">
-                  <Label htmlFor="sus" className="text-slate-200 font-semibold text-sm sm:text-base tracking-wide">
+                  <Label htmlFor="cpf-sus" className="text-slate-200 font-semibold text-sm sm:text-base tracking-wide">
                     CPF OU SUS <span className="text-pink-400">*</span>
                   </Label>
                   <div className="relative">
                     <Input
-                      id="sus"
-                      value={susNumber}
-                      onChange={(e) => setSusNumber(formatCpfOrSus(e.target.value))}
+                      id="cpf-sus"
+                      value={cpfSusInput}
+                      onChange={(e) => setCpfSusInput(formatCpfOrSus(e.target.value))}
                       placeholder="CPF (XXX.XXX.XXX-XX) OU SUS (XXX XXXX XXXX XXXX)"
                       required
                       className="bg-slate-700/50 border-slate-600/50 text-white placeholder:text-slate-400 focus:border-purple-500 focus:ring-purple-500/20 h-12 sm:h-14 text-base sm:text-lg backdrop-blur-sm transition-all duration-300 hover:bg-slate-700/70"
@@ -868,16 +982,85 @@ export const PublicAppointmentBooking: React.FC = () => {
                 </div>
                 
                 <Button 
-                  onClick={validatePatient} 
+                  onClick={validateCpfSus} 
                   disabled={isLoading}
                   className="w-full h-12 sm:h-14 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white font-bold text-sm sm:text-base tracking-wide transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-purple-500/25 futuristic-hover focus-glow smooth-transition"
-                  aria-label="Verificar paciente"
+                  aria-label="Próximo"
                 >
                   {isLoading && <div className="mr-3 h-5 w-5 animate-spin rounded-full border-2 border-r-transparent" />}
-                  <Search className="mr-3 h-4 w-4 sm:h-5 sm:w-5" />
-                  VERIFICAR PACIENTE
+                  <ArrowRight className="mr-3 h-4 w-4 sm:h-5 sm:w-5" />
+                  PRÓXIMO
                   <Sparkles className="ml-3 h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
+              </div>
+            )}
+
+            {/* Etapa 2: Boas-vindas e atualização de dados */}
+            {currentStep === 'welcome_update' && patient && (
+              <div className="space-y-6">
+                <div className="text-center space-y-4">
+                  <div className="flex justify-center mb-4">
+                    <div className="relative animate-float">
+                      <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
+                      <div className="relative bg-gradient-to-r from-green-500 to-emerald-500 p-3 rounded-full gradient-button">
+                        <User className="h-8 w-8 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">
+                    {greeting}
+                  </h3>
+                  <p className="text-slate-300 text-sm sm:text-base">
+                    Vamos confirmar seus dados antes de prosseguir
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="patient-name" className="text-slate-200 font-semibold text-sm sm:text-base tracking-wide">
+                      Nome Completo
+                    </Label>
+                    <Input
+                      id="patient-name"
+                      value={patient.name}
+                      disabled
+                      className="bg-slate-700/30 border-slate-600/50 text-slate-300 h-12 sm:h-14 text-base sm:text-lg backdrop-blur-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="patient-phone" className="text-slate-200 font-semibold text-sm sm:text-base tracking-wide">
+                      Telefone <span className="text-pink-400">*</span>
+                    </Label>
+                    <Input
+                      id="patient-phone"
+                      value={tempPhone}
+                      onChange={(e) => setTempPhone(e.target.value)}
+                      placeholder="(XX) XXXXX-XXXX"
+                      className="bg-slate-700/50 border-slate-600/50 text-white placeholder:text-slate-400 focus:border-purple-500 focus:ring-purple-500/20 h-12 sm:h-14 text-base sm:text-lg backdrop-blur-sm transition-all duration-300 hover:bg-slate-700/70"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={updatePatientPhone} 
+                    disabled={isUpdatingPhone || !tempPhone.trim() || tempPhone === patient.phone}
+                    className="flex-1 h-12 sm:h-14 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold text-sm sm:text-base tracking-wide transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-green-500/25"
+                  >
+                    {isUpdatingPhone && <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-r-transparent" />}
+                    <Save className="mr-2 h-4 w-4" />
+                    ATUALIZAR
+                  </Button>
+                  
+                  <Button 
+                    onClick={proceedToAttendantSelection}
+                    className="flex-1 h-12 sm:h-14 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white font-bold text-sm sm:text-base tracking-wide transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-purple-500/25"
+                  >
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    PRÓXIMO
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -1007,9 +1190,18 @@ export const PublicAppointmentBooking: React.FC = () => {
                       >
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-3">
-                            <div className="bg-blue-500/20 p-2 rounded-full">
-                              <User className="h-6 w-6 text-blue-400" />
-                            </div>
+                            <Avatar className="h-12 w-12 border-2 border-blue-500/30">
+                              {attendant.photo_url && (
+                                <AvatarImage 
+                                  src={attendant.photo_url} 
+                                  alt={attendant.name}
+                                  className="object-cover"
+                                />
+                              )}
+                              <AvatarFallback className="bg-blue-500/20 text-blue-400 font-semibold">
+                                {attendant.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
                             <div>
                               <h4 className="text-white font-semibold text-lg">{attendant.name}</h4>
                               <p className="text-slate-300 text-sm">Profissional Especializado</p>

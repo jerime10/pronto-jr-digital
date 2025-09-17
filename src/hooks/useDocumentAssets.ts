@@ -86,6 +86,7 @@ export function useDocumentAssets() {
         signatureProfessionalName: assets?.signatureProfessionalName || null,
         signatureProfessionalTitle: assets?.signatureProfessionalTitle || null,
         signatureProfessionalRegistry: assets?.signatureProfessionalRegistry || null,
+        attendantLogoData: assets?.attendantLogoData || null,
       });
       
       setUploadProgress(100);
@@ -114,6 +115,7 @@ export function useDocumentAssets() {
         signatureProfessionalName: assets?.signatureProfessionalName || null,
         signatureProfessionalTitle: assets?.signatureProfessionalTitle || null,
         signatureProfessionalRegistry: assets?.signatureProfessionalRegistry || null,
+        attendantLogoData: assets?.attendantLogoData || null,
       });
       
       setUploadProgress(100);
@@ -121,6 +123,35 @@ export function useDocumentAssets() {
     } catch (error) {
       console.error('Error uploading signature:', error);
       toast.error(error instanceof Error ? error.message : 'Erro ao fazer upload da assinatura');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  // Upload attendant logo
+  const uploadAttendantLogo = async (file: File) => {
+    try {
+      setIsUploading(true);
+      setUploadProgress(25);
+      
+      const attendantLogoAsset = await processFile(file);
+      setUploadProgress(75);
+      
+      await saveAssetsMutation.mutateAsync({
+        logoData: assets?.logoData || null,
+        signatureData: assets?.signatureData || null,
+        signatureProfessionalName: assets?.signatureProfessionalName || null,
+        signatureProfessionalTitle: assets?.signatureProfessionalTitle || null,
+        signatureProfessionalRegistry: assets?.signatureProfessionalRegistry || null,
+        attendantLogoData: attendantLogoAsset.base64,
+      });
+      
+      setUploadProgress(100);
+      toast.success('Logo do atendente salvo com sucesso!');
+    } catch (error) {
+      console.error('Error uploading attendant logo:', error);
+      toast.error(error instanceof Error ? error.message : 'Erro ao fazer upload do logo do atendente');
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -136,6 +167,7 @@ export function useDocumentAssets() {
         signatureProfessionalName: professionalInfo.name,
         signatureProfessionalTitle: professionalInfo.title,
         signatureProfessionalRegistry: professionalInfo.registry,
+        attendantLogoData: assets?.attendantLogoData || null,
       });
       toast.success('Informações do profissional salvas com sucesso!');
     } catch (error) {
@@ -153,6 +185,7 @@ export function useDocumentAssets() {
         signatureProfessionalName: assets?.signatureProfessionalName || null,
         signatureProfessionalTitle: assets?.signatureProfessionalTitle || null,
         signatureProfessionalRegistry: assets?.signatureProfessionalRegistry || null,
+        attendantLogoData: assets?.attendantLogoData || null,
       });
       toast.success('Logo removido com sucesso!');
     } catch (error) {
@@ -170,11 +203,30 @@ export function useDocumentAssets() {
         signatureProfessionalName: null,
         signatureProfessionalTitle: null,
         signatureProfessionalRegistry: null,
+        attendantLogoData: assets?.attendantLogoData || null,
       });
       toast.success('Assinatura removida com sucesso!');
     } catch (error) {
       console.error('Error removing signature:', error);
       toast.error('Erro ao remover assinatura');
+    }
+  };
+
+  // Remove attendant logo
+  const removeAttendantLogo = async () => {
+    try {
+      await saveAssetsMutation.mutateAsync({
+        logoData: assets?.logoData || null,
+        signatureData: assets?.signatureData || null,
+        signatureProfessionalName: assets?.signatureProfessionalName || null,
+        signatureProfessionalTitle: assets?.signatureProfessionalTitle || null,
+        signatureProfessionalRegistry: assets?.signatureProfessionalRegistry || null,
+        attendantLogoData: null,
+      });
+      toast.success('Logo do atendente removido com sucesso!');
+    } catch (error) {
+      console.error('Error removing attendant logo:', error);
+      toast.error('Erro ao remover logo do atendente');
     }
   };
 
@@ -187,8 +239,11 @@ export function useDocumentAssets() {
     isSaving: saveAssetsMutation.isPending,
     uploadLogo,
     uploadSignature,
+    uploadAttendantLogo,
     updateProfessionalInfo,
     removeLogo,
     removeSignature,
+    removeAttendantLogo,
+    attendantLogoData: assets?.attendantLogoData || null,
   };
 }

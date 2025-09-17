@@ -55,6 +55,7 @@ export type MedicalRecord = {
   id: string;
   patient_id: string;
   attendant_id: string;
+  appointment_id: string | null;
   main_complaint: string | null;
   history: string | null;
   allergies: string | null;

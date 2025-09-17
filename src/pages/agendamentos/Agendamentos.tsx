@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useNavigate } from 'react-router-dom';
 
-import { Calendar, Clock, Search, MoreVertical, Plus, Phone, Eye, Edit, Trash2, CheckCircle, XCircle, Archive, Loader2, User, MapPin } from 'lucide-react';
+import { Calendar, Clock, Search, MoreVertical, Plus, Phone, Trash2, CheckCircle, XCircle, Archive, Loader2, User, MapPin } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAppointments } from '@/hooks/useAppointments';
@@ -49,37 +50,31 @@ const getStatusBadge = (status: AppointmentStatus) => {
 };
 
 const getActionOptions = (status: AppointmentStatus) => {
-  const baseOptions = [
-    { action: 'view', label: 'Visualizar', icon: Eye },
-    { action: 'edit', label: 'Editar', icon: Edit },
-  ];
-
   switch (status) {
     case 'scheduled':
     case 'aguardando_atendimento':
       return [
-        ...baseOptions,
         { action: 'atendimento_iniciado', label: 'Iniciar Atendimento', icon: Clock },
-        { action: 'agendamento_cancelado', label: 'Cancelar', icon: XCircle },
+        { action: 'agendamento_cancelado', label: 'Cancelar', icon: Trash2 },
       ];
     case 'atendimento_iniciado':
       return [
-        ...baseOptions,
         { action: 'atendimento_finalizado', label: 'Finalizar Atendimento', icon: CheckCircle },
-        { action: 'agendamento_cancelado', label: 'Cancelar', icon: XCircle },
+        { action: 'agendamento_cancelado', label: 'Cancelar', icon: Trash2 },
       ];
     case 'atendimento_finalizado':
     case 'completed':
       return [
-        ...baseOptions,
-        { action: 'archived', label: 'Arquivar', icon: Archive },
+        { action: 'delete', label: 'Excluir', icon: Trash2 },
       ];
     case 'agendamento_cancelado':
     case 'canceled':
     case 'archived':
-      return baseOptions;
+      return [
+        { action: 'delete', label: 'Excluir', icon: Trash2 },
+      ];
     default:
-      return baseOptions;
+      return [];
   }
 };
 
@@ -173,6 +168,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
 };
 
 const Agendamentos: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus | 'todos'>('todos');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -182,6 +178,7 @@ const Agendamentos: React.FC = () => {
     isLoading, 
     error, 
     updateAppointmentStatus,
+    deleteAppointment,
     refetch: refreshAppointments,
     counts
   } = useAppointments({
@@ -192,30 +189,114 @@ const Agendamentos: React.FC = () => {
 
   const handleStatusChange = async (appointmentId: string, newStatus: AppointmentStatus) => {
     try {
-      await updateAppointmentStatus({ id: appointmentId, status: newStatus });
+      // Mapear status da interface para status do banco
+      const statusMapping: Record<string, string> = {
+        'aguardando_atendimento': 'scheduled',
+        'atendimento_iniciado': 'atendimento_iniciado',
+        'atendimento_finalizado': 'completed',
+        'agendamento_cancelado': 'cancelled'
+      };
+      
+      const dbStatus = statusMapping[newStatus] || newStatus;
+      await updateAppointmentStatus({ id: appointmentId, status: dbStatus });
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
       toast.error('Erro ao atualizar status do agendamento');
     }
   };
 
-
-
   const handleAction = async (appointmentId: string, action: string) => {
-    await handleStatusChange(appointmentId, action as AppointmentStatus);
+    if (action === 'atendimento_iniciado') {
+      // Encontrar o agendamento para obter os dados do paciente
+      const appointment = appointments.find(app => app.id === appointmentId);
+      if (appointment) {
+        console.log('🔍 Agendamentos - Iniciando atendimento para:', appointment.patient);
+        console.log('🔍 Agendamentos - Dados completos do appointment:', appointment);
+        
+        // Primeiro atualizar o status para 'confirmed' (que corresponde a atendimento iniciado)
+        await handleStatusChange(appointmentId, 'atendimento_iniciado' as AppointmentStatus);
+        // Depois navegar para a seção de atendimento com os dados do paciente e appointment_id
+        navigate('/atendimento/novo', { 
+          state: { 
+            appointmentId: appointmentId,
+            patientData: {
+              id: appointment.patient_id,
+              name: appointment.patient_name,
+              sus: appointment.patient?.sus || '',
+              phone: appointment.patient?.phone || '',
+              address: appointment.patient?.address || '',
+              date_of_birth: appointment.patient?.date_of_birth || null,
+              age: appointment.patient?.age || 0,
+              gender: appointment.patient?.gender || '',
+              created_at: appointment.patient?.created_at || '',
+              updated_at: appointment.patient?.updated_at || ''
+            }
+          }
+        });
+      }
+    } else if (action === 'atendimento_finalizado') {
+      // Para finalizar atendimento
+      try {
+        await handleStatusChange(appointmentId, 'atendimento_finalizado' as AppointmentStatus);
+        toast.success('Atendimento finalizado com sucesso');
+      } catch (error) {
+        console.error('Erro ao finalizar atendimento:', error);
+        toast.error('Erro ao finalizar atendimento');
+      }
+    } else if (action === 'agendamento_cancelado') {
+      // Para cancelar, atualizar status para cancelado
+      try {
+        await handleStatusChange(appointmentId, 'agendamento_cancelado' as AppointmentStatus);
+        toast.success('Agendamento cancelado com sucesso');
+      } catch (error) {
+        console.error('Erro ao cancelar agendamento:', error);
+        toast.error('Erro ao cancelar agendamento');
+      }
+    } else if (action === 'delete') {
+      // Para excluir, remover permanentemente do banco de dados
+      try {
+        await deleteAppointment(appointmentId);
+        toast.success('Agendamento excluído com sucesso');
+      } catch (error) {
+        console.error('Erro ao excluir agendamento:', error);
+        toast.error('Erro ao excluir agendamento');
+      }
+    } else {
+      // Para outras ações, apenas atualizar o status
+      await handleStatusChange(appointmentId, action as AppointmentStatus);
+    }
   };
 
   // Contar agendamentos por status usando os dados do hook
   const getStatusCount = (status: AppointmentStatus | 'todos') => {
-    if (status === 'todos') return counts?.total || 0;
-    return counts?.[status] || 0;
+    if (status === 'todos') return counts?.todos || 0;
+    
+    // Mapear status da interface para status do banco
+    const statusMapping: Record<string, string> = {
+      'aguardando_atendimento': 'scheduled', // Agendamentos aguardando = scheduled no banco
+      'atendimento_iniciado': 'atendimento_iniciado',   // Em atendimento = atendimento_iniciado no banco
+      'atendimento_finalizado': 'completed', // Finalizados = completed no banco
+      'agendamento_cancelado': 'cancelled'   // Cancelados = cancelled no banco
+    };
+    
+    const dbStatus = statusMapping[status] || status;
+    return counts?.[dbStatus] || 0;
   };
 
   const filterAppointmentsByStatus = (status?: string) => {
     let filtered = appointments;
     
     if (status && status !== 'todos') {
-      filtered = filtered.filter(app => app.status === status);
+      // Mapear status da interface para status do banco
+      const statusMapping: Record<string, string> = {
+        'aguardando_atendimento': 'scheduled', // Agendamentos aguardando = scheduled no banco
+        'atendimento_iniciado': 'atendimento_iniciado',   // Em atendimento = atendimento_iniciado no banco
+        'atendimento_finalizado': 'completed', // Finalizados = completed no banco
+        'agendamento_cancelado': 'cancelled'   // Cancelados = cancelled no banco
+      };
+      
+      const dbStatus = statusMapping[status] || status;
+      filtered = filtered.filter(app => app.status === dbStatus);
     }
     
     if (searchTerm) {
@@ -285,28 +366,22 @@ const Agendamentos: React.FC = () => {
         
         <CardContent>
           <Tabs value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as AppointmentStatus | 'todos')} className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="todos">
                 Todos ({getStatusCount('todos')})
               </TabsTrigger>
-              <TabsTrigger value="scheduled">
-                Agendados ({getStatusCount('scheduled')})
+              <TabsTrigger value="aguardando_atendimento">
+                Aguardando ({getStatusCount('aguardando_atendimento')})
               </TabsTrigger>
-              <TabsTrigger value="confirmed">
-                Confirmados ({getStatusCount('confirmed')})
+              <TabsTrigger value="atendimento_iniciado">
+                Em Atendimento ({getStatusCount('atendimento_iniciado')})
               </TabsTrigger>
-              <TabsTrigger value="in_progress">
-                Em Atendimento ({getStatusCount('in_progress')})
-              </TabsTrigger>
-              <TabsTrigger value="completed">
-                Finalizados ({getStatusCount('completed')})
-              </TabsTrigger>
-              <TabsTrigger value="cancelled">
-                Cancelados ({getStatusCount('cancelled')})
+              <TabsTrigger value="atendimento_finalizado">
+                Finalizados ({getStatusCount('atendimento_finalizado')})
               </TabsTrigger>
             </TabsList>
             
-            {['todos', 'scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled'].map((status) => (
+            {['todos', 'aguardando_atendimento', 'atendimento_iniciado', 'atendimento_finalizado'].map((status) => (
               <TabsContent key={status} value={status} className="mt-6">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-8">
