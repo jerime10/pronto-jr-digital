@@ -180,46 +180,10 @@ export const useSaveActions = ({
         type: img.type
       }));
       
-      // Primeiro verificar se o profissional existe na tabela professionals
-      const { data: professionalExists, error: professionalCheckError } = await supabase
-        .from('professionals')
-        .select('id')
-        .eq('custom_user_id', profissionalAtual.id)
-        .maybeSingle();
-
-      if (professionalCheckError) {
-        console.error('Erro ao verificar profissional:', professionalCheckError);
-      }
-
+      // Primeiro, usar dados diretos ao invés de verificar na tabela professionals
       let professionalIdToUse = profissionalAtual.id;
       
-      // Se não exists um profissional correspondente, criar um
-      if (!professionalExists) {
-        console.log('Criando registro de profissional...');
-        const { data: newProfessional, error: createProfessionalError } = await supabase
-          .from('professionals')
-          .insert({
-            custom_user_id: profissionalAtual.id,
-            name: profissionalAtual.nome,
-            specialty: 'Enfermeiro Obstetra',
-            license_type: 'Coren',
-            license_number: '542061',
-            contact: profissionalAtual.email
-          })
-          .select('id')
-          .single();
-
-        if (createProfessionalError) {
-          console.error('Erro ao criar profissional:', createProfessionalError);
-          throw new Error(`Erro ao criar registro do profissional: ${createProfessionalError.message}`);
-        }
-
-        professionalIdToUse = newProfessional.id;
-        console.log('Profissional criado com ID:', professionalIdToUse);
-      } else {
-        professionalIdToUse = professionalExists.id;
-        console.log('Usando profissional existente com ID:', professionalIdToUse);
-      }
+      console.log('Usando profissional com ID:', professionalIdToUse);
       
       // Converter datas para ISO string se forem objetos Date
       const attendanceStartAt = form.dataInicioAtendimento instanceof Date 
@@ -259,9 +223,7 @@ export const useSaveActions = ({
           attendance_end_at: attendanceEndAt
         })
         .select(`
-          *,
-          patients!inner(*),
-          professionals!inner(*)
+          *
         `)
         .single();
 
@@ -281,6 +243,7 @@ export const useSaveActions = ({
         id: savedRecord.id,
         patient_id: savedRecord.patient_id,
         professional_id: savedRecord.professional_id,
+        appointment_id: savedRecord.appointment_id,
         main_complaint: savedRecord.main_complaint,
         history: savedRecord.history,
         allergies: savedRecord.allergies,

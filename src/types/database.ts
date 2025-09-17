@@ -54,7 +54,7 @@ export type CompletedExam = {
 export type MedicalRecord = {
   id: string;
   patient_id: string;
-  attendant_id: string;
+  professional_id: string;
   appointment_id: string | null;
   main_complaint: string | null;
   history: string | null;
@@ -74,7 +74,7 @@ export type MedicalRecord = {
 export type GeneratedDocument = {
   id: string;
   patient_id: string;
-  attendant_id: string;
+  professional_id: string;
   medical_record_id: string | null;
   title: string;
   file_url: string;
@@ -179,6 +179,7 @@ export type ScheduleAssignment = {
 
 export type Appointment = {
   id: string;
+  patient_id: string | null;
   patient_name: string | null;
   patient_phone: string | null;
   attendant_id: string;
@@ -190,8 +191,9 @@ export type Appointment = {
   appointment_date: string; // Data do agendamento
   appointment_time: string; // Hora do agendamento
   appointment_datetime: string; // Tratamento de fuso horário
+  end_time: string | null;
   notes: string | null;
-  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show' | 'finalizado' | 'atendimento_finalizado';
   created_at: string;
   updated_at: string;
 };
@@ -220,15 +222,23 @@ export type ScheduleAssignmentFormData = {
 };
 
 export type AppointmentFormData = {
+  patient_id?: string;
   patient_name?: string;
   patient_phone?: string;
   attendant_id: string;
+  attendant_name?: string;
   service_id: string;
-  appointment_date: string; // Data do agendamento
-  appointment_time: string; // Hora do agendamento
-  appointment_datetime?: string; // Será calculado automaticamente
+  service_name?: string;
+  service_price?: number;
+  service_duration?: number;
+  appointment_date: string;
+  appointment_time: string;
+  appointment_datetime?: string;
+  end_time?: string;
   notes?: string;
-  status?: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+  status?: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show' | 'finalizado' | 'atendimento_finalizado';
+  dum?: string; // For obstetric services
+  obstetric_data?: any; // For obstetric data
 };
 
 // ============================================
