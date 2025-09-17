@@ -264,25 +264,35 @@ export const availabilityService = {
           isActive: schedule.is_active
         });
 
-        // Calcular end_time baseado no start_time e duration
+        // Usar apenas o horário exato do schedule, não gerar slots por intervalos
         const startTime = schedule.start_time;
-        const endTime = timeUtils.addMinutes(startTime, schedule.duration);
-
-        debugLogger.debug('AvailabilityService', 'generating_time_slots', {
-          startTime,
-          endTime,
+        
+        debugLogger.debug('AvailabilityService', 'using_exact_schedule_time', {
+          scheduleId: schedule.id,
+          exactStartTime: startTime,
+          scheduleDuration: schedule.duration,
           serviceDuration
         });
 
-        const slots = timeUtils.generateTimeSlots(
-          startTime,
-          endTime,
-          serviceDuration
-        );
+        // Verificar se o serviço cabe no tempo disponível do schedule
+        if (serviceDuration > schedule.duration) {
+          debugLogger.warn('AvailabilityService', 'service_too_long_for_schedule', {
+            scheduleId: schedule.id,
+            scheduleStartTime: startTime,
+            scheduleDuration: schedule.duration,
+            serviceDuration,
+            message: 'Serviço requer mais tempo que o disponível no schedule'
+          });
+          continue; // Pular este schedule se o serviço não cabe
+        }
 
-        debugLogger.debug('AvailabilityService', 'time_slots_generated', {
-          slotsCount: slots.length,
-          slots
+        // Usar apenas o horário exato do schedule como slot disponível
+        const slots = [startTime];
+
+        debugLogger.debug('AvailabilityService', 'exact_time_slot_used', {
+          scheduleId: schedule.id,
+          slots,
+          slotsCount: slots.length
         });
 
         for (const slotStart of slots) {

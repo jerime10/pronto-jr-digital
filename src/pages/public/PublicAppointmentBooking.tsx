@@ -96,6 +96,25 @@ export const PublicAppointmentBooking: React.FC = () => {
     loadInitialData();
   }, []);
 
+  // Atualizar saudação automaticamente a cada minuto
+  useEffect(() => {
+    if (patient && currentStep === 'welcome_update') {
+      const updateGreeting = () => {
+        const firstName = patient.name.split(' ')[0];
+        const timeGreeting = getTimeGreeting();
+        setGreeting(`${timeGreeting}, ${firstName}!`);
+      };
+
+      // Atualizar imediatamente
+      updateGreeting();
+
+      // Atualizar a cada minuto
+      const interval = setInterval(updateGreeting, 60000);
+
+      return () => clearInterval(interval);
+    }
+  }, [patient, currentStep]);
+
   // Monitor para mudanças em availableTimeSlots
   useEffect(() => {
     debugLogger.info('Frontend', 'available_time_slots_changed', {
@@ -361,7 +380,6 @@ export const PublicAppointmentBooking: React.FC = () => {
         
         const firstName = data.name.split(' ')[0];
         const timeGreeting = getTimeGreeting();
-        setGreeting(`${timeGreeting}, ${firstName}!`);
         
         setCurrentStep('welcome_update');
         toast.success(`${timeGreeting}, ${firstName}! Vamos agendar sua consulta.`);
@@ -760,9 +778,10 @@ export const PublicAppointmentBooking: React.FC = () => {
       // Sucesso
       toast.success('Agendamento criado com sucesso!');
       
-      // Resetar formulário após sucesso
+      // Resetar formulário e redirecionar para a primeira etapa após sucesso
       setTimeout(() => {
         resetForm();
+        setCurrentStep('cpf_input');
       }, 2000);
       
     } catch (error) {
@@ -1142,17 +1161,9 @@ export const PublicAppointmentBooking: React.FC = () => {
                   <Button 
                     onClick={goBack}
                     variant="outline"
-                    className="flex-1 h-12 sm:h-14 bg-slate-700/50 border-slate-600/50 text-slate-200 hover:bg-slate-600/50 hover:text-white font-semibold text-sm sm:text-base tracking-wide transition-all duration-300 focus-glow smooth-transition"
+                    className="w-full h-12 sm:h-14 bg-slate-700/50 border-slate-600/50 text-slate-200 hover:bg-slate-600/50 hover:text-white font-semibold text-sm sm:text-base tracking-wide transition-all duration-300 focus-glow smooth-transition"
                   >
                     VOLTAR
-                  </Button>
-                  
-                  <Button 
-                    onClick={resetForm}
-                    variant="outline"
-                    className="flex-1 h-12 sm:h-14 bg-slate-700/50 border-slate-600/50 text-slate-200 hover:bg-slate-600/50 hover:text-white font-semibold text-sm sm:text-base tracking-wide transition-all duration-300 focus-glow smooth-transition"
-                  >
-                    RECOMEÇAR
                   </Button>
                 </div>
               </div>
@@ -1225,17 +1236,9 @@ export const PublicAppointmentBooking: React.FC = () => {
                   <Button 
                     onClick={goBack}
                     variant="outline"
-                    className="flex-1 h-12 sm:h-14 bg-slate-700/50 border-slate-600/50 text-slate-200 hover:bg-slate-600/50 hover:text-white font-semibold text-sm sm:text-base tracking-wide transition-all duration-300 focus-glow smooth-transition"
+                    className="w-full h-12 sm:h-14 bg-slate-700/50 border-slate-600/50 text-slate-200 hover:bg-slate-600/50 hover:text-white font-semibold text-sm sm:text-base tracking-wide transition-all duration-300 focus-glow smooth-transition"
                   >
                     VOLTAR
-                  </Button>
-                  
-                  <Button 
-                    onClick={resetForm}
-                    variant="outline"
-                    className="flex-1 h-12 sm:h-14 bg-slate-700/50 border-slate-600/50 text-slate-200 hover:bg-slate-600/50 hover:text-white font-semibold text-sm sm:text-base tracking-wide transition-all duration-300 focus-glow smooth-transition"
-                  >
-                    RECOMEÇAR
                   </Button>
                 </div>
               </div>
