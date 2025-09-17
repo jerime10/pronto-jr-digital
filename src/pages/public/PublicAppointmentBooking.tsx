@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatPhoneNumber, isValidPhoneNumber, cleanPhoneNumber } from '@/utils/phoneUtils';
 import { formatCpfOrSus, isValidCpfOrSus, cleanCpfOrSus } from '@/utils/cpfSusUtils';
 import { appointmentService } from '@/services/scheduleService';
+import { serviceAssignmentService } from '@/services/serviceAssignmentService';
 import { debugLogger, startTimer, endTimer } from '@/utils/debugLogger';
 import { useDocumentAssets } from '@/hooks/useDocumentAssets';
 import '../../styles/animations.css';
@@ -186,44 +187,41 @@ export const PublicAppointmentBooking: React.FC = () => {
     }
   };
 
-  const loadAttendantServices = async (attendantId: string) => {
+  const loadAttendantServices = async (attendantId: string, retryCount = 0) => {
+    const maxRetries = 2;
     const timerName = `loadAttendantServices_${Date.now()}`;
     startTimer(timerName);
 
     debugLogger.info('Frontend', 'loadAttendantServices_start', {
       attendantId,
+      retryCount,
       timestamp: new Date().toISOString()
     });
 
     try {
-      debugLogger.debug('Frontend', 'querying_service_assignments', {
+      // Validação de entrada
+      if (!attendantId || typeof attendantId !== 'string') {
+        throw new Error('ID do atendente é obrigatório e deve ser uma string válida');
+      }
+
+      debugLogger.debug('Frontend', 'using_service_layer', {
         attendantId,
-        table: 'service_assignments',
-        fields: 'service_id, service_name, service_price, service_duration'
+        retryCount,
+        service: 'serviceAssignmentService.getAssignmentsByAttendant'
       });
 
-      const { data: serviceAssignments, error } = await supabase
-        .from('service_assignments')
-        .select<'service_assignments', {
-          service_id: string,
-          service_name: string, 
-          service_price: number,
-          service_duration: number
-        }>('service_id, service_name, service_price, service_duration')
-        .eq('attendant_id', attendantId)
-        .order('service_name');
+      // Usar a camada de serviço para buscar as atribuições
+      const serviceAssignments = await serviceAssignmentService.getAssignmentsByAttendant(attendantId);
 
       debugLogger.info('Frontend', 'service_assignments_response', {
         attendantId,
-        success: !error,
-        error: error?.message,
-        dataCount: data?.length || 0,
-        rawData: data
+        retryCount,
+        success: true,
+        dataCount: serviceAssignments?.length || 0,
+        rawData: serviceAssignments
       });
-
-      if (error) throw error;
       
-      const servicesData = data?.map(item => ({
+      const servicesData = serviceAssignments?.map(item => ({
         id: item.service_id,
         name: item.service_name,
         price: item.service_price,
@@ -232,6 +230,7 @@ export const PublicAppointmentBooking: React.FC = () => {
 
       debugLogger.info('Frontend', 'services_data_processed', {
         attendantId,
+        retryCount,
         servicesCount: servicesData.length,
         services: servicesData.map(s => ({
           id: s.id,
@@ -245,21 +244,54 @@ export const PublicAppointmentBooking: React.FC = () => {
       
       endTimer('Frontend', 'loadAttendantServices_success', timerName, {
         attendantId,
+        retryCount,
         servicesCount: servicesData.length
       });
 
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      
       debugLogger.error('Frontend', 'loadAttendantServices_error', {
         attendantId,
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
+        retryCount,
+        error: errorMessage,
+        stack: errorStack,
+        timestamp: new Date().toISOString()
       });
 
-      toast.error('Erro ao carregar serviços do profissional.');
+      // Implementar retry para erros de rede/temporários
+      if (retryCount < maxRetries && !errorMessage.includes('ID do atendente')) {
+        debugLogger.info('Frontend', 'loadAttendantServices_retry', {
+          attendantId,
+          retryCount: retryCount + 1,
+          maxRetries,
+          error: errorMessage
+        });
+        
+        // Aguardar um pouco antes de tentar novamente
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+        
+        return loadAttendantServices(attendantId, retryCount + 1);
+      }
+
+      // Fallback: definir array vazio para evitar quebra da UI
+      setServices([]);
+      
+      // Mensagem de erro mais específica
+      const userMessage = errorMessage.includes('ID do atendente') 
+        ? 'Erro: Atendente não selecionado corretamente.'
+        : retryCount >= maxRetries 
+          ? 'Erro ao carregar serviços do profissional após várias tentativas. Verifique sua conexão.'
+          : 'Erro ao carregar serviços do profissional. Tente novamente.';
+      
+      toast.error(userMessage);
       
       endTimer('Frontend', 'loadAttendantServices_error', timerName, {
         attendantId,
-        error: String(error)
+        retryCount,
+        error: errorMessage,
+        finalAttempt: true
       });
     }
   };
@@ -939,8 +971,8 @@ export const PublicAppointmentBooking: React.FC = () => {
       
       <div className="w-full max-w-2xl relative z-10 animate-fade-in-up">
         <Card className="bg-slate-800/90 backdrop-blur-xl border-slate-700/50 shadow-2xl shadow-purple-500/10 card-glow glass-effect">
-          <CardHeader className="text-center pb-6">
-            <div className="flex justify-center mb-4">
+          <CardHeader className="text-center pb-4 pt-4">
+            <div className="flex justify-center mb-2">
               <div className="relative animate-float">
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
                 <div className="relative bg-gradient-to-r from-purple-500 to-cyan-500 p-3 rounded-full gradient-button">
@@ -956,15 +988,13 @@ export const PublicAppointmentBooking: React.FC = () => {
                 </div>
               </div>
             </div>
-            <CardTitle className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent mb-2 animate-gradient">
-              AGENDAMENTO ONLINE
-            </CardTitle>
-            <p className="text-slate-300 text-xs sm:text-sm lg:text-base leading-relaxed px-2">
-              AGENDE SUA CONSULTA DE FORMA RÁPIDA E SEGURA
-            </p>
-            <div className="flex items-center justify-center gap-2 mt-3">
-              <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-green-400 animate-pulse" />
-              <span className="text-xs text-green-400 font-medium tracking-wide">SEGURO E CONFIDENCIAL</span>
+            {/* Logo AGENDA ABERTA */}
+            <div className="flex justify-center mb -40 mt -25 px -15">
+              <img 
+                src="/LOGO_AGENDA_ABERTA-removebg-preview.png" 
+                alt="Agenda Aberta" 
+                className="h-56 sm:h-64 md:h-72 lg:h-80 xl:h-88 2xl:h-96 w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl object-contain animate-fade-in"
+              />
             </div>
           </CardHeader>
           
@@ -972,16 +1002,7 @@ export const PublicAppointmentBooking: React.FC = () => {
             {/* Etapa 1: Entrada CPF/SUS */}
             {currentStep === 'cpf_input' && (
               <div className="space-y-6">
-                <Alert className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 border-blue-500/30 backdrop-blur-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-blue-500/20 p-2 rounded-full">
-                      <AlertCircle className="h-5 w-5 text-blue-400" />
-                    </div>
-                    <AlertDescription className="text-blue-100 text-sm sm:text-base leading-relaxed">
-                      PARA AGENDAR SUA CONSULTA, INFORME SEU CPF OU NÚMERO DO SUS.
-                    </AlertDescription>
-                  </div>
-                </Alert>
+
                 
                 <div className="space-y-3">
                   <Label htmlFor="cpf-sus" className="text-slate-200 font-semibold text-sm sm:text-base tracking-wide">
