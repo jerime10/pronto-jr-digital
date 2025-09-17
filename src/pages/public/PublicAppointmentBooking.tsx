@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar, Search, CheckCircle, AlertCircle, Sparkles, Shield, Clock, User, Phone, ChevronLeft, ChevronRight, ArrowRight, FileText, Save } from 'lucide-react';
+import Logo from '@/components/Logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -989,12 +990,14 @@ export const PublicAppointmentBooking: React.FC = () => {
               </div>
             </div>
             {/* Logo AGENDA ABERTA */}
-            <div className="flex justify-center mb -40 mt -25 px -15">
-              <img 
-                src="/LOGO_AGENDA_ABERTA-removebg-preview.png" 
-                alt="Agenda Aberta" 
-                className="h-56 sm:h-64 md:h-72 lg:h-80 xl:h-88 2xl:h-96 w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl object-contain animate-fade-in"
-              />
+            <div className="flex justify-center mb-4 mt-2">
+              <div className="text-center animate-fade-in">
+                <Logo className="justify-center mb-2" showText={true} />
+                <h2 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 tracking-wider">
+                  AGENDA ABERTA
+                </h2>
+                <p className="text-slate-400 text-sm mt-1">Sistema de Agendamento Online</p>
+              </div>
             </div>
           </CardHeader>
           
