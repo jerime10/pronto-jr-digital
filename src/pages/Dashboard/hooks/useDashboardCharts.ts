@@ -104,7 +104,7 @@ export const useDashboardCharts = (period: number = 30) => {
       ] = await Promise.all([
         supabase.from('medical_records').select('*', { count: 'exact', head: true }).gte('created_at', startDate.toISOString()),
         supabase.from('patients').select('*', { count: 'exact', head: true }).gte('created_at', startDate.toISOString()),
-        supabase.from('professionals').select('*', { count: 'exact', head: true }),
+        supabase.from('professionals' as any).select('*', { count: 'exact', head: true }),
         supabase.from('modelo-result-exames' as any).select('*', { count: 'exact', head: true }).gte('created_at', startDate.toISOString())
       ]);
       

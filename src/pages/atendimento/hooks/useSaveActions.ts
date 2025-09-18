@@ -181,7 +181,7 @@ export const useSaveActions = ({
       }));
       
       // Primeiro verificar se o profissional existe na tabela professionals
-      const { data: professionalExists, error: professionalCheckError } = await supabase
+      const { data: professionalExists, error: professionalCheckError } = await (supabase as any)
         .from('professionals')
         .select('id')
         .eq('custom_user_id', profissionalAtual.id)
@@ -196,7 +196,7 @@ export const useSaveActions = ({
       // Se não exists um profissional correspondente, criar um
       if (!professionalExists) {
         console.log('Criando registro de profissional...');
-        const { data: newProfessional, error: createProfessionalError } = await supabase
+        const { data: newProfessional, error: createProfessionalError } = await (supabase as any)
           .from('professionals')
           .insert({
             custom_user_id: profissionalAtual.id,
