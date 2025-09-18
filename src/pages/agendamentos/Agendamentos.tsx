@@ -13,6 +13,7 @@ import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAppointments } from '@/hooks/useAppointments';
 import { AppointmentData } from '@/services/appointmentsService';
+import { findPatientByName } from '@/services/patientService';
 import { toast } from 'sonner';
 import { formatPregnancyDisplay } from '@/utils/pregnancyUtils';
 import { isObstetricService } from '@/utils/obstetricUtils';
@@ -236,35 +237,70 @@ const Agendamentos: React.FC = () => {
       // Encontrar o agendamento para obter os dados do paciente
       const appointment = appointments.find(app => app.id === appointmentId);
       if (appointment) {
-        console.log('🔍 Agendamentos - Iniciando atendimento para:', appointment.patient);
-        console.log('🔍 Agendamentos - Dados completos do appointment:', appointment);
+        // Verificar se temos dados mínimos do paciente
+        if (!appointment.patient_name) {
+          return;
+        }
+        
+        // Se não temos patient_id, vamos criar um UUID válido
+        // Isso permite que o fluxo continue funcionando mesmo com dados legados
+        const patientId = appointment.patient_id || crypto.randomUUID();
+        
+        const patientDataToSend = {
+          id: patientId,
+          name: appointment.patient_name,
+          sus: appointment.patient?.sus || '',
+          phone: appointment.patient?.phone || appointment.patient_phone || '',
+          address: appointment.patient?.address || '',
+          date_of_birth: appointment.patient?.date_of_birth || null,
+          age: appointment.patient?.age || 0,
+          gender: appointment.patient?.gender || '',
+          created_at: appointment.patient?.created_at || new Date().toISOString(),
+          updated_at: appointment.patient?.updated_at || new Date().toISOString()
+        };
         
         // Primeiro atualizar o status para 'confirmed' (que corresponde a atendimento iniciado)
         await handleStatusChange(appointmentId, 'atendimento_iniciado' as AppointmentStatus);
-        // Depois navegar para a seção de atendimento com os dados do paciente e appointment_id
-        navigate('/atendimento/novo', { 
-          state: { 
-            appointmentId: appointmentId,
-            patientData: {
-              id: appointment.patient_id,
-              name: appointment.patient_name,
-              sus: appointment.patient?.sus || '',
-              phone: appointment.patient?.phone || '',
-              address: appointment.patient?.address || '',
-              date_of_birth: appointment.patient?.date_of_birth || null,
-              age: appointment.patient?.age || 0,
-              gender: appointment.patient?.gender || '',
-              created_at: appointment.patient?.created_at || '',
-              updated_at: appointment.patient?.updated_at || ''
-            }
+        
+        // Navegar para o atendimento passando os dados do paciente
+        navigate('/atendimento/novo', {
+          state: {
+            rawPatientDataFromNavigation: patientDataToSend,
+            appointmentIdFromNavigation: appointmentId
           }
         });
+        
+
       }
     } else if (action === 'atendimento_finalizado') {
-      // Para finalizar atendimento
+      // Para finalizar atendimento - buscar paciente no banco e iniciar novo atendimento
       try {
+        const appointment = appointments.find(app => app.id === appointmentId);
+        if (!appointment || !appointment.patient_name) {
+          toast.error('Dados do paciente não encontrados no agendamento');
+          return;
+        }
+
+        // Buscar o paciente no banco de dados
+        const patientFromDb = await findPatientByName(appointment.patient_name);
+        
+        if (!patientFromDb) {
+          toast.error(`Paciente "${appointment.patient_name}" não encontrado no banco de dados. Verifique se o paciente está cadastrado.`);
+          return;
+        }
+
+        // Atualizar status do agendamento para finalizado
         await handleStatusChange(appointmentId, 'atendimento_finalizado' as AppointmentStatus);
-        toast.success('Atendimento finalizado com sucesso');
+        
+        // Navegar para novo atendimento com dados reais do paciente
+        navigate('/atendimento/novo', {
+          state: {
+            rawPatientDataFromNavigation: patientFromDb,
+            appointmentIdFromNavigation: appointmentId
+          }
+        });
+        
+        toast.success('Paciente encontrado! Iniciando novo atendimento...');
       } catch (error) {
         console.error('Erro ao finalizar atendimento:', error);
         toast.error('Erro ao finalizar atendimento');

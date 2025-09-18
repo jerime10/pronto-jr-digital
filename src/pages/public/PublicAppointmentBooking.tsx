@@ -1049,7 +1049,7 @@ export const PublicAppointmentBooking: React.FC = () => {
         ...(isObstetricService(formData.service_name) && obstetricData.dum && {
           dum: convertDateToDBFormat(obstetricData.dum),
           gestational_age: obstetricData.gestationalAge,
-          estimated_due_date: obstetricData.dpp
+          estimated_due_date: obstetricData.dpp ? convertDateToDBFormat(obstetricData.dpp) : null
         })
       };
 

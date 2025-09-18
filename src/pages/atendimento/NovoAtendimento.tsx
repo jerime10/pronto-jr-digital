@@ -14,14 +14,39 @@ const NovoAtendimento = () => {
   const isEditing = !!id;
   const [selectedModelTitle, setSelectedModelTitle] = React.useState<string | null>(null);
   
+  // Função para validar se o paciente tem dados válidos
+  const isValidPatient = (patient: any): boolean => {
+    if (!patient) {
+      return false;
+    }
+    
+    if (!patient.id) {
+      return false;
+    }
+    
+    // Aceitar tanto UUIDs quanto IDs temporários
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(patient.id);
+    const isTempId = patient.id.toString().startsWith('temp-');
+    
+    if (!isUUID && !isTempId) {
+      return false;
+    }
+    
+    if (!patient.name || patient.name.trim() === '') {
+      return false;
+    }
+    
+    return true;
+  };
+
   // Receber dados do paciente e appointment_id via navegação (quando vem do agendamento)
-  const patientDataFromNavigation = location.state?.patientData;
-  const appointmentIdFromNavigation = location.state?.appointmentId;
+  const rawPatientDataFromNavigation = location.state?.rawPatientDataFromNavigation;
+  const appointmentIdFromNavigation = location.state?.appointmentIdFromNavigation;
   
-  // Debug logs para rastrear dados do paciente e appointment
-  console.log('🔍 NovoAtendimento - location.state:', location.state);
-  console.log('🔍 NovoAtendimento - patientDataFromNavigation:', patientDataFromNavigation);
-  console.log('🔍 NovoAtendimento - appointmentIdFromNavigation:', appointmentIdFromNavigation);
+  // Validar dados do paciente antes de usar
+  const patientDataFromNavigation = rawPatientDataFromNavigation && isValidPatient(rawPatientDataFromNavigation) 
+    ? rawPatientDataFromNavigation 
+    : null;
   
   const {
     existingRecord,

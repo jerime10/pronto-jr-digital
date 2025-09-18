@@ -1,5 +1,18 @@
 import { supabase } from '@/integrations/supabase/client';
 
+export interface PatientData {
+  id: string;
+  name: string;
+  sus: string;
+  phone: string;
+  address: string;
+  date_of_birth: string | null;
+  age: number;
+  gender: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AppointmentData {
   id: string;
   patient_name: string;
@@ -20,6 +33,7 @@ export interface AppointmentData {
   end_time?: string | null; // Nova coluna adicionada
   created_at: string;
   updated_at: string;
+  patient?: PatientData | null; // Dados completos do paciente via join
 }
 
 export interface AppointmentFilters {
@@ -36,7 +50,21 @@ export const appointmentsService = {
     
     let query = supabase
       .from('appointments')
-      .select('*')
+      .select(`
+        *,
+        patients:patient_id (
+          id,
+          name,
+          sus,
+          phone,
+          address,
+          date_of_birth,
+          age,
+          gender,
+          created_at,
+          updated_at
+        )
+      `)
       .order('appointment_date', { ascending: false })
       .order('appointment_datetime', { ascending: true });
 
@@ -64,14 +92,34 @@ export const appointmentsService = {
       throw new Error(`Erro ao buscar agendamentos: ${error.message}`);
     }
 
-    return appointments || [];
+    // Mapear os dados para incluir o paciente corretamente
+    const mappedAppointments = appointments?.map(appointment => ({
+      ...appointment,
+      patient: appointment.patients || null
+    })) || [];
+    
+    return mappedAppointments;
   },
 
   // Buscar agendamento por ID
   async getAppointmentById(id: string): Promise<AppointmentData | null> {
     const { data: appointment, error } = await supabase
       .from('appointments')
-      .select('*')
+      .select(`
+        *,
+        patients:patient_id (
+          id,
+          name,
+          sus,
+          phone,
+          address,
+          date_of_birth,
+          age,
+          gender,
+          created_at,
+          updated_at
+        )
+      `)
       .eq('id', id)
       .single();
 
@@ -80,7 +128,12 @@ export const appointmentsService = {
       throw new Error(`Erro ao buscar agendamento: ${error.message}`);
     }
 
-    return appointment;
+    // Mapear os dados para incluir o paciente corretamente
+    const mappedAppointment = appointment ? {
+      ...appointment,
+      patient: appointment.patients || null
+    } : null;
+    return mappedAppointment;
   },
 
   // Atualizar status do agendamento

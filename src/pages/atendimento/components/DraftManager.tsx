@@ -74,7 +74,7 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
       <Button
         variant="outline"
         size="sm"
-        onClick={saveDraft}
+        onClick={() => saveDraft(form)}
         disabled={!canSaveDraft || isSavingDraft}
         className="flex items-center gap-2"
       >

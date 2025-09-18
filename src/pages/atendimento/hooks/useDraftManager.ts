@@ -100,58 +100,124 @@ export const useDraftManager = ({
   };
 
   // Salvar rascunho atual
-  const saveDraft = async () => {
+  const saveDraft = async (formData: FormState) => {
     if (!pacienteSelecionado || !profissionalAtual) {
-      toast.error('Paciente e profissional devem estar selecionados');
+      console.error('❌ Dados insuficientes para salvar rascunho:', { 
+        paciente: !!pacienteSelecionado, 
+        profissional: !!profissionalAtual 
+      });
+      toast.error('Selecione um paciente e profissional antes de salvar o rascunho.');
       return;
     }
 
-    if (!form.queixaPrincipal.trim()) {
-      toast.error('Queixa principal é obrigatória para salvar rascunho');
-      return;
-    }
-
-    setIsSavingDraft(true);
     try {
+      setIsSavingDraft(true);
+      console.log('🔍 Verificando se paciente existe na tabela patients...');
+      
+      // Verificar se o paciente existe na tabela patients
+      const { data: existingPatient, error: checkError } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('id', pacienteSelecionado.id)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('❌ Erro ao verificar paciente na tabela patients:', checkError);
+        toast.error('Erro ao verificar dados do paciente.');
+        return;
+      }
+
+      // Se o paciente não existir, criar automaticamente
+      if (!existingPatient) {
+        console.log('⚠️ Paciente não encontrado na tabela patients. Criando automaticamente...');
+        
+        const { error: createError } = await supabase
+          .from('patients')
+          .insert([{
+            id: pacienteSelecionado.id,
+            name: pacienteSelecionado.name,
+            sus: pacienteSelecionado.sus,
+            phone: pacienteSelecionado.phone || '',
+            address: pacienteSelecionado.address || '',
+            date_of_birth: pacienteSelecionado.date_of_birth,
+            age: pacienteSelecionado.age || 0,
+            gender: pacienteSelecionado.gender || '',
+            created_at: pacienteSelecionado.created_at || new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }]);
+
+        if (createError) {
+          console.error('❌ Erro ao criar paciente na tabela patients:', createError);
+          toast.error('Erro ao criar registro do paciente. Tente novamente.');
+          return;
+        }
+
+        console.log('✅ Paciente criado automaticamente na tabela patients');
+        toast.success('Paciente registrado automaticamente no sistema.');
+      } else {
+        console.log('✅ Paciente já existe na tabela patients');
+      }
+
       // Verificar se já existe um rascunho para este paciente e profissional
-      const { data: existingDrafts, error: searchError } = await (supabase as any)
+      console.log('🔍 Verificando se já existe rascunho...');
+      const { data: existingDraft } = await supabase
         .from('medical_record_drafts')
         .select('id')
         .eq('patient_id', pacienteSelecionado.id)
-        .eq('professional_id', profissionalAtual.id);
+        .eq('professional_id', profissionalAtual.id)
+        .single();
 
-      if (searchError) throw searchError;
+      let data, error;
 
-      const draftData = {
-        patient_id: pacienteSelecionado.id,
-        professional_id: profissionalAtual.id,
-        form_data: form
-      };
-
-      if (existingDrafts && existingDrafts.length > 0) {
+      if (existingDraft) {
+        console.log('📝 Atualizando rascunho existente...');
         // Atualizar rascunho existente
-        const { error } = await (supabase as any)
+        const result = await supabase
           .from('medical_record_drafts')
-          .update(draftData)
-          .eq('id', existingDrafts[0].id);
-
-        if (error) throw error;
-        toast.success('Rascunho atualizado com sucesso!');
+          .update({
+            form_data: formData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingDraft.id)
+          .select()
+          .single();
+        
+        data = result.data;
+        error = result.error;
       } else {
+        console.log('💾 Criando novo rascunho...');
         // Criar novo rascunho
-        const { error } = await (supabase as any)
+        const result = await supabase
           .from('medical_record_drafts')
-          .insert(draftData);
-
-        if (error) throw error;
-        toast.success('Rascunho salvo com sucesso!');
+          .insert({
+            patient_id: pacienteSelecionado.id,
+            professional_id: profissionalAtual.id,
+            form_data: formData,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+        
+        data = result.data;
+        error = result.error;
       }
 
-      // Recarregar lista de rascunhos
+      if (error) {
+        console.error('❌ Erro ao salvar rascunho:', error);
+        toast.error('Erro ao salvar rascunho. Tente novamente.');
+        return;
+      }
+
+      console.log('✅ Rascunho salvo com sucesso:', data);
+      toast.success('Rascunho salvo com sucesso!');
+      
+      // Recarregar a lista de rascunhos
       await loadDrafts();
+      
     } catch (error) {
-      console.error('Erro ao salvar rascunho:', error);
-      toast.error('Erro ao salvar rascunho');
+      console.error('❌ Erro inesperado ao salvar rascunho:', error);
+      toast.error('Erro inesperado. Tente novamente.');
     } finally {
       setIsSavingDraft(false);
     }

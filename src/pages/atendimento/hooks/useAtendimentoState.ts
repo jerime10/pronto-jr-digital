@@ -9,9 +9,6 @@ import { useAtendimentoHelpers } from './useAtendimentoHelpers';
 import { useLocalStoragePersistence } from './useLocalStoragePersistence';
 
 export const useAtendimentoState = (selectedModelTitle?: string | null, initialPatient?: any, appointmentId?: string) => {
-  // Debug logs para rastrear dados do paciente e appointment
-  console.log('🔍 useAtendimentoState - initialPatient recebido:', initialPatient);
-  console.log('🔍 useAtendimentoState - appointmentId recebido:', appointmentId);
   
   const { activeTab, setActiveTab } = useTabState();
   const { 

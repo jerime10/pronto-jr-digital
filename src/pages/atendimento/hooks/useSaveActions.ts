@@ -54,6 +54,49 @@ export const useSaveActions = ({
   const [isSubmittingRecord, setIsSubmittingRecord] = useState(false);
   const navigate = useNavigate();
 
+  // Função para validar se o paciente tem dados válidos
+  const isValidPatient = (patient: Patient | null): patient is Patient => {
+    if (!patient) {
+      console.error('❌ Paciente é null ou undefined');
+      return false;
+    }
+    
+    if (!patient.id || patient.id === 'null' || patient.id === 'undefined') {
+      console.error('❌ ID do paciente é inválido:', patient.id);
+      return false;
+    }
+    
+    // Verificar se é um UUID válido OU um ID temporário
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const isTempId = patient.id.toString().startsWith('temp-');
+    
+    if (!uuidRegex.test(patient.id) && !isTempId) {
+      console.error('❌ ID do paciente não é um UUID válido nem um ID temporário:', patient.id);
+      return false;
+    }
+    
+    console.log('✅ Paciente válido:', patient.id);
+    return true;
+  };
+
+
+
+  // Função para validar se o profissional tem dados válidos
+  const isValidProfessional = (professional: Professional | null): professional is Professional => {
+    if (!professional) {
+      console.error('❌ Profissional é null ou undefined');
+      return false;
+    }
+    
+    if (!professional.id || professional.id === 'null' || professional.id === 'undefined') {
+      console.error('❌ ID do profissional é inválido:', professional.id);
+      return false;
+    }
+    
+    console.log('✅ Profissional válido:', professional.id);
+    return true;
+  };
+
   // Função para salvar dados localmente no localStorage
   const saveToLocalStorage = (recordData: any) => {
     try {
@@ -78,8 +121,18 @@ export const useSaveActions = ({
   };
 
   const handleSalvarAtendimento = async () => {
-    if (!pacienteSelecionado || !profissionalAtual) {
-      toast.error('Paciente e profissional devem estar selecionados');
+    // Debug logs para rastrear o problema do UUID
+    console.log('🔍 handleSalvarAtendimento - pacienteSelecionado:', pacienteSelecionado);
+    console.log('🔍 handleSalvarAtendimento - profissionalAtual:', profissionalAtual);
+    
+    // Usar as funções de validação
+    if (!isValidPatient(pacienteSelecionado)) {
+      toast.error("Dados do paciente são inválidos. Tente selecionar o paciente novamente.");
+      return;
+    }
+
+    if (!isValidProfessional(profissionalAtual)) {
+      toast.error("Dados do profissional são inválidos. Tente fazer login novamente.");
       return;
     }
 
@@ -98,7 +151,7 @@ export const useSaveActions = ({
 
       // Preparar dados do atendimento
       const recordData = {
-        id: `temp-${Date.now()}`,
+        id: crypto.randomUUID(),
         patient_id: pacienteSelecionado.id,
         professional_id: profissionalAtual.id,
         main_complaint: form.queixaPrincipal,
@@ -151,8 +204,19 @@ export const useSaveActions = ({
   };
 
   const handleSubmitMedicalRecord = async () => {
-    if (!pacienteSelecionado || !profissionalAtual) {
-      toast.error('Paciente e profissional devem estar selecionados');
+    // Debug logs para rastrear o problema do patient_id
+    console.log('🔍 handleSubmitMedicalRecord - pacienteSelecionado:', pacienteSelecionado);
+    console.log('🔍 handleSubmitMedicalRecord - profissionalAtual:', profissionalAtual);
+    console.log('🔍 handleSubmitMedicalRecord - appointmentId:', appointmentId);
+    
+    // Usar as funções de validação
+    if (!isValidPatient(pacienteSelecionado)) {
+      toast.error("Dados do paciente são inválidos. Tente selecionar o paciente novamente.");
+      return;
+    }
+
+    if (!isValidProfessional(profissionalAtual)) {
+      toast.error("Dados do profissional são inválidos. Tente fazer login novamente.");
       return;
     }
 
@@ -169,6 +233,32 @@ export const useSaveActions = ({
     try {
       setIsSubmittingRecord(true);
       console.log('Iniciando submissão do prontuário...');
+      
+      // Validar paciente apenas no momento do salvamento final
+      if (!isValidPatient(pacienteSelecionado)) {
+        throw new Error('Dados do paciente inválidos. Verifique se o paciente foi selecionado corretamente.');
+      }
+
+      // Verificar se o paciente existe na tabela patients
+      const { data: patientExists, error: patientCheckError } = await supabase
+        .from('patients')
+        .select('id, name')
+        .eq('id', pacienteSelecionado.id)
+        .single();
+
+      if (patientCheckError) {
+        console.error('❌ Erro ao verificar paciente na tabela:', patientCheckError);
+        throw new Error(`Paciente não encontrado na base de dados: ${patientCheckError.message}`);
+      }
+
+      if (!patientExists) {
+        throw new Error('Paciente não encontrado na base de dados. Verifique se o paciente foi cadastrado corretamente.');
+      }
+
+      console.log('✅ Paciente validado:', patientExists);
+      
+      // Usar o ID do paciente selecionado
+      const patientIdToUse = pacienteSelecionado.id;
       
       // Convert images data to JSON compatible format
       const imagesDataJson = form.images.map(img => ({
@@ -236,13 +326,16 @@ export const useSaveActions = ({
              : new Date(form.dataFimAtendimento).toISOString())
         : null;
       
-      // Salvar no banco de dados com o ID correto do profissional
+      // Salvar no banco de dados com o ID correto do paciente e profissional
       console.log('Salvando prontuário no banco de dados...');
       console.log('🔍 appointmentId para salvar:', appointmentId);
+      console.log('🔍 patientIdToUse antes da inserção:', patientIdToUse);
+      console.log('🔍 professionalIdToUse antes da inserção:', professionalIdToUse);
+      
       const { data: savedRecord, error: saveError } = await supabase
         .from('medical_records')
         .insert({
-          patient_id: pacienteSelecionado.id,
+          patient_id: patientIdToUse,
           professional_id: professionalIdToUse,
           appointment_id: appointmentId || null,
           main_complaint: form.queixaPrincipal,
@@ -375,4 +468,23 @@ export const useSaveActions = ({
     handleGerarPDF,
     handleSubmitMedicalRecord
   };
+};
+
+// Validação de paciente
+const isValidPatient = (patient: Patient): boolean => {
+  if (!patient || !patient.id) {
+    console.error('❌ Paciente não fornecido ou sem ID');
+    return false;
+  }
+
+  // Verificar se é um UUID válido
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const isValidUUID = uuidRegex.test(patient.id.toString());
+
+  if (!isValidUUID) {
+    console.error('❌ ID do paciente não é um UUID válido:', patient.id);
+    return false;
+  }
+
+  return true;
 };

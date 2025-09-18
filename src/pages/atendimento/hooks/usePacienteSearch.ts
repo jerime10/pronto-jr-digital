@@ -5,16 +5,40 @@ import { supabase } from '@/integrations/supabase/client';
 import { Patient } from '@/types/database';
 
 export const usePacienteSearch = (initialPatient?: Patient | null) => {
-  // Debug logs para rastrear dados do paciente
-  console.log('🔍 usePacienteSearch - initialPatient recebido:', initialPatient);
+  // Função para validar se o paciente tem dados válidos
+  const isValidPatient = (patient: any): boolean => {
+    if (!patient) {
+      return false;
+    }
+    
+    if (!patient.name || patient.name.trim() === '') {
+      return false;
+    }
+    
+    if (!patient.id) {
+      return false;
+    }
+    
+    // Aceitar tanto UUIDs quanto IDs temporários
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(patient.id);
+    const isTempId = patient.id.toString().startsWith('temp-');
+    
+    if (!isUUID && !isTempId) {
+      return false;
+    }
+    
+    return true;
+  };
   
   const [buscarPaciente, setBuscarPaciente] = useState('');
-  const [pacienteSelecionado, setPacienteSelecionado] = useState<Patient | null>(initialPatient || null);
+  const [pacienteSelecionado, setPacienteSelecionado] = useState<Patient | null>(
+    initialPatient && isValidPatient(initialPatient) ? initialPatient : null
+  );
   const [mostrarResultadosBusca, setMostrarResultadosBusca] = useState(false);
   
   // Efeito para definir paciente inicial quando fornecido
   useEffect(() => {
-    if (initialPatient && !pacienteSelecionado) {
+    if (initialPatient && !pacienteSelecionado && isValidPatient(initialPatient)) {
       setPacienteSelecionado(initialPatient);
     }
   }, [initialPatient, pacienteSelecionado]);
@@ -75,9 +99,22 @@ export const usePacienteSearch = (initialPatient?: Patient | null) => {
   };
   
   const handleSelectPaciente = (paciente: any) => {
-    setPacienteSelecionado(paciente);
-    setBuscarPaciente('');
-    setMostrarResultadosBusca(false);
+    console.log('🔍 DEBUG - Selecionando paciente:', {
+      id: paciente?.id,
+      name: paciente?.name,
+      isValid: isValidPatient(paciente),
+      isUUID: paciente?.id ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(paciente.id) : false,
+      isTemp: paciente?.id ? paciente.id.startsWith('temp-') : false
+    });
+    
+    if (isValidPatient(paciente)) {
+      setPacienteSelecionado(paciente);
+      setBuscarPaciente('');
+      setMostrarResultadosBusca(false);
+      console.log('✅ DEBUG - Paciente selecionado com sucesso:', paciente.id);
+    } else {
+      console.error('❌ DEBUG - Paciente inválido não foi selecionado:', paciente);
+    }
   };
   
   const handleClearPaciente = () => {
