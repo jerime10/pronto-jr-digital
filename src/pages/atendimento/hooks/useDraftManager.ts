@@ -101,8 +101,8 @@ export const useDraftManager = ({
 
   // Salvar rascunho atual
   const saveDraft = async () => {
-    if (!pacienteSelecionado || !profissionalAtual || !pacienteSelecionado.id || !profissionalAtual.id) {
-      toast.error('Paciente e profissional devem estar selecionados e cadastrados');
+    if (!pacienteSelecionado || !profissionalAtual) {
+      toast.error('Paciente e profissional devem estar selecionados');
       return;
     }
 
