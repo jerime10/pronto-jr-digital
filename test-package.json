@@ -1,0 +1,18 @@
+{
+  "name": "availability-debug-test",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Script de teste para debug de disponibilidade de horários",
+  "main": "test-availability-debug.js",
+  "scripts": {
+    "test": "node test-availability-debug.js",
+    "test:debug": "node --inspect test-availability-debug.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

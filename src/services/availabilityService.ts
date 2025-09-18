@@ -307,7 +307,7 @@ export const availabilityService = {
           // Verificar se o slot não conflita com agendamentos existentes
           // Apenas agendamentos ativos (não cancelados, não finalizados) bloqueiam o horário
           const hasConflict = existingAppointments.some(appointment => {
-            const activeStatuses = ['scheduled', 'confirmed'];
+            const activeStatuses = ['scheduled', 'confirmed', 'atendimento_iniciado'];
             
             if (!activeStatuses.includes(appointment.status)) {
               return false;
@@ -602,7 +602,7 @@ export const availabilityService = {
         .from('appointments')
         .select('appointment_datetime, appointment_date')
         .eq('attendant_id', attendantId)
-        .in('status', ['scheduled', 'confirmed']);
+        .in('status', ['scheduled', 'confirmed', 'atendimento_iniciado']);
 
       if (appointmentsError) {
         console.error('Erro ao buscar agendamentos:', appointmentsError);

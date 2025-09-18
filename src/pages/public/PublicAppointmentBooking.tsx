@@ -1234,24 +1234,24 @@ export const PublicAppointmentBooking: React.FC = () => {
       <div className="w-full max-w-2xl relative z-10 animate-fade-in-up">
         <Card className="bg-slate-800/90 backdrop-blur-xl border-slate-700/50 shadow-2xl shadow-purple-500/10 card-glow glass-effect">
           <CardHeader className="text-center pb-4 pt-4">
-            <div className="flex justify-center mb-2">
+            <div className="flex justify-center mb-1">
               <div className="relative animate-float">
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
-                <div className="relative bg-gradient-to-r from-purple-500 to-cyan-500 p-3 rounded-full gradient-button">
+                <div className="relative bg-gradient-to-r from-purple-500 to-cyan-500 p-4 rounded-full gradient-button">
                   {attendantLogoData ? (
                     <img 
                       src={attendantLogoData} 
                       alt="Logo do Atendente" 
-                      className="h-8 w-8 object-contain rounded-full"
+                      className="h-12 w-12 object-contain rounded-full"
                     />
                   ) : (
-                    <Calendar className="h-8 w-8 text-white" />
+                    <Calendar className="h-12 w-12 text-white" />
                   )}
                 </div>
               </div>
             </div>
             {/* Logo AGENDA ABERTA */}
-            <div className="flex justify-center mb -40 mt -25 px -15">
+            <div className="flex justify-center mb-2 mt-1 px-4">
               <img 
                 src="/LOGO_AGENDA_ABERTA-removebg-preview.png" 
                 alt="Agenda Aberta" 
@@ -1260,20 +1260,20 @@ export const PublicAppointmentBooking: React.FC = () => {
             </div>
           </CardHeader>
           
-          <CardContent className="p-6 sm:p-8">
+          <CardContent className="p-3 sm:p-4">
             {/* Etapa 1: Entrada CPF/SUS */}
             {currentStep === 'cpf_input' && (
-              <div className="space-y-6">
+              <div className="space-y-3">
                 {/* Seção PIX */}
-                <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-4 space-y-3">
+                <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-3 space-y-2">
                   <div className="text-center">
-                    <h3 className="text-green-400 font-bold text-lg mb-2">💰 PIX para Pagamento</h3>
-                    <p className="text-slate-300 text-sm mb-3">
+                    <h3 className="text-green-400 font-bold text-lg mb-1">💰 PIX para Pagamento</h3>
+                    <p className="text-slate-300 text-sm mb-2">
                       <strong>Favorecido:</strong> JERIME R SOARES
                     </p>
                   </div>
                   
-                  <div className="flex items-center space-x-2 bg-slate-700/50 rounded-lg p-3">
+                  <div className="flex items-center space-x-2 bg-slate-700/50 rounded-lg p-2">
                     <div className="flex-1">
                       <p className="text-slate-400 text-xs mb-1">Chave PIX:</p>
                       <p className="text-white font-mono text-sm break-all">

@@ -406,7 +406,7 @@ export const appointmentService = {
         .eq('attendant_id', data.attendant_id)
         .eq('appointment_date', data.appointment_date)
         .eq('appointment_datetime', data.appointment_datetime)
-        .in('status', ['scheduled', 'confirmed']);
+        .in('status', ['scheduled', 'confirmed', 'atendimento_iniciado']);
 
       if (checkError) {
         console.error('Erro ao verificar agendamentos existentes:', checkError);
