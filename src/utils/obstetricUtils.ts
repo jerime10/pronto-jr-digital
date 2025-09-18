@@ -86,32 +86,70 @@ export const calculateDPP = (dum: string): string | null => {
 /**
  * Verifica se um serviço é obstétrico
  * @param serviceName Nome do serviço
- * @returns true se contém "OBSTÉTRICA" (case insensitive)
+ * @returns true se é um serviço obstétrico
  */
 export const isObstetricService = (serviceName: string): boolean => {
+  console.log('🔍 [DEBUG] isObstetricService chamada com:', serviceName);
+  
   if (!serviceName || typeof serviceName !== 'string') {
     return false;
   }
-  return serviceName.toUpperCase().includes('OBSTÉTRICA');
+  
+  const serviceNameUpper = serviceName.toUpperCase();
+  
+  // Lista de termos que indicam serviços obstétricos
+  const obstetricTerms = [
+    'OBSTETRICIA',
+    'OBSTETRÍCIA', 
+    'OBSTÉTRICA',
+    'OBSTETRICA', // sem acento
+    'PRÉ-NATAL',
+    'PRE-NATAL', // sem acento
+    'PRE NATAL',
+    'PRENATAL',
+    'GESTANTE',
+    'GRAVIDEZ',
+    'USG POCUS OBSTÉTRICA',
+    'USG POCUS OBSTETRICA',
+    'ULTRASSOM OBSTÉTRICO',
+    'ULTRASSOM OBSTETRICO'
+  ];
+  
+  const result = obstetricTerms.some(term => serviceNameUpper.includes(term));
+  
+  console.log('🔍 [DEBUG] Resultado da validação:', result);
+  console.log('🔍 [DEBUG] Termos verificados:', obstetricTerms);
+  
+  return result;
 };
 
 /**
- * Valida formato de data DD/MM/AAAA
- * @param date String da data
- * @returns true se o formato está correto
+ * Valida se a data está no formato DD/MM/AAAA e é uma data válida
  */
-export const isValidDateFormat = (date: string): boolean => {
-  const regex = /^\d{2}\/\d{2}\/\d{4}$/;
-  if (!regex.test(date)) {
-    return false;
-  }
-
-  const [day, month, year] = date.split('/').map(Number);
-  const dateObj = new Date(year, month - 1, day);
+export const isValidDateFormat = (dateString: string): boolean => {
+  if (!dateString || dateString.length !== 10) return false;
   
-  return dateObj.getDate() === day && 
-         dateObj.getMonth() === month - 1 && 
-         dateObj.getFullYear() === year;
+  const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+  const match = dateString.match(regex);
+  
+  if (!match) return false;
+  
+  const [, day, month, year] = match;
+  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  
+  return date.getDate() === parseInt(day) &&
+         date.getMonth() === parseInt(month) - 1 &&
+         date.getFullYear() === parseInt(year);
+};
+
+/**
+ * Converte data do formato DD/MM/AAAA para YYYY-MM-DD (formato do banco)
+ */
+export const convertDateToDBFormat = (dateString: string): string | null => {
+  if (!isValidDateFormat(dateString)) return null;
+  
+  const [day, month, year] = dateString.split('/');
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 };
 
 /**

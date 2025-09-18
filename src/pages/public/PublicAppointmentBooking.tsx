@@ -6,13 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Search, CheckCircle, AlertCircle, Sparkles, Shield, Clock, User, Phone, ChevronLeft, ChevronRight, ArrowRight, FileText, Save } from 'lucide-react';
+import { Calendar, Search, CheckCircle, AlertCircle, Sparkles, Shield, Clock, User, Phone, ChevronLeft, ChevronRight, ArrowRight, FileText, Save, Copy } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { formatPhoneNumber, isValidPhoneNumber, cleanPhoneNumber } from '@/utils/phoneUtils';
-import { formatCpfOrSus, isValidCpfOrSus, cleanCpfOrSus } from '@/utils/cpfSusUtils';
+import { formatCpfOrSus, isValidCpfOrSus, cleanCpfOrSus, validateSevenDigitInput } from '@/utils/cpfSusUtils';
 import { formatDateForDB } from '@/utils/dateUtils';
+import { isObstetricService, calculateGestationalAge, calculateDPP, formatDateInput, isValidDateFormat, convertDateToDBFormat } from '@/utils/obstetricUtils';
 import { appointmentService } from '@/services/scheduleService';
 import { serviceAssignmentService } from '@/services/serviceAssignmentService';
 import { debugLogger, startTimer, endTimer } from '@/utils/debugLogger';
@@ -54,7 +55,7 @@ interface AppointmentFormData {
   notes: string;
 }
 
-type BookingStep = 'cpf_input' | 'welcome_update' | 'attendant_selection' | 'service_selection' | 'datetime_selection' | 'confirmation';
+type BookingStep = 'cpf_input' | 'welcome_update' | 'attendant_selection' | 'service_selection' | 'obstetric_data' | 'datetime_selection' | 'confirmation';
 
 export const PublicAppointmentBooking: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<BookingStep>('cpf_input');
@@ -90,6 +91,15 @@ export const PublicAppointmentBooking: React.FC = () => {
   const [tempPhone, setTempPhone] = useState('');
   const [isUpdatingPhone, setIsUpdatingPhone] = useState(false);
   const [greeting, setGreeting] = useState('');
+  const [validationAttempts, setValidationAttempts] = useState(0);
+
+  // Estado para dados obstétricos
+  const [obstetricData, setObstetricData] = useState({
+    dum: '',
+    gestationalAge: '',
+    dpp: '',
+    isValid: false
+  });
 
   // Hook para acessar os assets de documentos
   const { attendantLogoData } = useDocumentAssets();
@@ -137,6 +147,82 @@ export const PublicAppointmentBooking: React.FC = () => {
       });
     }
   }, [availableTimeSlots, selectedTime, selectedDate]);
+
+  // Monitor para mudanças no serviço selecionado - limpar dados obstétricos se não for obstétrico
+  useEffect(() => {
+    console.log('🔍 [DEBUG] useEffect service_name mudou:', formData.service_name);
+    if (formData.service_name && !isObstetricService(formData.service_name)) {
+      console.log('🔍 [DEBUG] Serviço não é obstétrico, limpando dados');
+      setObstetricData({ 
+        dum: '',
+        gestationalAge: '',
+        dpp: '',
+        isValid: false
+      });
+    } else if (formData.service_name) {
+      console.log('🔍 [DEBUG] Serviço É obstétrico!');
+    }
+  }, [formData.service_name]);
+
+  // Monitor para mudanças na DUM - calcular IG e DPP automaticamente
+  useEffect(() => {
+    console.log('🔍 [DEBUG] useEffect DUM mudou:', obstetricData.dum);
+    
+    if (obstetricData.dum && obstetricData.dum.length === 10) {
+      if (isValidDateFormat(obstetricData.dum)) {
+        try {
+          // Calcular idade gestacional
+          const gestAge = calculateGestationalAge(obstetricData.dum);
+          // Calcular DPP
+          const calculatedDpp = calculateDPP(obstetricData.dum);
+          
+          console.log('🔍 [DEBUG] Informações calculadas:', { gestAge, calculatedDpp });
+          
+          if (gestAge && calculatedDpp) {
+            // Atualizar estado com os valores calculados
+            setObstetricData(prev => ({
+              ...prev,
+              gestationalAge: gestAge.formatted,
+              dpp: calculatedDpp,
+              isValid: true
+            }));
+            
+            console.log('🔍 [DEBUG] Estado obstétrico atualizado com cálculos');
+          } else {
+            setObstetricData(prev => ({
+              ...prev,
+              gestationalAge: '',
+              dpp: '',
+              isValid: false
+            }));
+          }
+        } catch (error) {
+          console.error('🔍 [DEBUG] Erro ao calcular informações obstétricas:', error);
+          setObstetricData(prev => ({
+            ...prev,
+            gestationalAge: '',
+            dpp: '',
+            isValid: false
+          }));
+        }
+      } else {
+        setObstetricData(prev => ({
+          ...prev,
+          gestationalAge: '',
+          dpp: '',
+          isValid: false
+        }));
+      }
+    } else {
+      // Limpar campos calculados se DUM estiver vazia
+      setObstetricData(prev => ({
+        ...prev,
+        gestationalAge: '',
+        dpp: '',
+        isValid: false
+      }));
+    }
+  }, [obstetricData.dum]);
 
   const loadInitialData = async () => {
     await Promise.all([
@@ -320,6 +406,17 @@ export const PublicAppointmentBooking: React.FC = () => {
     return 'Boa noite';
   };
 
+  const copyPixKey = async () => {
+    const pixKey = 'ca1df7fb-4db4-4db9-b2e9-304849e2f257';
+    try {
+      await navigator.clipboard.writeText(pixKey);
+      toast.success('Chave PIX copiada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao copiar chave PIX:', error);
+      toast.error('Erro ao copiar chave PIX. Tente novamente.');
+    }
+  };
+
   const validatePatient = async () => {
     if (!susNumber.trim()) {
       toast.error('Por favor, insira o CPF ou SUS.');
@@ -382,15 +479,129 @@ export const PublicAppointmentBooking: React.FC = () => {
       return;
     }
 
-    if (!isValidCpfOrSus(cpfSusInput.trim())) {
-      toast.error('CPF deve ter 11 dígitos ou SUS deve ter 15 dígitos.');
+    // Verificar se o usuário digitou 7 números (validação especial para CPF)
+    const sevenDigitValidation = validateSevenDigitInput(cpfSusInput.trim());
+    
+    if (sevenDigitValidation.isSevenDigits) {
+      if (sevenDigitValidation.shouldRedirectToRegistration) {
+        // Incrementar tentativas mesmo para 7 dígitos especiais
+        const newAttempts = validationAttempts + 1;
+        setValidationAttempts(newAttempts);
+        
+        if (newAttempts >= 3) {
+          toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
+          setTimeout(() => {
+            window.location.href = 'http://localhost:8080/cadastro-paciente';
+          }, 2000);
+          return;
+        }
+        
+        const remainingAttempts = 3 - newAttempts;
+        toast.error(`${sevenDigitValidation.message} Tentativas restantes: ${remainingAttempts}`);
+        return;
+      } else {
+        toast.info(sevenDigitValidation.message);
+        return;
+      }
+    }
+
+    const cleanNumber = cleanCpfOrSus(cpfSusInput.trim());
+    
+    // Verificar se tem o número mínimo de dígitos para CPF ou SUS
+    if (cleanNumber.length < 11) {
+      const newAttempts = validationAttempts + 1;
+      setValidationAttempts(newAttempts);
+      
+      if (newAttempts >= 3) {
+        toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
+        setTimeout(() => {
+          window.location.href = 'http://localhost:8080/cadastro-paciente';
+        }, 2000);
+        return;
+      }
+      
+      const remainingAttempts = 3 - newAttempts;
+      toast.error(`CPF deve ter 11 dígitos ou SUS deve ter 15 dígitos. Tentativas restantes: ${remainingAttempts}`);
+      return;
+    }
+
+    // Se tem 11 dígitos, tratar como CPF
+    if (cleanNumber.length === 11) {
+      if (!isValidCpfOrSus(cpfSusInput.trim())) {
+        const newAttempts = validationAttempts + 1;
+        setValidationAttempts(newAttempts);
+        
+        if (newAttempts >= 3) {
+          toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
+          setTimeout(() => {
+            window.location.href = 'http://localhost:8080/cadastro-paciente';
+          }, 2000);
+          return;
+        }
+        
+        const remainingAttempts = 3 - newAttempts;
+        toast.error(`CPF inválido. Verifique os dígitos digitados. Tentativas restantes: ${remainingAttempts}`);
+        return;
+      }
+    }
+    
+    // Se tem 15 dígitos, tratar como SUS
+    if (cleanNumber.length === 15) {
+      if (!isValidCpfOrSus(cpfSusInput.trim())) {
+        const newAttempts = validationAttempts + 1;
+        setValidationAttempts(newAttempts);
+        
+        if (newAttempts >= 3) {
+          toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
+          setTimeout(() => {
+            window.location.href = 'http://localhost:8080/cadastro-paciente';
+          }, 2000);
+          return;
+        }
+        
+        const remainingAttempts = 3 - newAttempts;
+        toast.error(`SUS inválido. Verifique os dígitos digitados. Tentativas restantes: ${remainingAttempts}`);
+        return;
+      }
+    }
+    
+    // Se não tem 11 nem 15 dígitos, mas tem mais de 11
+    if (cleanNumber.length > 11 && cleanNumber.length < 15) {
+      const newAttempts = validationAttempts + 1;
+      setValidationAttempts(newAttempts);
+      
+      if (newAttempts >= 3) {
+        toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
+        setTimeout(() => {
+          window.location.href = 'http://localhost:8080/cadastro-paciente';
+        }, 2000);
+        return;
+      }
+      
+      const remainingAttempts = 3 - newAttempts;
+      toast.error(`SUS deve ter 15 dígitos. Tentativas restantes: ${remainingAttempts}`);
+      return;
+    }
+    
+    if (cleanNumber.length > 15) {
+      const newAttempts = validationAttempts + 1;
+      setValidationAttempts(newAttempts);
+      
+      if (newAttempts >= 3) {
+        toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
+        setTimeout(() => {
+          window.location.href = 'http://localhost:8080/cadastro-paciente';
+        }, 2000);
+        return;
+      }
+      
+      const remainingAttempts = 3 - newAttempts;
+      toast.error(`Número muito longo. CPF deve ter 11 dígitos ou SUS deve ter 15 dígitos. Tentativas restantes: ${remainingAttempts}`);
       return;
     }
 
     try {
       setIsLoading(true);
-      
-      const cleanNumber = cleanCpfOrSus(cpfSusInput.trim());
       
       const { data, error } = await supabase
         .from('patients')
@@ -403,6 +614,8 @@ export const PublicAppointmentBooking: React.FC = () => {
       }
 
       if (data) {
+        // Paciente encontrado - resetar tentativas e prosseguir
+        setValidationAttempts(0);
         setPatient(data);
         setTempPhone(data.phone || '');
         setFormData(prev => ({
@@ -417,10 +630,21 @@ export const PublicAppointmentBooking: React.FC = () => {
         setCurrentStep('welcome_update');
         toast.success(`${timeGreeting}, ${firstName}! Vamos agendar sua consulta.`);
       } else {
-        toast.error('Paciente não encontrado. É necessário realizar o cadastro primeiro.');
-        setTimeout(() => {
-          window.location.href = '/public/patient-registration';
-        }, 2000);
+        // Paciente não encontrado - incrementar tentativas
+        const newAttempts = validationAttempts + 1;
+        setValidationAttempts(newAttempts);
+        
+        if (newAttempts >= 3) {
+          toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
+          setTimeout(() => {
+            window.location.href = 'http://localhost:8080/cadastro-paciente';
+          }, 2000);
+          return;
+        }
+        
+        const documentType = cleanNumber.length === 11 ? 'CPF' : 'SUS';
+        const remainingAttempts = 3 - newAttempts;
+        toast.error(`${documentType} não encontrado. Verifique os dados ou tente novamente. Tentativas restantes: ${remainingAttempts}`);
       }
       
     } catch (error) {
@@ -467,6 +691,7 @@ export const PublicAppointmentBooking: React.FC = () => {
   const handleServiceSelection = (serviceId: string) => {
     const selectedService = services.find(s => s.id === serviceId);
     if (selectedService) {
+      console.log('🔍 [DEBUG] Serviço selecionado:', selectedService.name);
       setFormData(prev => ({
         ...prev,
         service_id: serviceId,
@@ -475,7 +700,12 @@ export const PublicAppointmentBooking: React.FC = () => {
         service_duration: selectedService.duration
       }));
       
-      setCurrentStep('datetime_selection');
+      // Se for serviço obstétrico, vai para dados obstétricos, senão vai direto para data/hora
+      if (isObstetricService(selectedService.name)) {
+        setCurrentStep('obstetric_data');
+      } else {
+        setCurrentStep('datetime_selection');
+      }
     }
   };
 
@@ -787,6 +1017,12 @@ export const PublicAppointmentBooking: React.FC = () => {
       return;
     }
 
+    // Validar DUM para serviços obstétricos
+    if (isObstetricService(formData.service_name) && !obstetricData.dum) {
+      toast.error('Para serviços obstétricos, é obrigatório informar a Data da Última Menstruação (DUM)');
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -809,9 +1045,11 @@ export const PublicAppointmentBooking: React.FC = () => {
         appointment_datetime: appointmentDateTime,
         notes: formData.notes || null,
         status: 'scheduled' as const,
-        // Incluir DUM apenas para serviços obstétricos (convertendo para formato ISO)
+        // Incluir dados obstétricos apenas para serviços obstétricos
         ...(isObstetricService(formData.service_name) && obstetricData.dum && {
-          dum: formatDateForDB(obstetricData.dum)
+          dum: convertDateToDBFormat(obstetricData.dum),
+          gestational_age: obstetricData.gestationalAge,
+          estimated_due_date: obstetricData.dpp
         })
       };
 
@@ -932,8 +1170,16 @@ export const PublicAppointmentBooking: React.FC = () => {
       case 'service_selection':
         setCurrentStep('attendant_selection');
         break;
-      case 'datetime_selection':
+      case 'obstetric_data':
         setCurrentStep('service_selection');
+        break;
+      case 'datetime_selection':
+        // Se for serviço obstétrico, volta para dados obstétricos, senão volta para seleção de serviço
+        if (isObstetricService(formData.service_name)) {
+          setCurrentStep('obstetric_data');
+        } else {
+          setCurrentStep('service_selection');
+        }
         break;
       case 'confirmation':
         setCurrentStep('datetime_selection');
@@ -1018,6 +1264,32 @@ export const PublicAppointmentBooking: React.FC = () => {
             {/* Etapa 1: Entrada CPF/SUS */}
             {currentStep === 'cpf_input' && (
               <div className="space-y-6">
+                {/* Seção PIX */}
+                <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-4 space-y-3">
+                  <div className="text-center">
+                    <h3 className="text-green-400 font-bold text-lg mb-2">💰 PIX para Pagamento</h3>
+                    <p className="text-slate-300 text-sm mb-3">
+                      <strong>Favorecido:</strong> JERIME R SOARES
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 bg-slate-700/50 rounded-lg p-3">
+                    <div className="flex-1">
+                      <p className="text-slate-400 text-xs mb-1">Chave PIX:</p>
+                      <p className="text-white font-mono text-sm break-all">
+                        ca1df7fb-4db4-4db9-b2e9-304849e2f257
+                      </p>
+                    </div>
+                    <Button
+                      onClick={copyPixKey}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 transition-all duration-300 transform hover:scale-105"
+                      aria-label="Copiar chave PIX"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
 
                 
                 <div className="space-y-3">
@@ -1035,6 +1307,18 @@ export const PublicAppointmentBooking: React.FC = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 rounded-md pointer-events-none opacity-0 transition-opacity duration-300 hover:opacity-100"></div>
                   </div>
+                  
+                  {/* Feedback de tentativas */}
+                  {validationAttempts > 0 && (
+                    <Alert className="bg-yellow-500/10 border-yellow-500/30 text-yellow-300">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        {validationAttempts === 1 && "Primeira tentativa incorreta. Você tem mais 2 tentativas."}
+                        {validationAttempts === 2 && "Segunda tentativa incorreta. Você tem mais 1 tentativa."}
+                        {validationAttempts >= 3 && "Muitas tentativas incorretas. Redirecionando para cadastro..."}
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
                 
                 <Button 
@@ -1281,6 +1565,120 @@ export const PublicAppointmentBooking: React.FC = () => {
               </div>
             )}
 
+            {/* Etapa 3.5: Dados Obstétricos */}
+            {currentStep === 'obstetric_data' && (
+              <div className="space-y-6">
+                <div className="text-center space-y-4">
+                  <div className="flex justify-center mb-4">
+                    <div className="relative animate-float">
+                      <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
+                      <div className="relative bg-gradient-to-r from-pink-500 to-rose-500 p-3 rounded-full gradient-button">
+                        <User className="h-8 w-8 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">
+                    Informações Obstétricas
+                  </h3>
+                  
+                  <p className="text-slate-300 text-sm sm:text-base mb-2">
+                    SERVIÇO SELECIONADO: <span className="text-pink-400 font-semibold">{formData.service_name}</span>
+                  </p>
+                  
+                  <p className="text-slate-300 text-sm sm:text-base mb-6">
+                    INFORME A DATA DA ÚLTIMA MENSTRUAÇÃO
+                  </p>
+                </div>
+
+                <Alert className="bg-gradient-to-r from-pink-900/50 to-rose-900/50 border-pink-500/30 backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-pink-500/20 p-2 rounded-full">
+                      <User className="h-5 w-5 text-pink-400" />
+                    </div>
+                    <AlertDescription className="text-pink-100 text-sm sm:text-base leading-relaxed">
+                      ESTA INFORMAÇÃO É NECESSÁRIA PARA CALCULAR A IDADE GESTACIONAL E DATA PROVÁVEL DO PARTO.
+                    </AlertDescription>
+                  </div>
+                </Alert>
+
+                <div className="bg-pink-500/10 border border-pink-500/20 rounded-lg p-6 space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dum" className="text-slate-200 font-semibold text-base">
+                      Data da Última Menstruação (DUM) <span className="text-pink-400">*</span>
+                    </Label>
+                    <Input
+                      id="dum"
+                      type="text"
+                      value={obstetricData.dum}
+                      onChange={(e) => {
+                        const formatted = formatDateInput(e.target.value);
+                        setObstetricData(prev => ({ ...prev, dum: formatted }));
+                      }}
+                      placeholder="DD/MM/AAAA"
+                      maxLength={10}
+                      required
+                      className="bg-slate-700/50 border-slate-600/50 text-white focus:border-pink-500 focus:ring-pink-500/20 h-12 backdrop-blur-sm transition-all duration-300 hover:bg-slate-700/70 text-lg"
+                    />
+                  </div>
+
+                  {/* Campos calculados - IG e DPP */}
+                  {obstetricData.dum && obstetricData.isValid && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-4 border-t border-pink-500/20">
+                      <div className="space-y-2">
+                        <Label className="text-slate-200 font-semibold text-sm">
+                          Idade Gestacional (IG)
+                        </Label>
+                        <div className="bg-slate-800/50 border border-slate-600/50 rounded-md p-4 text-white">
+                          <span className="text-pink-400 font-bold text-xl">
+                            {obstetricData.gestationalAge}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-slate-200 font-semibold text-sm">
+                          Data Provável do Parto (DPP)
+                        </Label>
+                        <div className="bg-slate-800/50 border border-slate-600/50 rounded-md p-4 text-white">
+                          <span className="text-pink-400 font-bold text-xl">
+                            {obstetricData.dpp}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <p className="text-slate-400 text-sm mt-4 text-center">
+                    Esta informação é importante para o acompanhamento obstétrico adequado
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <Button
+                    onClick={goBack}
+                    variant="outline"
+                    className="w-full h-12 sm:h-14 bg-slate-700/50 border-slate-600/50 text-slate-200 hover:bg-slate-600/50 hover:text-white font-semibold text-sm sm:text-base tracking-wide transition-all duration-300 focus-glow smooth-transition"
+                  >
+                    VOLTAR
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (!obstetricData.dum || !obstetricData.isValid) {
+                        toast.error('Por favor, informe uma data válida para a DUM');
+                        return;
+                      }
+                      setCurrentStep('datetime_selection');
+                    }}
+                    className="w-full h-12 sm:h-14 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold text-sm sm:text-base tracking-wide transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-pink-500/25 focus-glow smooth-transition"
+                  >
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    CONTINUAR
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Etapa 4: Seleção de Data e Horário */}
             {currentStep === 'datetime_selection' && (
               <div className="space-y-6">
@@ -1512,6 +1910,50 @@ export const PublicAppointmentBooking: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Exibir dados obstétricos se disponíveis (apenas visualização) */}
+                {isObstetricService(formData.service_name) && obstetricData.dum && (
+                  <div className="bg-pink-500/10 border border-pink-500/20 rounded-lg p-4 space-y-3">
+                    <div className="text-center">
+                      <h4 className="text-pink-400 font-bold text-lg mb-2">🤱 Informações Obstétricas</h4>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-slate-200 font-semibold text-sm">
+                          DUM
+                        </Label>
+                        <div className="bg-slate-800/50 border border-slate-600/50 rounded-md p-3 text-white">
+                          <span className="text-pink-400 font-bold">
+                            {obstetricData.dum}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-slate-200 font-semibold text-sm">
+                          Idade Gestacional (IG)
+                        </Label>
+                        <div className="bg-slate-800/50 border border-slate-600/50 rounded-md p-3 text-white">
+                          <span className="text-pink-400 font-bold">
+                            {obstetricData.gestationalAge}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-slate-200 font-semibold text-sm">
+                          Data Provável do Parto (DPP)
+                        </Label>
+                        <div className="bg-slate-800/50 border border-slate-600/50 rounded-md p-3 text-white">
+                          <span className="text-pink-400 font-bold">
+                            {obstetricData.dpp}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Campo de Observações */}
                 <div className="space-y-2">

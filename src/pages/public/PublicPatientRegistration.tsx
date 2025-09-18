@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { PatientFormFields } from '../pacientes/components/PatientFormFields';
 import { calculateAgeInYears, formatDateForDB } from '@/utils/dateUtils';
 import { formatPhoneNumber, isValidPhoneNumber, cleanPhoneNumber } from '@/utils/phoneUtils';
-import { formatCpfOrSus, isValidCpfOrSus, cleanCpfOrSus } from '@/utils/cpfSusUtils';
+import { formatCpfOrSus, isValidCpfOrSus, cleanCpfOrSus, validateSevenDigitInput } from '@/utils/cpfSusUtils';
 import '../../styles/animations.css';
 
 interface PatientFormData {
@@ -65,8 +65,8 @@ export const PublicPatientRegistration: React.FC = () => {
 
       if (data) {
         setPublicLinks({
-          scheduling_url: (data as any).scheduling_redirect_url || 'https://preview--cjrs-landing-craft.lovable.app',
-          exit_url: (data as any).post_registration_redirect_url || 'https://preview--cjrs-landing-craft.lovable.app'
+          scheduling_url: (data as any).n8n_webhook_url || 'https://preview--cjrs-landing-craft.lovable.app',
+          exit_url: (data as any).medical_record_webhook_url || 'https://preview--cjrs-landing-craft.lovable.app'
         });
       }
     } catch (error) {
@@ -90,6 +90,22 @@ export const PublicPatientRegistration: React.FC = () => {
     if (!susNumber.trim()) {
       toast.error('Por favor, insira o CPF ou SUS.');
       return;
+    }
+
+    // Verificar se o usuário digitou 7 números (validação especial para CPF)
+    const sevenDigitValidation = validateSevenDigitInput(susNumber.trim());
+    
+    if (sevenDigitValidation.isSevenDigits) {
+      if (sevenDigitValidation.shouldRedirectToRegistration) {
+        toast.error(sevenDigitValidation.message);
+        // Como já estamos na página de cadastro, apenas prosseguir para o formulário
+        setFormData(prev => ({ ...prev, sus: cleanCpfOrSus(susNumber.trim()) }));
+        setCurrentStep('form_fields');
+        return;
+      } else {
+        toast.info(sevenDigitValidation.message);
+        return;
+      }
     }
 
     // Validar formato antes de prosseguir
@@ -434,9 +450,9 @@ export const PublicPatientRegistration: React.FC = () => {
                     onClick={handleExit}
                     variant="outline"
                     className="w-full h-12 sm:h-14 bg-slate-700/50 border-slate-600/50 text-slate-200 hover:bg-slate-600/50 hover:text-white font-semibold text-sm sm:text-base tracking-wide transition-all duration-300 focus-glow smooth-transition"
-                    aria-label="Sair do sistema"
+                    aria-label="Ir para o site"
                   >
-                    SAIR
+                    SITE
                   </Button>
                 </div>
               </div>

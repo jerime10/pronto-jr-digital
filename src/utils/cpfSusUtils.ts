@@ -144,3 +144,81 @@ export function detectCpfOrSus(value: string): 'cpf' | 'sus' | 'unknown' {
   
   return 'unknown';
 }
+
+/**
+ * Valida se quando o usuário digitar 7 números, deve ser tratado como CPF incompleto
+ * e verificar se é um CPF válido ou se deve redirecionar para cadastro
+ * @param value - Valor a ser analisado
+ * @returns objeto com informações sobre a validação
+ */
+export function validateSevenDigitInput(value: string): {
+  isSevenDigits: boolean;
+  shouldRedirectToRegistration: boolean;
+  isValidCpf: boolean;
+  message: string;
+} {
+  const numbersOnly = value.replace(/\D/g, '');
+  
+  // Verifica se tem exatamente 7 dígitos
+  if (numbersOnly.length !== 7) {
+    return {
+      isSevenDigits: false,
+      shouldRedirectToRegistration: false,
+      isValidCpf: false,
+      message: ''
+    };
+  }
+
+  // Se tem 7 dígitos, assume que é tentativa de CPF
+  // Verifica se os 7 primeiros dígitos podem formar um CPF válido
+  // Para isso, vamos tentar completar com dígitos verificadores
+  const cpfBase = numbersOnly;
+  
+  // Tenta encontrar dígitos verificadores válidos
+  let validCpfFound = false;
+  
+  // Testa todas as combinações possíveis para os últimos 4 dígitos (2 verificadores + 2 finais)
+  for (let lastTwo = 0; lastTwo <= 99; lastTwo++) {
+    const lastTwoStr = lastTwo.toString().padStart(2, '0');
+    const testCpf = cpfBase + lastTwoStr;
+    
+    // Calcula os dígitos verificadores para este CPF de 9 dígitos
+    let sum = 0;
+    for (let i = 0; i < 9; i++) {
+      sum += parseInt(testCpf[i]) * (10 - i);
+    }
+    let remainder = sum % 11;
+    let digit1 = remainder < 2 ? 0 : 11 - remainder;
+    
+    sum = 0;
+    for (let i = 0; i < 9; i++) {
+      sum += parseInt(testCpf[i]) * (11 - i);
+    }
+    sum += digit1 * 2;
+    remainder = sum % 11;
+    let digit2 = remainder < 2 ? 0 : 11 - remainder;
+    
+    const completeCpf = testCpf + digit1.toString() + digit2.toString();
+    
+    if (isValidCpf(completeCpf)) {
+      validCpfFound = true;
+      break;
+    }
+  }
+
+  if (validCpfFound) {
+    return {
+      isSevenDigits: true,
+      shouldRedirectToRegistration: false,
+      isValidCpf: true,
+      message: 'CPF válido detectado. Continue digitando para completar.'
+    };
+  } else {
+    return {
+      isSevenDigits: true,
+      shouldRedirectToRegistration: true,
+      isValidCpf: false,
+      message: 'Estes números não correspondem a um CPF válido. Redirecionando para cadastro.'
+    };
+  }
+}

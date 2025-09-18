@@ -258,20 +258,20 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Card de Saída */}
+        {/* Card de Site */}
         <Card className="shadow-lg border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-3 text-orange-800 text-lg">
               <Link className="h-5 w-5" />
-              URL de Saída
+              URL Site
             </CardTitle>
             <CardDescription className="text-orange-700">
-              Link para redirecionamento do botão "Sair"
+              Link para redirecionamento do botão "Site"
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
-              <Label htmlFor="exit_url" className="text-orange-800 font-medium">URL de Saída</Label>
+              <Label htmlFor="exit_url" className="text-orange-800 font-medium">URL Site</Label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   id="exit_url"

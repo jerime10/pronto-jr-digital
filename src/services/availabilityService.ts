@@ -211,12 +211,12 @@ export const availabilityService = {
 
         const { data: service } = await supabase
           .from('services')
-          .select('duration_minutes')
+          .select('duration')
           .eq('id', serviceId)
           .single();
         
-        if (service?.duration_minutes) {
-          serviceDuration = service.duration_minutes;
+        if (service?.duration) {
+          serviceDuration = service.duration;
         }
 
         debugLogger.debug('AvailabilityService', 'service_duration_resolved', {
