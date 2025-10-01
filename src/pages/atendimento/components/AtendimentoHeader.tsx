@@ -32,6 +32,8 @@ interface AtendimentoHeaderProps {
   handleSalvarAtendimento: () => Promise<any>;
   handleGerarPDF: () => Promise<void>;
   handleSubmitMedicalRecord: () => Promise<void>;
+  dynamicFields?: Record<string, string>;
+  onDynamicFieldsChange?: (fields: Record<string, string>) => void;
 }
 
 export const AtendimentoHeader: React.FC<AtendimentoHeaderProps> = ({
@@ -47,6 +49,8 @@ export const AtendimentoHeader: React.FC<AtendimentoHeaderProps> = ({
   handleSalvarAtendimento,
   handleGerarPDF,
   handleSubmitMedicalRecord,
+  dynamicFields = {},
+  onDynamicFieldsChange
 }) => {
   const navigate = useNavigate();
 
@@ -84,6 +88,8 @@ export const AtendimentoHeader: React.FC<AtendimentoHeaderProps> = ({
             form={form}
             setFormData={setFormData}
             handleSelectPaciente={handleSelectPaciente}
+            dynamicFields={dynamicFields}
+            onDynamicFieldsChange={onDynamicFieldsChange}
           />
 
           {/* Botões de ação existentes */}

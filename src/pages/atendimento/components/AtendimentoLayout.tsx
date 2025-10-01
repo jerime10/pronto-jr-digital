@@ -124,6 +124,8 @@ export const AtendimentoLayout: React.FC<AtendimentoLayoutProps> = ({
         handleSalvarAtendimento={handleSalvarAtendimento}
         handleGerarPDF={handleGerarPDF}
         handleSubmitMedicalRecord={handleSubmitMedicalRecord}
+        dynamicFields={dynamicFields}
+        onDynamicFieldsChange={onDynamicFieldsChange}
       />
 
       <div className="container mx-auto px-6 py-6 space-y-6">

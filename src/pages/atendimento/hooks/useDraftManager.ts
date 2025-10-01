@@ -33,6 +33,8 @@ interface UseDraftManagerProps {
   form: FormState;
   setFormData: (formData: FormState) => void;
   handleSelectPaciente: (patient: Patient) => void;
+  dynamicFields?: Record<string, string>;
+  onDynamicFieldsChange?: (fields: Record<string, string>) => void;
 }
 
 export const useDraftManager = ({
@@ -40,7 +42,9 @@ export const useDraftManager = ({
   profissionalAtual,
   form,
   setFormData,
-  handleSelectPaciente
+  handleSelectPaciente,
+  dynamicFields = {},
+  onDynamicFieldsChange
 }: UseDraftManagerProps) => {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
@@ -100,7 +104,7 @@ export const useDraftManager = ({
   };
 
   // Salvar rascunho atual
-  const saveDraft = async (formData: FormState) => {
+  const saveDraft = async (formData: FormState, fields?: Record<string, string>) => {
     if (!pacienteSelecionado || !profissionalAtual) {
       console.error('❌ Dados insuficientes para salvar rascunho:', { 
         paciente: !!pacienteSelecionado, 
@@ -109,6 +113,12 @@ export const useDraftManager = ({
       toast.error('Selecione um paciente e profissional antes de salvar o rascunho.');
       return;
     }
+    
+    // Combinar formData com dynamicFields
+    const formDataWithDynamicFields = {
+      ...formData,
+      dynamicFields: fields || dynamicFields || {}
+    };
 
     try {
       setIsSavingDraft(true);
@@ -175,7 +185,7 @@ export const useDraftManager = ({
         const result = await supabase
           .from('medical_record_drafts')
           .update({
-            form_data: formData as any,
+            form_data: formDataWithDynamicFields as any,
             updated_at: new Date().toISOString()
           })
           .eq('id', existingDraft.id)
@@ -192,7 +202,7 @@ export const useDraftManager = ({
           .insert({
             patient_id: pacienteSelecionado.id,
             professional_id: profissionalAtual.id,
-            form_data: formData as any,
+            form_data: formDataWithDynamicFields as any,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           } as any)
@@ -229,8 +239,16 @@ export const useDraftManager = ({
       // Selecionar o paciente
       handleSelectPaciente(draft.patient_data);
       
+      // Separar dynamicFields do form_data
+      const { dynamicFields: loadedDynamicFields, ...formDataWithoutDynamicFields } = draft.form_data;
+      
       // Carregar dados do formulário
-      setFormData(draft.form_data);
+      setFormData(formDataWithoutDynamicFields);
+      
+      // Carregar campos dinâmicos se existirem
+      if (loadedDynamicFields && onDynamicFieldsChange) {
+        onDynamicFieldsChange(loadedDynamicFields);
+      }
       
       toast.success(`Rascunho de ${draft.patient_data.name} carregado!`);
     } catch (error) {

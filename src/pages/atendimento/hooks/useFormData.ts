@@ -16,6 +16,7 @@ export interface FormState {
   images: ImageData[];
   dataInicioAtendimento: Date | null;
   dataFimAtendimento: Date | null;
+  dynamicFields?: Record<string, string>;
 }
 
 const initialFormState: FormState = {

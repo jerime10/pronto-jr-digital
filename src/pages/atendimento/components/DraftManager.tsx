@@ -35,6 +35,8 @@ interface DraftManagerProps {
   form: FormState;
   setFormData: (formData: FormState) => void;
   handleSelectPaciente: (patient: Patient) => void;
+  dynamicFields?: Record<string, string>;
+  onDynamicFieldsChange?: (fields: Record<string, string>) => void;
 }
 
 export const DraftManager: React.FC<DraftManagerProps> = ({
@@ -42,7 +44,9 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
   profissionalAtual,
   form,
   setFormData,
-  handleSelectPaciente
+  handleSelectPaciente,
+  dynamicFields = {},
+  onDynamicFieldsChange
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
@@ -58,7 +62,9 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
     profissionalAtual,
     form,
     setFormData,
-    handleSelectPaciente
+    handleSelectPaciente,
+    dynamicFields,
+    onDynamicFieldsChange
   });
 
   const handleLoadDraft = async (draft: any) => {
@@ -74,7 +80,7 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
       <Button
         variant="outline"
         size="sm"
-        onClick={() => saveDraft(form)}
+        onClick={() => saveDraft(form, dynamicFields)}
         disabled={!canSaveDraft || isSavingDraft}
         className="flex items-center gap-2"
       >
