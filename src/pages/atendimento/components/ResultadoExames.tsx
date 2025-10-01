@@ -490,10 +490,10 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       console.log('🔄 [ResultadoExames] Usando processAIContent das props com callback customizado');
       
       // Chamar o processAIContent original
-      await processAIContentProp(field as any, content, dynamicFieldsParam);
+      await processAIContentProp(field, content, dynamicFieldsParam);
     } else {
       // Usar o local
-      await processAIContentLocal(field as any, content, dynamicFieldsParam);
+      await processAIContentLocal(field, content, dynamicFieldsParam);
     }
   }, [processAIContentProp, processAIContentLocal]);
   

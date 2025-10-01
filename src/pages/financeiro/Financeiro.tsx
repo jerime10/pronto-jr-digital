@@ -56,7 +56,7 @@ const Financeiro: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   // Hook para buscar agendamentos
-  const { appointments = [] } = useAppointments({
+  const { data: appointments = [] } = useAppointments({
     startDate: format(startOfYear(new Date(selectedYear, 0, 1)), 'yyyy-MM-dd'),
     endDate: format(endOfYear(new Date(selectedYear, 11, 31)), 'yyyy-MM-dd')
   });

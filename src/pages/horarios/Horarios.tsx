@@ -678,7 +678,7 @@ const Horarios: React.FC = () => {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {groupSchedulesByDayInterval(availableSchedulesForAttendant).map((dayGroup, groupIndex) => (
+                        {groupSchedulesByDayInterval(availableSchedulesForAttendant).map((dayGroup: any, groupIndex) => (
                           <div key={`${dayGroup.daysLabel}-${groupIndex}`} className="space-y-3">
                             {/* Cabeçalho do grupo de dias */}
                             <div className="bg-gray-50 px-4 py-3 rounded-lg border">
@@ -689,7 +689,7 @@ const Horarios: React.FC = () => {
                             
                             {/* Horários do grupo */}
                             <div className="bg-white border rounded-lg p-4 space-y-3">
-                              {dayGroup.times.map((schedule, timeIndex) => {
+                              {dayGroup.times.map((schedule: any, timeIndex: number) => {
                                 const uniqueScheduleId = `${schedule.id}-${groupIndex}-${timeIndex}`;
                                 const isSelected = selectedTimesForAssignment.some(t => t.id === uniqueScheduleId);
                                 

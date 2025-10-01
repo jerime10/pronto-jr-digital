@@ -1099,7 +1099,7 @@ export const PublicAppointmentBooking: React.FC = () => {
       setIsLoading(true);
       
       // Usar o appointmentService que inclui validação de conflitos
-      const result = await appointmentService.createAppointment({
+      const result: any = await appointmentService.createAppointment({
         patient_name: formData.client_name,
         patient_phone: cleanPhoneNumber(formData.client_phone),
         attendant_id: formData.attendant_id,
@@ -1110,6 +1110,7 @@ export const PublicAppointmentBooking: React.FC = () => {
         service_duration: formData.service_duration,
         appointment_date: formData.appointment_date,
         appointment_datetime: formData.appointment_datetime,
+        appointment_time: formData.appointment_datetime.split('T')[1]?.substring(0, 5) || '',
         notes: formData.notes,
         status: 'scheduled'
       });
@@ -1156,7 +1157,7 @@ export const PublicAppointmentBooking: React.FC = () => {
       appointment_datetime: '',
       notes: ''
     });
-    setCurrentStep('patient_validation');
+    setCurrentStep('patient_validation' as any);
   };
 
   const goBack = () => {

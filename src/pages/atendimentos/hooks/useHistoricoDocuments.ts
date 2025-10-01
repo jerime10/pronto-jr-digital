@@ -127,7 +127,7 @@ export const useHistoricoDocuments = () => {
                 } : null
               });
             } catch (error) {
-              console.error('Erro ao processar prontuário pronto:', record.id, error);
+              console.error('Erro ao processar prontuário pronto:', (record as any).id, error);
             }
           }
         }
@@ -163,7 +163,7 @@ export const useHistoricoDocuments = () => {
                 } : null
               });
             } catch (error) {
-              console.error('Erro ao processar prontuário em processamento:', record.id, error);
+              console.error('Erro ao processar prontuário em processamento:', (record as any).id, error);
             }
           }
         }

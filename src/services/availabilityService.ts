@@ -148,7 +148,7 @@ export const availabilityService = {
           id: a.id,
           schedule_id: a.schedule_id,
           attendant_id: a.attendant_id,
-          attendant_name: a.attendant_name,
+          attendant_name: (a as any).attendant_name,
           schedule_info: a.schedule_info,
           schedule: (a as any).schedule ? {
             id: (a as any).schedule.id,
@@ -239,7 +239,7 @@ export const availabilityService = {
           assignmentId: assignment.id,
           scheduleId: assignment.schedule_id,
           attendantId: assignment.attendant_id,
-          attendantName: assignment.attendant_name
+          attendantName: (assignment as any).attendant_name
         });
 
         // Usar horários da tabela schedules através do JOIN

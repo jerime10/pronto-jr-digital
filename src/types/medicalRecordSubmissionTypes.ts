@@ -21,6 +21,7 @@ export interface SubmitMedicalRecordParams {
   };
   images?: ImageData[];
   selectedModelTitle?: string | null;
+  dynamicFields?: Record<string, string>;
 }
 
 export interface MedicalRecordResponse {
