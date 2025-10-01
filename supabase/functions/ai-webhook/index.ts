@@ -130,7 +130,7 @@ serve(async (req) => {
     
     // Forward the request to N8N webhook
     try {
-      let n8nPayload = {};
+      let n8nPayload: Record<string, any> = {};
       
       if (hasDynamicFields) {
         // Se há campos dinâmicos, enviar apenas eles (comportamento novo)
@@ -240,7 +240,7 @@ serve(async (req) => {
       // MODIFIED: Check multiple possible response formats from n8n
       // Look for processed_content, text, or output fields in the response
       let processedContent = null;
-      let individualFields = {};
+      let individualFields: Record<string, string> = {};
       
       if (n8nData.processed_content) {
         processedContent = n8nData.processed_content;
@@ -391,35 +391,12 @@ serve(async (req) => {
         console.log(`N8N Campo "${key}":`, typeof value, value);
       });
       
-      // GARANTIR que todos os campos enviados sejam retornados (mesma lógica dos campos funcionais)
-      console.log("=== APLICANDO LÓGICA DOS CAMPOS FUNCIONAIS ===");
-      
-      // Se o N8N não retornou campos individuais suficientes, usar os campos enviados como base
-      if (Object.keys(individualFields).length < sentDynamicFields.length) {
-        console.log("⚠️ N8N não retornou todos os campos, aplicando lógica dos campos funcionais...");
-        
-        // Para cada campo enviado, garantir que ele seja retornado
-        sentDynamicFields.forEach(fieldKey => {
-          if (!individualFields[fieldKey]) {
-            // Se o N8N não retornou este campo, usar o valor original ou um valor padrão processado
-            const originalValue = requestBody[fieldKey];
-            if (originalValue && originalValue.trim()) {
-              // Aplicar a mesma lógica dos campos funcionais: retornar o campo processado
-              individualFields[fieldKey] = originalValue;
-              console.log(`✅ Campo ${fieldKey} aplicado com lógica dos campos funcionais:`, originalValue);
-            }
-          }
-        });
-        
-        // Adicionar os 4 campos que sempre funcionam se não estiverem presentes
-        const alwaysWorkingFields = ['impressaodiagnostica', 'achadosadicionais', 'recomendacoes', 'observacoes'];
-        alwaysWorkingFields.forEach(fieldKey => {
-          if (n8nData[fieldKey] && !individualFields[fieldKey]) {
-            individualFields[fieldKey] = n8nData[fieldKey];
-            console.log(`✅ Campo funcional ${fieldKey} adicionado:`, n8nData[fieldKey].substring(0, 50) + '...');
-          }
-        });
-      }
+      // Log final dos campos individuais extraídos
+      console.log("=== CAMPOS INDIVIDUAIS FINAIS ===");
+      console.log(`Total de campos individuais: ${Object.keys(individualFields).length}`);
+      Object.entries(individualFields).forEach(([key, value]) => {
+        console.log(`  ${key}: ${value.substring(0, 50)}...`);
+      });
       
       console.log("Campos individuais extraídos:", individualFields);
       console.log("Quantidade de campos extraídos:", Object.keys(individualFields).length);
