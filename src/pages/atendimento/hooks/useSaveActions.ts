@@ -273,7 +273,7 @@ export const useSaveActions = ({
       }));
       
       // Primeiro verificar se o profissional existe na tabela professionals
-      const { data: professionalExists, error: professionalCheckError } = await supabase
+      const { data: professionalExists, error: professionalCheckError } = await (supabase as any)
         .from('professionals')
         .select('id')
         .eq('custom_user_id', profissionalAtual.id)
@@ -288,7 +288,7 @@ export const useSaveActions = ({
       // Se não exists um profissional correspondente, criar um
       if (!professionalExists) {
         console.log('Criando registro de profissional...');
-        const { data: newProfessional, error: createProfessionalError } = await supabase
+        const { data: newProfessional, error: createProfessionalError } = await (supabase as any)
           .from('professionals')
           .insert({
             custom_user_id: profissionalAtual.id,
@@ -372,10 +372,12 @@ export const useSaveActions = ({
       console.log('Prontuário salvo no banco:', savedRecord);
 
       // Preparar dados completos para envio via webhook
-      const medicalRecordData = {
+      const medicalRecordData: any = {
         id: savedRecord.id,
         patient_id: savedRecord.patient_id,
         professional_id: savedRecord.professional_id,
+        attendant_id: savedRecord.attendant_id || null,
+        appointment_id: savedRecord.appointment_id || appointmentId || null,
         main_complaint: savedRecord.main_complaint,
         history: savedRecord.history,
         allergies: savedRecord.allergies,

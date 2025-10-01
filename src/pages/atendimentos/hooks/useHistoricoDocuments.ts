@@ -105,25 +105,25 @@ export const useHistoricoDocuments = () => {
         if (readyRecords && readyRecords.length > 0) {
           for (const record of readyRecords) {
             try {
-              const filename = `${record.patients.name}_${record.id}.pdf`;
+              const filename = `${(record as any).patients.name}_${(record as any).id}.pdf`;
 
               documentsWithData.push({
-                id: record.id,
+                id: (record as any).id,
                 filename,
-                file_url: record.file_url_storage,
+                file_url: (record as any).file_url_storage,
                 patient: {
-                  name: record.patients.name,
-                  phone: record.patients.phone || '',
-                  sus: record.patients.sus || ''
+                  name: (record as any).patients.name,
+                  phone: (record as any).patients.phone || '',
+                  sus: (record as any).patients.sus || ''
                 },
-                attendance_start_at: record.attendance_start_at,
-                attendance_end_at: record.attendance_end_at,
-                created_at: record.created_at,
+                attendance_start_at: (record as any).attendance_start_at,
+                attendance_end_at: (record as any).attendance_end_at,
+                created_at: (record as any).created_at,
                 status: 'ready' as const,
-                dum: record.dum || record.appointments?.dum || null,
-                appointment: record.appointments ? {
-                  dum: record.appointments.dum,
-                  service: record.appointments.service
+                dum: (record as any).appointments?.dum || null,
+                appointment: (record as any).appointments ? {
+                  dum: (record as any).appointments.dum,
+                  service: (record as any).appointments.service_name
                 } : null
               });
             } catch (error) {
@@ -137,29 +137,29 @@ export const useHistoricoDocuments = () => {
           for (const record of processingRecords) {
             try {
               let status: 'processing' | 'error' = 'processing';
-              if (record.file_url_storage === 'processing_error') {
+              if ((record as any).file_url_storage === 'processing_error') {
                 status = 'error';
               }
 
-              const filename = `${record.patients.name}_${record.id}.pdf`;
+              const filename = `${(record as any).patients.name}_${(record as any).id}.pdf`;
 
               documentsWithData.push({
-                id: record.id,
+                id: (record as any).id,
                 filename,
-                file_url: record.file_url_storage || '',
+                file_url: (record as any).file_url_storage || '',
                 patient: {
-                  name: record.patients.name,
-                  phone: record.patients.phone || '',
-                  sus: record.patients.sus || ''
+                  name: (record as any).patients.name,
+                  phone: (record as any).patients.phone || '',
+                  sus: (record as any).patients.sus || ''
                 },
-                attendance_start_at: record.attendance_start_at,
-                attendance_end_at: record.attendance_end_at,
-                created_at: record.created_at,
+                attendance_start_at: (record as any).attendance_start_at,
+                attendance_end_at: (record as any).attendance_end_at,
+                created_at: (record as any).created_at,
                 status,
-                dum: record.dum || record.appointments?.dum || null,
-                appointment: record.appointments ? {
-                  dum: record.appointments.dum,
-                  service: record.appointments.service
+                dum: (record as any).appointments?.dum || null,
+                appointment: (record as any).appointments ? {
+                  dum: (record as any).appointments.dum,
+                  service: (record as any).appointments.service_name
                 } : null
               });
             } catch (error) {

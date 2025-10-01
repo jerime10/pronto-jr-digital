@@ -10,6 +10,7 @@ interface ExamModel {
   id: string;
   name: string;
   result_template: string | null;
+  instructions?: string | null;
 }
 
 interface ExamesTabProps {
@@ -85,7 +86,11 @@ const ExamesTab: React.FC<ExamesTabProps> = ({
         <SolicitacaoExames 
           examRequests={examRequests} 
           onExamRequestsChange={onExamRequestsChange}
-          availableExams={availableExams}
+          availableExams={availableExams.map(exam => ({
+            id: exam.id,
+            name: exam.name,
+            instructions: exam.instructions || ''
+          }))}
           isLoading={isLoading}
         />
       </TabsContent>

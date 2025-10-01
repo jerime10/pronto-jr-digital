@@ -59,7 +59,7 @@ export async function submitMedicalRecordToWebhook(params: SubmitMedicalRecordPa
         signatureProfessionalRegistry: siteSettings?.signature_professional_registry || params.medicalRecord.professional?.license_number || 'Coren 542061',
       },
       selectedModelTitle: params.selectedModelTitle,
-      dynamicFields: params.dynamicFields
+      dynamicFields: (params as any).dynamicFields
     });
 
     // Add clinic information to FormData

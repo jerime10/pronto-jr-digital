@@ -16,56 +16,94 @@ export type Database = {
     Tables: {
       appointments: {
         Row: {
-          appointment_date: string
+          appointment_date: string | null
+          appointment_datetime: string | null
+          appointment_time: string | null
+          attendant_id: string
+          attendant_name: string | null
           created_at: string | null
-          end_time: string
+          dum: string | null
+          end_time: string | null
+          estimated_due_date: string | null
+          gestational_age: string | null
           id: string
           notes: string | null
           patient_id: string | null
           patient_name: string | null
           patient_phone: string | null
-          professional_id: string | null
-          service_description: string | null
-          start_time: string
+          service_duration: number | null
+          service_id: string
+          service_name: string | null
+          service_price: number | null
           status: string | null
           updated_at: string | null
         }
         Insert: {
-          appointment_date: string
+          appointment_date?: string | null
+          appointment_datetime?: string | null
+          appointment_time?: string | null
+          attendant_id: string
+          attendant_name?: string | null
           created_at?: string | null
-          end_time: string
+          dum?: string | null
+          end_time?: string | null
+          estimated_due_date?: string | null
+          gestational_age?: string | null
           id?: string
           notes?: string | null
           patient_id?: string | null
           patient_name?: string | null
           patient_phone?: string | null
-          professional_id?: string | null
-          service_description?: string | null
-          start_time: string
+          service_duration?: number | null
+          service_id: string
+          service_name?: string | null
+          service_price?: number | null
           status?: string | null
           updated_at?: string | null
         }
         Update: {
-          appointment_date?: string
+          appointment_date?: string | null
+          appointment_datetime?: string | null
+          appointment_time?: string | null
+          attendant_id?: string
+          attendant_name?: string | null
           created_at?: string | null
-          end_time?: string
+          dum?: string | null
+          end_time?: string | null
+          estimated_due_date?: string | null
+          gestational_age?: string | null
           id?: string
           notes?: string | null
           patient_id?: string | null
           patient_name?: string | null
           patient_phone?: string | null
-          professional_id?: string | null
-          service_description?: string | null
-          start_time?: string
+          service_duration?: number | null
+          service_id?: string
+          service_name?: string | null
+          service_price?: number | null
           status?: string | null
           updated_at?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "appointments_attendant_id_fkey"
+            columns: ["attendant_id"]
+            isOneToOne: false
+            referencedRelation: "attendants"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "appointments_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]
@@ -82,6 +120,7 @@ export type Database = {
           phone: string | null
           photo_url: string | null
           position: string | null
+          services: string[] | null
           share_link: string | null
           specialties: string[] | null
           updated_at: string | null
@@ -98,6 +137,7 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           position?: string | null
+          services?: string[] | null
           share_link?: string | null
           specialties?: string[] | null
           updated_at?: string | null
@@ -114,6 +154,7 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           position?: string | null
+          services?: string[] | null
           share_link?: string | null
           specialties?: string[] | null
           updated_at?: string | null
@@ -243,8 +284,10 @@ export type Database = {
       medical_records: {
         Row: {
           allergies: string | null
+          appointment_id: string | null
           attendance_end_at: string | null
           attendance_start_at: string | null
+          attendant_id: string | null
           created_at: string | null
           custom_prescription: string | null
           evolution: string | null
@@ -263,8 +306,10 @@ export type Database = {
         }
         Insert: {
           allergies?: string | null
+          appointment_id?: string | null
           attendance_end_at?: string | null
           attendance_start_at?: string | null
+          attendant_id?: string | null
           created_at?: string | null
           custom_prescription?: string | null
           evolution?: string | null
@@ -283,8 +328,10 @@ export type Database = {
         }
         Update: {
           allergies?: string | null
+          appointment_id?: string | null
           attendance_end_at?: string | null
           attendance_start_at?: string | null
+          attendant_id?: string | null
           created_at?: string | null
           custom_prescription?: string | null
           evolution?: string | null
@@ -302,6 +349,27 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_medical_records_professional"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_records_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_records_attendant_id_fkey"
+            columns: ["attendant_id"]
+            isOneToOne: false
+            referencedRelation: "attendants"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "medical_records_patient_id_fkey"
             columns: ["patient_id"]
@@ -411,6 +479,56 @@ export type Database = {
         }
         Relationships: []
       }
+      professionals: {
+        Row: {
+          contact: string | null
+          created_at: string
+          custom_user_id: string | null
+          id: string
+          license_number: string | null
+          license_type: string | null
+          name: string
+          profile_image: string | null
+          signature: string | null
+          specialty: string | null
+          updated_at: string
+        }
+        Insert: {
+          contact?: string | null
+          created_at?: string
+          custom_user_id?: string | null
+          id?: string
+          license_number?: string | null
+          license_type?: string | null
+          name: string
+          profile_image?: string | null
+          signature?: string | null
+          specialty?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contact?: string | null
+          created_at?: string
+          custom_user_id?: string | null
+          id?: string
+          license_number?: string | null
+          license_type?: string | null
+          name?: string
+          profile_image?: string | null
+          signature?: string | null
+          specialty?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professionals_custom_user_id_fkey"
+            columns: ["custom_user_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schedule_assignments: {
         Row: {
           attendant_id: string
@@ -439,37 +557,111 @@ export type Database = {
           schedule_info?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "schedule_assignments_attendant_id_fkey"
+            columns: ["attendant_id"]
+            isOneToOne: false
+            referencedRelation: "attendants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_assignments_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "schedules"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       schedules: {
         Row: {
+          attendant_id: string | null
           available: boolean | null
           created_at: string | null
           day: string
+          day_of_week: number | null
           days: string[] | null
           duration: number
+          end_time: string | null
           id: string
+          is_active: boolean | null
           start_time: string
           updated_at: string | null
         }
         Insert: {
+          attendant_id?: string | null
           available?: boolean | null
           created_at?: string | null
           day: string
+          day_of_week?: number | null
           days?: string[] | null
           duration: number
+          end_time?: string | null
           id?: string
+          is_active?: boolean | null
           start_time: string
           updated_at?: string | null
         }
         Update: {
+          attendant_id?: string | null
           available?: boolean | null
           created_at?: string | null
           day?: string
+          day_of_week?: number | null
           days?: string[] | null
           duration?: number
+          end_time?: string | null
           id?: string
+          is_active?: boolean | null
           start_time?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedules_attendant_id_fkey"
+            columns: ["attendant_id"]
+            isOneToOne: false
+            referencedRelation: "attendants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_assignments: {
+        Row: {
+          attendant_id: string
+          attendant_name: string
+          attendant_position: string
+          created_at: string | null
+          id: string
+          service_duration: number
+          service_id: string
+          service_name: string
+          service_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          attendant_id: string
+          attendant_name: string
+          attendant_position: string
+          created_at?: string | null
+          id?: string
+          service_duration: number
+          service_id: string
+          service_name: string
+          service_price: number
+          updated_at?: string | null
+        }
+        Update: {
+          attendant_id?: string
+          attendant_name?: string
+          attendant_position?: string
+          created_at?: string | null
+          id?: string
+          service_duration?: number
+          service_id?: string
+          service_name?: string
+          service_price?: number
           updated_at?: string | null
         }
         Relationships: []
@@ -507,6 +699,7 @@ export type Database = {
       site_settings: {
         Row: {
           accent_color: string | null
+          attendant_logo_data: string | null
           clinic_address: string | null
           clinic_name: string | null
           clinic_phone: string | null
@@ -534,6 +727,7 @@ export type Database = {
         }
         Insert: {
           accent_color?: string | null
+          attendant_logo_data?: string | null
           clinic_address?: string | null
           clinic_name?: string | null
           clinic_phone?: string | null
@@ -561,6 +755,7 @@ export type Database = {
         }
         Update: {
           accent_color?: string | null
+          attendant_logo_data?: string | null
           clinic_address?: string | null
           clinic_name?: string | null
           clinic_phone?: string | null
@@ -587,6 +782,50 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          appointment_id: string
+          created_at: string | null
+          description: string
+          id: string
+          payment_method: string | null
+          status: string | null
+          transaction_date: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          appointment_id: string
+          created_at?: string | null
+          description: string
+          id?: string
+          payment_method?: string | null
+          status?: string | null
+          transaction_date?: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          appointment_id?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          payment_method?: string | null
+          status?: string | null
+          transaction_date?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       usuarios: {
         Row: {
@@ -669,6 +908,16 @@ export type Database = {
       get_current_user_id: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_modelo_result_exames: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          result_template: string
+          updated_at: string
+        }[]
       }
       get_patients_for_search: {
         Args: { search_term?: string }

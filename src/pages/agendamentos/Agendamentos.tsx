@@ -364,8 +364,8 @@ const Agendamentos: React.FC = () => {
     if (searchTerm) {
       filtered = filtered.filter(app => 
         app.patient?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.service?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.professional?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        app.service_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.attendant_name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
@@ -452,7 +452,7 @@ const Agendamentos: React.FC = () => {
                   </div>
                 ) : error ? (
                   <div className="text-center py-8 text-red-600">
-                    Erro ao carregar agendamentos: {error}
+                    Erro ao carregar agendamentos: {error instanceof Error ? error.message : String(error)}
                   </div>
                 ) : appointments.length === 0 ? (
                   <div className="text-center py-8">

@@ -7,6 +7,7 @@ export interface MedicalRecord {
   id: string;
   patient_id: string;
   professional_id: string;
+  attendant_id?: string | null;
   appointment_id: string | null;
   main_complaint: string | null;
   history: string | null;

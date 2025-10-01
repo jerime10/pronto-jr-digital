@@ -85,7 +85,7 @@ export function useDiagnostics() {
         supabase.from('patients').select('id').limit(1),
         supabase.from('prescription_models').select('id').limit(1),
         supabase.from('exam_models').select('id').limit(1),
-        supabase.from('professionals').select('id').limit(1),
+        (supabase as any).from('professionals').select('id').limit(1),
       ]);
 
       return {

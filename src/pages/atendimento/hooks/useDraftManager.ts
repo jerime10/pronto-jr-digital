@@ -175,7 +175,7 @@ export const useDraftManager = ({
         const result = await supabase
           .from('medical_record_drafts')
           .update({
-            form_data: formData,
+            form_data: formData as any,
             updated_at: new Date().toISOString()
           })
           .eq('id', existingDraft.id)
@@ -192,10 +192,10 @@ export const useDraftManager = ({
           .insert({
             patient_id: pacienteSelecionado.id,
             professional_id: profissionalAtual.id,
-            form_data: formData,
+            form_data: formData as any,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-          })
+          } as any)
           .select()
           .single();
         
