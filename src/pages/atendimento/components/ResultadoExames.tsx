@@ -668,17 +668,27 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   }, []);
   
   // useEffect para restaurar modelo selecionado quando initialSelectedModelId for fornecido
+  // Usar ref para rastrear o último ID restaurado e evitar loops infinitos
+  const lastRestoredIdRef = React.useRef<string | null>(null);
+  
   useEffect(() => {
     console.log('🔧 [RESTORE] ===== INÍCIO Restauração do Modelo =====');
     console.log('🔧 [RESTORE] initialSelectedModelId:', initialSelectedModelId);
     console.log('🔧 [RESTORE] completedExams carregados:', completedExams.length);
     console.log('🔧 [RESTORE] selectedModelId atual:', selectedModelId);
+    console.log('🔧 [RESTORE] lastRestoredId:', lastRestoredIdRef.current);
     
     // Só restaurar se:
     // 1. initialSelectedModelId foi fornecido
     // 2. completedExams já foi carregado
-    // 3. selectedModelId ainda não foi definido (para não sobrescrever seleção manual)
-    if (initialSelectedModelId && completedExams.length > 0 && !selectedModelId) {
+    // 3. initialSelectedModelId é diferente do selectedModelId atual (permitir restauração mesmo se já tem um modelo)
+    // 4. Ainda não restauramos este ID específico (evitar loops)
+    if (
+      initialSelectedModelId && 
+      completedExams.length > 0 && 
+      initialSelectedModelId !== selectedModelId &&
+      lastRestoredIdRef.current !== initialSelectedModelId
+    ) {
       console.log('🔧 [RESTORE] Condições atendidas, restaurando modelo...');
       
       const modelToRestore = completedExams.find(exam => exam.id === initialSelectedModelId);
@@ -686,6 +696,9 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       
       if (modelToRestore) {
         console.log('🔧 [RESTORE] Restaurando modelo:', modelToRestore.name);
+        
+        // Marcar este ID como restaurado
+        lastRestoredIdRef.current = initialSelectedModelId;
         
         // Restaurar estado do modelo
         setSelectedModelId(initialSelectedModelId);
@@ -699,7 +712,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
           
           // Se tiver dynamicFieldsFromProps, usar eles; senão inicializar vazio
           if (dynamicFieldsFromProps && Object.keys(dynamicFieldsFromProps).length > 0) {
-            console.log('🔧 [RESTORE] Restaurando campos dinâmicos das props');
+            console.log('🔧 [RESTORE] Restaurando campos dinâmicos das props:', dynamicFieldsFromProps);
             setDynamicFields(dynamicFieldsFromProps);
           } else {
             console.log('🔧 [RESTORE] Inicializando campos dinâmicos vazios');
@@ -717,12 +730,13 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       console.log('🔧 [RESTORE] Condições não atendidas:', {
         temInitialId: !!initialSelectedModelId,
         temExames: completedExams.length > 0,
-        modeloJaSelecionado: !!selectedModelId
+        idsDiferentes: initialSelectedModelId !== selectedModelId,
+        naoRestauradoAinda: lastRestoredIdRef.current !== initialSelectedModelId
       });
     }
     
     console.log('🔧 [RESTORE] ===== FIM Restauração do Modelo =====');
-  }, [initialSelectedModelId, completedExams, dynamicFieldsFromProps]);
+  }, [initialSelectedModelId, completedExams, dynamicFieldsFromProps, selectedModelId]);
   
   const handleModelSelect = (modelId: string) => {
     console.log('🎯 [SELECT] ===== MODELO SELECIONADO =====');
