@@ -29,6 +29,8 @@ interface AtendimentoTabsProps {
   onDynamicFieldsChange?: (fields: Record<string, string>) => void;
   dynamicFields?: Record<string, string>;
   updateDynamicFieldsFromAI?: (fields: Record<string, string>) => void;
+  selectedExamModelId?: string;
+  onExamModelChange?: (modelId: string) => void;
 }
 
 export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
@@ -46,7 +48,9 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
   patientId,
   onDynamicFieldsChange,
   dynamicFields,
-  updateDynamicFieldsFromAI
+  updateDynamicFieldsFromAI,
+  selectedExamModelId,
+  onExamModelChange
 }) => {
   const [selectedModelTitle, setSelectedModelTitle] = useState<string | null>(null);
   
@@ -146,6 +150,8 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
           processAIContent={processAIContent}
           updateDynamicFieldsFromAI={updateDynamicFieldsFromAI}
           dynamicFields={dynamicFields}
+          selectedExamModelId={selectedExamModelId}
+          onExamModelChange={onExamModelChange}
         />
       </TabsContent>
       

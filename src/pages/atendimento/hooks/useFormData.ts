@@ -17,6 +17,7 @@ export interface FormState {
   dataInicioAtendimento: Date | null;
   dataFimAtendimento: Date | null;
   dynamicFields?: Record<string, string>;
+  selectedExamModelId?: string; // ID do modelo de exame selecionado
 }
 
 const initialFormState: FormState = {

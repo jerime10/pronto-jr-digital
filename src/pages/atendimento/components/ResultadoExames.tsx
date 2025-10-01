@@ -454,6 +454,8 @@ interface ResultadoExamesProps {
   processAIContent?: (field: string, content: string, dynamicFields?: Record<string, string>) => Promise<void>;
   updateDynamicFieldsFromAI?: (fields: Record<string, string>) => void;
   dynamicFields?: Record<string, string>;
+  initialSelectedModelId?: string;
+  onModelIdChange?: (modelId: string) => void;
 }
 
 export const ResultadoExames: React.FC<ResultadoExamesProps> = ({ 
@@ -468,9 +470,12 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   onDynamicFieldsChange,
   processAIContent: processAIContentProp,
   updateDynamicFieldsFromAI,
-  dynamicFields: dynamicFieldsFromProps
+  dynamicFields: dynamicFieldsFromProps,
+  initialSelectedModelId,
+  onModelIdChange
 }) => {
   console.log('🚀 ResultadoExames renderizado - PatientId:', patientId);
+  console.log('🔧 [INIT] initialSelectedModelId recebido:', initialSelectedModelId);
   
   const [completedExams, setCompletedExams] = useState<ExamModel[]>([]);
   const [selectedModelId, setSelectedModelId] = useState<string>('');
@@ -662,6 +667,63 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     fetchCompletedExams();
   }, []);
   
+  // useEffect para restaurar modelo selecionado quando initialSelectedModelId for fornecido
+  useEffect(() => {
+    console.log('🔧 [RESTORE] ===== INÍCIO Restauração do Modelo =====');
+    console.log('🔧 [RESTORE] initialSelectedModelId:', initialSelectedModelId);
+    console.log('🔧 [RESTORE] completedExams carregados:', completedExams.length);
+    console.log('🔧 [RESTORE] selectedModelId atual:', selectedModelId);
+    
+    // Só restaurar se:
+    // 1. initialSelectedModelId foi fornecido
+    // 2. completedExams já foi carregado
+    // 3. selectedModelId ainda não foi definido (para não sobrescrever seleção manual)
+    if (initialSelectedModelId && completedExams.length > 0 && !selectedModelId) {
+      console.log('🔧 [RESTORE] Condições atendidas, restaurando modelo...');
+      
+      const modelToRestore = completedExams.find(exam => exam.id === initialSelectedModelId);
+      console.log('🔧 [RESTORE] Modelo encontrado:', modelToRestore);
+      
+      if (modelToRestore) {
+        console.log('🔧 [RESTORE] Restaurando modelo:', modelToRestore.name);
+        
+        // Restaurar estado do modelo
+        setSelectedModelId(initialSelectedModelId);
+        setSelectedModel(modelToRestore);
+        onSelectedModelChange?.(modelToRestore.name);
+        
+        // Parsear template e restaurar campos
+        if (modelToRestore.result_template) {
+          const parsedTemplate = parseTemplateToFields(modelToRestore.result_template, modelToRestore.name);
+          setSelectedTemplate(parsedTemplate);
+          
+          // Se tiver dynamicFieldsFromProps, usar eles; senão inicializar vazio
+          if (dynamicFieldsFromProps && Object.keys(dynamicFieldsFromProps).length > 0) {
+            console.log('🔧 [RESTORE] Restaurando campos dinâmicos das props');
+            setDynamicFields(dynamicFieldsFromProps);
+          } else {
+            console.log('🔧 [RESTORE] Inicializando campos dinâmicos vazios');
+            const newFields: Record<string, string> = {};
+            parsedTemplate.fields.forEach(field => {
+              newFields[field.key] = '';
+            });
+            setDynamicFields(newFields);
+          }
+        }
+      } else {
+        console.warn('⚠️ [RESTORE] Modelo não encontrado na lista de modelos');
+      }
+    } else {
+      console.log('🔧 [RESTORE] Condições não atendidas:', {
+        temInitialId: !!initialSelectedModelId,
+        temExames: completedExams.length > 0,
+        modeloJaSelecionado: !!selectedModelId
+      });
+    }
+    
+    console.log('🔧 [RESTORE] ===== FIM Restauração do Modelo =====');
+  }, [initialSelectedModelId, completedExams, dynamicFieldsFromProps]);
+  
   const handleModelSelect = (modelId: string) => {
     console.log('🎯 [SELECT] ===== MODELO SELECIONADO =====');
     console.log('🎯 [SELECT] Model ID:', modelId);
@@ -677,6 +739,8 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       
       // Notificar o componente pai sobre a mudança do modelo
       onSelectedModelChange?.(selectedModel.name);
+      // Notificar o componente pai sobre mudança do ID (para salvar no rascunho)
+      onModelIdChange?.(modelId);
       
       // Parsear o template do banco de dados para gerar campos dinâmicos
       if (selectedModel.result_template) {

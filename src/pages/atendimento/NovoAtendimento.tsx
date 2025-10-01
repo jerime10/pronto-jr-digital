@@ -14,6 +14,7 @@ const NovoAtendimento = () => {
   const isEditing = !!id;
   const [selectedModelTitle, setSelectedModelTitle] = React.useState<string | null>(null);
   const [dynamicFields, setDynamicFields] = React.useState<Record<string, string>>({});
+  const [selectedExamModelId, setSelectedExamModelId] = React.useState<string>('');
   
   // Função para atualizar campos dinâmicos vindos da IA
   const updateDynamicFieldsFromAI = React.useCallback((fields: Record<string, string>) => {
@@ -29,6 +30,14 @@ const NovoAtendimento = () => {
       console.log('🎯 [NovoAtendimento] Novo estado dos campos dinâmicos:', fields);
       return fields;
     });
+  }, []);
+  
+  // Handler para capturar mudanças no modelo de exame selecionado
+  const handleExamModelChange = React.useCallback((modelId: string) => {
+    console.log('🎯 [NovoAtendimento] Modelo de exame selecionado:', modelId);
+    setSelectedExamModelId(modelId);
+    // Atualizar também no form para salvar no rascunho
+    updateFormField('selectedExamModelId', modelId);
   }, []);
   
   // Função para validar se o paciente tem dados válidos
@@ -155,6 +164,14 @@ const NovoAtendimento = () => {
     setGlobalActiveTab(activeTab);
   }, [activeTab, setGlobalActiveTab]);
   
+  // Sincronizar selectedExamModelId quando o formulário mudar (incluindo ao carregar rascunho)
+  React.useEffect(() => {
+    if (form.selectedExamModelId && form.selectedExamModelId !== selectedExamModelId) {
+      console.log('🔄 [NovoAtendimento] Sincronizando selectedExamModelId do form:', form.selectedExamModelId);
+      setSelectedExamModelId(form.selectedExamModelId);
+    }
+  }, [form.selectedExamModelId, selectedExamModelId]);
+  
   if (isEditing && isLoadingRecord) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -198,6 +215,8 @@ const NovoAtendimento = () => {
       onDynamicFieldsChange={handleDynamicFieldsChange}
       dynamicFields={dynamicFields}
       updateDynamicFieldsFromAI={updateDynamicFieldsFromAI}
+      selectedExamModelId={selectedExamModelId}
+      onExamModelChange={handleExamModelChange}
     />
   );
 };

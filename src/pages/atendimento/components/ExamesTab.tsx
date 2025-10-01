@@ -28,6 +28,8 @@ interface ExamesTabProps {
   processAIContent?: (field: string, content: string, dynamicFields?: Record<string, string>) => Promise<void>;
   updateDynamicFieldsFromAI?: (fields: Record<string, string>) => void;
   dynamicFields?: Record<string, string>;
+  selectedExamModelId?: string;
+  onExamModelChange?: (modelId: string) => void;
 }
 
 const ExamesTab: React.FC<ExamesTabProps> = ({
@@ -44,7 +46,9 @@ const ExamesTab: React.FC<ExamesTabProps> = ({
   onDynamicFieldsChange,
   processAIContent,
   updateDynamicFieldsFromAI,
-  dynamicFields
+  dynamicFields,
+  selectedExamModelId,
+  onExamModelChange
 }) => {
   const [activeTab, setActiveTab] = useState("solicitar");
   const [availableExams, setAvailableExams] = useState<ExamModel[]>([]);
@@ -109,6 +113,8 @@ const ExamesTab: React.FC<ExamesTabProps> = ({
           processAIContent={processAIContent}
           updateDynamicFieldsFromAI={updateDynamicFieldsFromAI}
           dynamicFields={dynamicFields}
+          initialSelectedModelId={selectedExamModelId}
+          onModelIdChange={onExamModelChange}
         />
       </TabsContent>
     </Tabs>

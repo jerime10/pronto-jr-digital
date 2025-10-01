@@ -62,6 +62,8 @@ interface AtendimentoLayoutProps {
   onDynamicFieldsChange?: (fields: Record<string, string>) => void;
   dynamicFields?: Record<string, string>;
   updateDynamicFieldsFromAI?: (fields: Record<string, string>) => void;
+  selectedExamModelId?: string;
+  onExamModelChange?: (modelId: string) => void;
 }
 
 export const AtendimentoLayout: React.FC<AtendimentoLayoutProps> = ({
@@ -97,7 +99,9 @@ export const AtendimentoLayout: React.FC<AtendimentoLayoutProps> = ({
   onSelectedModelChange,
   onDynamicFieldsChange,
   dynamicFields,
-  updateDynamicFieldsFromAI
+  updateDynamicFieldsFromAI,
+  selectedExamModelId,
+  onExamModelChange
 }) => {
   // Bridge function para lidar com a mudança de campo
   const handleFieldChange = React.useCallback((fieldName: keyof FormState, value: any) => {
@@ -163,6 +167,8 @@ export const AtendimentoLayout: React.FC<AtendimentoLayoutProps> = ({
             onDynamicFieldsChange={onDynamicFieldsChange}
             dynamicFields={dynamicFields}
             updateDynamicFieldsFromAI={updateDynamicFieldsFromAI}
+            selectedExamModelId={selectedExamModelId}
+            onExamModelChange={onExamModelChange}
           />
         )}
       </div>
