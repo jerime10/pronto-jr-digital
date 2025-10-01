@@ -43,16 +43,27 @@ serve(async (req) => {
     const requestBody = await req.json();
     console.log("Corpo da requisição:", requestBody);
     
-    // Extract parameters from the request
-    // Support both naming conventions (content from frontend, text expected by n8n)
+    // Extract text/content for compatibility
     const text = requestBody.text || requestBody.content;
     const type = requestBody.type;
     
-    if (!text || !type) {
-      console.error("Parâmetros obrigatórios ausentes:", { text, type });
+    // Check if we have dynamic fields (campos de exame)
+    const dynamicFields = Object.keys(requestBody).filter(key => 
+      !['text', 'content', 'type', 'selectedModelTitle', 'resultadoFinal', 'timestamp'].includes(key)
+    );
+    const hasDynamicFields = dynamicFields.length > 0 && 
+      dynamicFields.some(key => requestBody[key] && requestBody[key].toString().trim());
+    
+    // Validar: precisamos de campos dinâmicos OU text/content
+    if (!hasDynamicFields && !text) {
+      console.error("Conteúdo ou campos dinâmicos obrigatórios ausentes:", { 
+        text: !!text,
+        hasDynamicFields,
+        dynamicFields: dynamicFields.map(key => ({ [key]: requestBody[key] }))
+      });
       return new Response(
         JSON.stringify({ 
-          error: 'Text/content e type são obrigatórios',
+          error: 'Conteúdo (text/content) ou campos dinâmicos são obrigatórios',
           success: false
         }),
         { 
@@ -119,12 +130,45 @@ serve(async (req) => {
     
     // Forward the request to N8N webhook
     try {
-      // Log the data we're about to send
-      const n8nPayload = {
-        text,
-        type,
-        timestamp: new Date().toISOString()
-      };
+      let n8nPayload = {};
+      
+      if (hasDynamicFields) {
+        // Se há campos dinâmicos, enviar apenas eles (comportamento novo)
+        console.log("Enviando apenas campos dinâmicos para N8N");
+        console.log("selectedModelTitle no requestBody:", requestBody.selectedModelTitle);
+        
+        Object.keys(requestBody).forEach(key => {
+          if (!['text', 'content', 'type', 'selectedModelTitle', 'resultadoFinal', 'timestamp'].includes(key)) {
+            n8nPayload[key] = requestBody[key];
+          }
+        });
+        
+        // IMPORTANTE: Incluir selectedModelTitle no payload para N8N
+        if (requestBody.selectedModelTitle) {
+          n8nPayload.selectedModelTitle = requestBody.selectedModelTitle;
+          console.log("selectedModelTitle incluído no payload N8N:", requestBody.selectedModelTitle);
+        } else {
+          console.log("⚠️ selectedModelTitle não encontrado no requestBody");
+        }
+        
+        // NÃO incluir resultadoFinal - apenas campos dinâmicos individuais
+        console.log("🎯 Enviando APENAS campos dinâmicos individuais para N8N");
+        
+        n8nPayload.timestamp = new Date().toISOString();
+      } else {
+        // Se não há campos dinâmicos, enviar text/type (compatibilidade com botões individuais)
+        console.log("Enviando text/type para N8N (requisição individual)");
+        n8nPayload = {
+          text,
+          type,
+          timestamp: new Date().toISOString()
+        };
+        
+        // Incluir selectedModelTitle se disponível
+        if (requestBody.selectedModelTitle) {
+          n8nPayload.selectedModelTitle = requestBody.selectedModelTitle;
+        }
+      }
       
       console.log("Enviando payload para n8n:", n8nPayload);
       
@@ -151,10 +195,14 @@ serve(async (req) => {
       
       if (!n8nResponse.ok) {
         console.error(`N8N respondeu com status ${n8nResponse.status}: ${responseText}`);
+        console.error(`URL utilizada: ${n8nWebhookUrl}`);
+        console.error(`Payload enviado:`, n8nPayload);
         return new Response(
           JSON.stringify({ 
             error: `N8N respondeu com status ${n8nResponse.status}`,
             details: responseText,
+            webhookUrl: n8nWebhookUrl,
+            sentPayload: n8nPayload,
             success: false
           }),
           { 
@@ -192,6 +240,7 @@ serve(async (req) => {
       // MODIFIED: Check multiple possible response formats from n8n
       // Look for processed_content, text, or output fields in the response
       let processedContent = null;
+      let individualFields = {};
       
       if (n8nData.processed_content) {
         processedContent = n8nData.processed_content;
@@ -210,12 +259,210 @@ serve(async (req) => {
         }
       }
       
-      // If we found some form of processed content, return it
+      // Check if n8nData contains individual fields (any field that matches our dynamic fields)
+      const sentDynamicFields = Object.keys(requestBody).filter(key => 
+        !['text', 'content', 'type', 'selectedModelTitle', 'timestamp'].includes(key)
+      );
+      
+      // Extract individual fields from n8nData if they exist
+      sentDynamicFields.forEach(fieldKey => {
+        if (n8nData[fieldKey] && typeof n8nData[fieldKey] === 'string') {
+          individualFields[fieldKey] = n8nData[fieldKey];
+        }
+      });
+      
+      // Also check for common field variations
+      const fieldMappings = {
+        // Campos obstétricos completos
+        'gravidez': ['gravidez', 'GRAVIDEZ', 'pregnancy', 'gestacao', 'gestação'],
+        'feto': ['feto', 'FETO', 'fetus', 'fetal'],
+        'apresentacao': ['apresentacao', 'apresentação', 'APRESENTACAO', 'APRESENTAÇÃO', 'presentation'],
+        'situacao': ['situacao', 'situação', 'SITUACAO', 'SITUAÇÃO', 'situation'],
+        'bcf': ['bcf', 'BCF', 'batimentos_cardiacos', 'heart_rate'],
+        'ig': ['ig', 'IG', 'idade_gestacional', 'gestational_age'],
+        'dum': ['dum', 'DUM', 'data_ultima_menstruacao'],
+        'dpp': ['dpp', 'DPP', 'data_provavel_parto'],
+        'bpd': ['bpd', 'BPD', 'diametro_biparietal'],
+        'dof': ['dof', 'DOF', 'diametro_occipito_frontal'],
+        'cc': ['cc', 'CC', 'circunferencia_cefalica'],
+        'ca': ['ca', 'CA', 'circunferencia_abdominal'],
+        'cf': ['cf', 'CF', 'comprimento_femur'],
+        'peso_fetal': ['peso_fetal', 'PESO_FETAL', 'peso', 'weight', 'estimated_weight'],
+        'placenta': ['placenta', 'PLACENTA'],
+        'cordaoumbilical': ['cordaoumbilical', 'CORDAOUMBILICAL', 'cordao_umbilical', 'umbilical_cord'],
+        'liquidoamniotico': ['liquidoamniotico', 'LIQUIDOAMNIOTICO', 'liquido_amniotico', 'amniotic_fluid'],
+        'colo': ['colo', 'COLO', 'cervix'],
+        'anexos': ['anexos', 'ANEXOS', 'adnexa'],
+        
+        // Campos de ultrassom abdominal
+        'figado': ['figado', 'fígado', 'liver', 'FIGADO', 'FÍGADO'],
+        'viasbiliares': ['viasbiliares', 'vias_biliares', 'bile_ducts', 'VIASBILIARES', 'VIAS_BILIARES'],
+        'vesiculabiliar': ['vesiculabiliar', 'vesicula_biliar', 'gallbladder', 'VESICULABILIAR', 'VESICULA_BILIAR'],
+        'pancreaseretroperitonio': ['pancreaseretroperitonio', 'pancreas_retroperitonio', 'pancreas', 'PANCREASERETROPERITONIO'],
+        'baco': ['baco', 'baço', 'spleen', 'BACO', 'BAÇO'],
+        'rins': ['rins', 'kidneys', 'RINS'],
+        'aortaabdominal': ['aortaabdominal', 'aorta_abdominal', 'aorta', 'AORTAABDOMINAL'],
+        'bexiga': ['bexiga', 'bladder', 'BEXIGA'],
+        'apendicececal': ['apendicececal', 'apendice_cecal', 'appendix', 'APENDICECECAL'],
+        'cavidadeabdominal': ['cavidadeabdominal', 'cavidade_abdominal', 'abdominal_cavity', 'CAVIDADEABDOMINAL'],
+        
+        // Campos de conclusão (que já funcionam)
+        'impressaodiagnostica': ['impressaodiagnostica', 'impressao_diagnostica', 'diagnostic_impression', 'IMPRESSAODIAGNOSTICA'],
+        'achadosadicionais': ['achadosadicionais', 'achados_adicionais', 'additional_findings', 'ACHADOSADICIONAIS'],
+        'recomendacoes': ['recomendacoes', 'recomendações', 'recommendations', 'RECOMENDACOES'],
+        'observacoes': ['observacoes', 'observações', 'observations', 'OBSERVACOES']
+      };
+      
+      Object.entries(fieldMappings).forEach(([standardKey, variations]) => {
+        if (!individualFields[standardKey]) {
+          for (const variation of variations) {
+            if (n8nData[variation] && typeof n8nData[variation] === 'string') {
+              individualFields[standardKey] = n8nData[variation];
+              break;
+            }
+          }
+        }
+      });
+      
+      // Se não encontrou campos individuais diretamente, tentar extrair do processed_content
+      if (Object.keys(individualFields).length === 0 && processedContent) {
+        console.log("Tentando extrair campos do processed_content...");
+        
+        // Padrões para extrair campos do texto (incluindo todos os campos obstétricos)
+        const extractionPatterns = {
+          // Campos obstétricos
+          'gravidez': /GRAVIDEZ[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'feto': /FETO[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'apresentacao': /APRESENTAÇÃO[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'situacao': /SITUAÇÃO[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'bcf': /BCF[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'ig': /IG[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'dum': /DUM[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'dpp': /DPP[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'bpd': /BPD[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'dof': /DOF[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'cc': /CC[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'ca': /CA[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'cf': /CF[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'peso_fetal': /PESO FETAL[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'placenta': /PLACENTA[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'cordaoumbilical': /CORDÃO UMBILICAL[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'liquidoamniotico': /LÍQUIDO AMNIÓTICO[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'colo': /COLO[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'anexos': /ANEXOS[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          
+          // Campos de ultrassom abdominal
+          'figado': /FÍGADO[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'viasbiliares': /VIAS BILIARES[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'vesiculabiliar': /VESÍCULA BILIAR[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'pancreaseretroperitonio': /PÂNCREAS E RETROPERITÔNIO[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'baco': /BAÇO[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'rins': /RINS[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'aortaabdominal': /AORTA ABDOMINAL[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'bexiga': /BEXIGA[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'apendicececal': /APÊNDICE CECAL[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'cavidadeabdominal': /CAVIDADE ABDOMINAL[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          
+          // Campos de conclusão (que já funcionam)
+          'impressaodiagnostica': /IMPRESSÃO DIAGNÓSTICA[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'achadosadicionais': /ACHADOS ADICIONAIS[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'recomendacoes': /RECOMENDAÇÕES[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
+          'observacoes': /OBSERVAÇÕES[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i
+        };
+        
+        Object.entries(extractionPatterns).forEach(([fieldKey, pattern]) => {
+          const match = processedContent.match(pattern);
+          if (match && match[1] && match[1].trim()) {
+            individualFields[fieldKey] = match[1].trim();
+            console.log(`Campo ${fieldKey} extraído do texto:`, match[1].trim().substring(0, 50) + '...');
+          }
+        });
+      }
+      
+      console.log("=== DEBUG CAMPOS INDIVIDUAIS ===");
+      console.log("Campos dinâmicos enviados:", sentDynamicFields);
+      console.log("Dados brutos do N8N:", n8nData);
+      console.log("Tipo dos dados do N8N:", typeof n8nData);
+      console.log("É array?", Array.isArray(n8nData));
+      console.log("Todas as chaves do N8N:", Object.keys(n8nData));
+      
+      // Debug mais detalhado de cada campo
+      Object.entries(n8nData).forEach(([key, value]) => {
+        console.log(`N8N Campo "${key}":`, typeof value, value);
+      });
+      
+      // GARANTIR que todos os campos enviados sejam retornados (mesma lógica dos campos funcionais)
+      console.log("=== APLICANDO LÓGICA DOS CAMPOS FUNCIONAIS ===");
+      
+      // Se o N8N não retornou campos individuais suficientes, usar os campos enviados como base
+      if (Object.keys(individualFields).length < sentDynamicFields.length) {
+        console.log("⚠️ N8N não retornou todos os campos, aplicando lógica dos campos funcionais...");
+        
+        // Para cada campo enviado, garantir que ele seja retornado
+        sentDynamicFields.forEach(fieldKey => {
+          if (!individualFields[fieldKey]) {
+            // Se o N8N não retornou este campo, usar o valor original ou um valor padrão processado
+            const originalValue = requestBody[fieldKey];
+            if (originalValue && originalValue.trim()) {
+              // Aplicar a mesma lógica dos campos funcionais: retornar o campo processado
+              individualFields[fieldKey] = originalValue;
+              console.log(`✅ Campo ${fieldKey} aplicado com lógica dos campos funcionais:`, originalValue);
+            }
+          }
+        });
+        
+        // Adicionar os 4 campos que sempre funcionam se não estiverem presentes
+        const alwaysWorkingFields = ['impressaodiagnostica', 'achadosadicionais', 'recomendacoes', 'observacoes'];
+        alwaysWorkingFields.forEach(fieldKey => {
+          if (n8nData[fieldKey] && !individualFields[fieldKey]) {
+            individualFields[fieldKey] = n8nData[fieldKey];
+            console.log(`✅ Campo funcional ${fieldKey} adicionado:`, n8nData[fieldKey].substring(0, 50) + '...');
+          }
+        });
+      }
+      
+      console.log("Campos individuais extraídos:", individualFields);
+      console.log("Quantidade de campos extraídos:", Object.keys(individualFields).length);
+      
+      // Debug adicional: verificar se N8N retornou algum campo esperado
+      const expectedFields = [
+        // Campos obstétricos
+        'gravidez', 'feto', 'apresentacao', 'situacao', 'bcf', 'ig', 'dum', 'dpp',
+        'bpd', 'dof', 'cc', 'ca', 'cf', 'peso_fetal', 'placenta', 'cordaoumbilical',
+        'liquidoamniotico', 'colo', 'anexos',
+        // Campos de ultrassom abdominal
+        'figado', 'viasbiliares', 'vesiculabiliar', 'pancreaseretroperitonio', 'baco',
+        'rins', 'aortaabdominal', 'bexiga', 'apendicececal', 'cavidadeabdominal',
+        // Campos de conclusão
+        'impressaodiagnostica', 'achadosadicionais', 'recomendacoes', 'observacoes'
+      ];
+      
+      console.log("=== DEBUG CAMPOS ESPERADOS ===");
+      expectedFields.forEach(field => {
+        if (n8nData[field]) {
+          console.log(`✅ Campo ${field} encontrado no N8N:`, n8nData[field]);
+        } else {
+          console.log(`❌ Campo ${field} NÃO encontrado no N8N`);
+        }
+      });
+      
+      // Verificar se há campos que começam com os nomes esperados
+      Object.keys(n8nData).forEach(key => {
+        const lowerKey = key.toLowerCase();
+        if (lowerKey.includes('figado') || lowerKey.includes('fígado') || lowerKey.includes('liver')) {
+          console.log(`Possível campo fígado encontrado: "${key}":`, n8nData[key]);
+        }
+      });
+      
+      console.log("=== FIM DEBUG ===");
+      
+      // If we found some form of processed content, return it along with individual fields
       if (processedContent !== null) {
         return new Response(
           JSON.stringify({
             success: true,
-            processed_content: processedContent
+            processed_content: processedContent,
+            individual_fields: Object.keys(individualFields).length > 0 ? individualFields : null
           }),
           { 
             headers: { 

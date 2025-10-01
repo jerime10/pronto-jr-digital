@@ -13,6 +13,19 @@ const NovoAtendimento = () => {
   const location = useLocation();
   const isEditing = !!id;
   const [selectedModelTitle, setSelectedModelTitle] = React.useState<string | null>(null);
+  const [dynamicFields, setDynamicFields] = React.useState<Record<string, string>>({});
+  
+  // Função para atualizar campos dinâmicos vindos da IA
+  const updateDynamicFieldsFromAI = React.useCallback((fields: Record<string, string>) => {
+    console.log('🎯 [NovoAtendimento] updateDynamicFieldsFromAI chamado com:', fields);
+    setDynamicFields(prevFields => ({ ...prevFields, ...fields }));
+  }, []);
+  
+  // Handler para capturar os campos dinâmicos
+  const handleDynamicFieldsChange = React.useCallback((fields: Record<string, string>) => {
+    console.log('🎯 [NovoAtendimento] handleDynamicFieldsChange chamado com:', fields);
+    setDynamicFields(fields);
+  }, []);
   
   // Função para validar se o paciente tem dados válidos
   const isValidPatient = (patient: any): boolean => {
@@ -84,7 +97,7 @@ const NovoAtendimento = () => {
     handleSubmitMedicalRecord,
     updateFormField,
     setFormData
-  } = useAtendimentoState(selectedModelTitle, patientDataFromNavigation, appointmentIdFromNavigation);
+  } = useAtendimentoState(selectedModelTitle, patientDataFromNavigation, appointmentIdFromNavigation, dynamicFields, handleDynamicFieldsChange, updateDynamicFieldsFromAI);
   
   // Create a proper change handler for form inputs
   const handleFormChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -178,6 +191,9 @@ const NovoAtendimento = () => {
       profissionalAtual={profissionalAtual}
       setFormData={setFormData}
       onSelectedModelChange={setSelectedModelTitle}
+      onDynamicFieldsChange={handleDynamicFieldsChange}
+      dynamicFields={dynamicFields}
+      updateDynamicFieldsFromAI={updateDynamicFieldsFromAI}
     />
   );
 };

@@ -19,12 +19,16 @@ interface AtendimentoTabsProps {
     evolution: boolean;
     examResults: boolean;
   };
-  processAIContent: (field: string, content: string) => Promise<void>;
+  processAIContent: (field: string, content: string, dynamicFields?: Record<string, string>) => Promise<void>;
   prescriptionModels: any[];
   isLoadingPrescriptions: boolean;
   handleModeloPrescricaoChange: (value: string) => void;
   updateFormField: (field: string, value: any) => void;
   onSelectedModelChange?: (modelTitle: string | null) => void;
+  patientId?: string;
+  onDynamicFieldsChange?: (fields: Record<string, string>) => void;
+  dynamicFields?: Record<string, string>;
+  updateDynamicFieldsFromAI?: (fields: Record<string, string>) => void;
 }
 
 export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
@@ -38,7 +42,11 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
   isLoadingPrescriptions,
   handleModeloPrescricaoChange,
   updateFormField,
-  onSelectedModelChange
+  onSelectedModelChange,
+  patientId,
+  onDynamicFieldsChange,
+  dynamicFields,
+  updateDynamicFieldsFromAI
 }) => {
   const [selectedModelTitle, setSelectedModelTitle] = useState<string | null>(null);
   
@@ -58,10 +66,29 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
     } as const;
     
     const formField = fieldMap[field];
-    const content = form[formField] as string;
     
-    if (content?.trim()) {
-      await processAIContent(formField, content);
+    // Para exames, enviar apenas os campos dinâmicos separadamente (sem texto concatenado)
+    if (field === 'examResults' && dynamicFields) {
+      // Verificar se há campos dinâmicos preenchidos
+      const hasFilledFields = Object.values(dynamicFields).some(value => value?.trim());
+      if (hasFilledFields) {
+        // Enviar apenas os campos dinâmicos, SEM NENHUM CONTEÚDO
+        console.log('🎯 [AtendimentoTabs] Enviando apenas campos dinâmicos:', Object.keys(dynamicFields).filter(k => dynamicFields[k]?.trim()));
+        await processAIContent(formField, null, dynamicFields);
+      } else {
+        // Se não há campos dinâmicos, usar o conteúdo do textarea
+        const content = form[formField] as string;
+        if (content?.trim()) {
+          console.log('🎯 [AtendimentoTabs] Enviando conteúdo do textarea (sem campos dinâmicos)');
+          await processAIContent(formField, content);
+        }
+      }
+    } else {
+      // Para outros campos, usar o comportamento normal
+      const content = form[formField] as string;
+      if (content?.trim()) {
+        await processAIContent(formField, content);
+      }
     }
   };
 
@@ -114,6 +141,11 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
           isProcessingAI={{ examResults: isProcessingAI.examResults }}
           onProcessWithAI={() => handleProcessAI('examResults')}
           onSelectedModelChange={handleSelectedModelChange}
+          patientId={patientId}
+          onDynamicFieldsChange={onDynamicFieldsChange}
+          processAIContent={processAIContent}
+          updateDynamicFieldsFromAI={updateDynamicFieldsFromAI}
+          dynamicFields={dynamicFields}
         />
       </TabsContent>
       

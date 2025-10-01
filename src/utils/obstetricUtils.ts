@@ -170,3 +170,67 @@ export const formatDateInput = (value: string): string => {
     return `${numbers.slice(0, 2)}/${numbers.slice(2, 4)}/${numbers.slice(4, 8)}`;
   }
 };
+
+/**
+ * Calcula a DUM (Data da Última Menstruação) a partir da IG (Idade Gestacional)
+ * @param ig Idade gestacional no formato "XXs Xd" (ex: "20s 3d") ou apenas semanas (ex: "20")
+ * @param referenceDate Data de referência para o cálculo (padrão: hoje)
+ * @returns DUM no formato DD/MM/AAAA
+ */
+export const calculateDUMFromIG = (ig: string, referenceDate?: Date): string | null => {
+  if (!ig || typeof ig !== 'string') {
+    return null;
+  }
+
+  try {
+    const refDate = referenceDate || new Date();
+    let totalDays = 0;
+
+    // Limpar e normalizar a string
+    const cleanIG = ig.trim().toLowerCase();
+
+    // Padrão 1: "XXs Xd" (ex: "20s 3d")
+    const weeksDaysMatch = cleanIG.match(/(\d+)s?\s*(\d+)?d?/);
+    if (weeksDaysMatch) {
+      const weeks = parseInt(weeksDaysMatch[1]) || 0;
+      const days = parseInt(weeksDaysMatch[2]) || 0;
+      totalDays = (weeks * 7) + days;
+    }
+    // Padrão 2: apenas número (ex: "20" = 20 semanas)
+    else if (/^\d+$/.test(cleanIG)) {
+      const weeks = parseInt(cleanIG);
+      totalDays = weeks * 7;
+    }
+    // Padrão 3: "XX semanas" ou "XX sem"
+    else if (cleanIG.includes('sem')) {
+      const weeksMatch = cleanIG.match(/(\d+)/);
+      if (weeksMatch) {
+        const weeks = parseInt(weeksMatch[1]);
+        totalDays = weeks * 7;
+      }
+    }
+    else {
+      return null;
+    }
+
+    // Validar se a IG é razoável (0-42 semanas)
+    const weeks = totalDays / 7;
+    if (weeks < 0 || weeks > 42) {
+      return null;
+    }
+
+    // Calcular DUM subtraindo os dias da data de referência
+    const dumDate = new Date(refDate);
+    dumDate.setDate(dumDate.getDate() - totalDays);
+
+    // Formatar para DD/MM/AAAA
+    const day = dumDate.getDate().toString().padStart(2, '0');
+    const month = (dumDate.getMonth() + 1).toString().padStart(2, '0');
+    const year = dumDate.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  } catch (error) {
+    console.error('Erro ao calcular DUM a partir da IG:', error);
+    return null;
+  }
+};

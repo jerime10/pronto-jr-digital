@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 interface ExamModel {
   id: string;
   name: string;
-  instructions: string | null;
+  result_template: string | null;
 }
 
 interface ExamesTabProps {
@@ -22,6 +22,11 @@ interface ExamesTabProps {
   isProcessingAI: { examResults: boolean };
   onProcessWithAI: () => void;
   onSelectedModelChange?: (modelTitle: string | null) => void;
+  patientId?: string;
+  onDynamicFieldsChange?: (fields: Record<string, string>) => void;
+  processAIContent?: (field: string, content: string, dynamicFields?: Record<string, string>) => Promise<void>;
+  updateDynamicFieldsFromAI?: (fields: Record<string, string>) => void;
+  dynamicFields?: Record<string, string>;
 }
 
 const ExamesTab: React.FC<ExamesTabProps> = ({
@@ -33,7 +38,12 @@ const ExamesTab: React.FC<ExamesTabProps> = ({
   onExamObservationsChange,
   isProcessingAI,
   onProcessWithAI,
-  onSelectedModelChange
+  onSelectedModelChange,
+  patientId,
+  onDynamicFieldsChange,
+  processAIContent,
+  updateDynamicFieldsFromAI,
+  dynamicFields
 }) => {
   const [activeTab, setActiveTab] = useState("solicitar");
   const [availableExams, setAvailableExams] = useState<ExamModel[]>([]);
@@ -44,8 +54,8 @@ const ExamesTab: React.FC<ExamesTabProps> = ({
       setIsLoading(true);
       try {
         const { data, error } = await supabase
-          .from('exam_models')
-          .select('id, name, instructions')
+          .from('modelo-result-exames')
+          .select('id, name, result_template')
           .order('name');
 
         if (error) {
@@ -82,11 +92,18 @@ const ExamesTab: React.FC<ExamesTabProps> = ({
 
       <TabsContent value="resultados" className="pt-4">
         <ResultadoExames 
+          patientId={patientId}
           examResults={examResults}
           onExamResultsChange={onExamResultsChange}
+          examObservations={examObservations}
+          onExamObservationsChange={onExamObservationsChange}
           isProcessingAI={isProcessingAI}
           onProcessWithAI={onProcessWithAI}
           onSelectedModelChange={onSelectedModelChange}
+          onDynamicFieldsChange={onDynamicFieldsChange}
+          processAIContent={processAIContent}
+          updateDynamicFieldsFromAI={updateDynamicFieldsFromAI}
+          dynamicFields={dynamicFields}
         />
       </TabsContent>
     </Tabs>

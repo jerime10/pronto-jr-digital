@@ -38,6 +38,7 @@ interface UseSaveActionsProps {
   resetForm: () => void;
   selectedModelTitle?: string | null;
   appointmentId?: string;
+  dynamicFields?: Record<string, string>;
 }
 
 export const useSaveActions = ({
@@ -47,7 +48,8 @@ export const useSaveActions = ({
   examModels,
   resetForm,
   selectedModelTitle,
-  appointmentId
+  appointmentId,
+  dynamicFields
 }: UseSaveActionsProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -409,7 +411,8 @@ export const useSaveActions = ({
       const webhookResult = await submitMedicalRecordToWebhook({
         medicalRecord: medicalRecordData,
         images: form.images,
-        selectedModelTitle: selectedModelTitle
+        selectedModelTitle: selectedModelTitle,
+        dynamicFields: dynamicFields
       });
 
       if (!webhookResult.success) {

@@ -48,7 +48,7 @@ interface AtendimentoLayoutProps {
     evolution: boolean;
     examResults: boolean;
   };
-  processAIContent: (field: string, content: string) => Promise<void>;
+  processAIContent: (field: string, content: string, dynamicFields?: Record<string, string>) => Promise<void>;
   prescriptionModels: any[];
   isLoadingPrescriptions: boolean;
   handleModeloPrescricaoChange: (modeloId: string) => void;
@@ -59,6 +59,9 @@ interface AtendimentoLayoutProps {
   profissionalAtual: Professional | null;
   setFormData: (formData: FormState) => void;
   onSelectedModelChange?: (modelTitle: string | null) => void;
+  onDynamicFieldsChange?: (fields: Record<string, string>) => void;
+  dynamicFields?: Record<string, string>;
+  updateDynamicFieldsFromAI?: (fields: Record<string, string>) => void;
 }
 
 export const AtendimentoLayout: React.FC<AtendimentoLayoutProps> = ({
@@ -91,7 +94,10 @@ export const AtendimentoLayout: React.FC<AtendimentoLayoutProps> = ({
   handleSubmitMedicalRecord,
   profissionalAtual,
   setFormData,
-  onSelectedModelChange
+  onSelectedModelChange,
+  onDynamicFieldsChange,
+  dynamicFields,
+  updateDynamicFieldsFromAI
 }) => {
   // Bridge function para lidar com a mudança de campo
   const handleFieldChange = React.useCallback((fieldName: keyof FormState, value: any) => {
@@ -99,8 +105,8 @@ export const AtendimentoLayout: React.FC<AtendimentoLayoutProps> = ({
   }, [updateFormField]);
 
   // Bridge function para processar AI
-  const handleProcessAI = React.useCallback(async (field: string, content: string) => {
-    await processAIContent(field, content);
+  const handleProcessAI = React.useCallback(async (field: string, content: string, providedDynamicFields?: Record<string, string>) => {
+    await processAIContent(field, content, providedDynamicFields);
   }, [processAIContent]);
 
   return (
@@ -151,6 +157,10 @@ export const AtendimentoLayout: React.FC<AtendimentoLayoutProps> = ({
             handleModeloPrescricaoChange={handleModeloPrescricaoChange}
             updateFormField={handleFieldChange}
             onSelectedModelChange={onSelectedModelChange}
+            patientId={pacienteSelecionado.id}
+            onDynamicFieldsChange={onDynamicFieldsChange}
+            dynamicFields={dynamicFields}
+            updateDynamicFieldsFromAI={updateDynamicFieldsFromAI}
           />
         )}
       </div>

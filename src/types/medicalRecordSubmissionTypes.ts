@@ -110,4 +110,5 @@ export interface FormDataBuilderParams {
     signatureProfessionalRegistry?: string;
   };
   selectedModelTitle?: string | null;
+  dynamicFields?: Record<string, string>;
 }

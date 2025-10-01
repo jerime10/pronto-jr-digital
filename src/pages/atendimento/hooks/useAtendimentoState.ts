@@ -8,7 +8,7 @@ import { useSaveActions } from './useSaveActions';
 import { useAtendimentoHelpers } from './useAtendimentoHelpers';
 import { useLocalStoragePersistence } from './useLocalStoragePersistence';
 
-export const useAtendimentoState = (selectedModelTitle?: string | null, initialPatient?: any, appointmentId?: string) => {
+export const useAtendimentoState = (selectedModelTitle?: string | null, initialPatient?: any, appointmentId?: string, dynamicFields?: Record<string, string>, onDynamicFieldsChange?: (fields: Record<string, string>) => void, updateDynamicFieldsFromAI?: (fields: Record<string, string>) => void) => {
   
   const { activeTab, setActiveTab } = useTabState();
   const { 
@@ -63,13 +63,19 @@ export const useAtendimentoState = (selectedModelTitle?: string | null, initialP
     examModels,
     resetForm, // Passando a função resetForm para o hook
     selectedModelTitle,
-    appointmentId
+    appointmentId,
+    dynamicFields
   });
 
   // Use our new helper hook to handle AI content processing
+  // Recriado sempre que selectedModelTitle mudar para garantir que o valor correto seja usado
   const { processAIContent: processAIContentHelper } = useAtendimentoHelpers({
     processAI: processAIContent,
-    updateFormField
+    updateFormField,
+    selectedModelTitle,
+    dynamicFields,
+    onIndividualFieldsUpdate: onDynamicFieldsChange,
+    updateDynamicFieldsFromAI: updateDynamicFieldsFromAI
   });
 
   return {
@@ -81,8 +87,8 @@ export const useAtendimentoState = (selectedModelTitle?: string | null, initialP
     profissionalAtual,
     isProcessingAI: {
       mainComplaint: isProcessingAI.mainComplaint,
-      evolution: false,
-      examResults: false
+      evolution: isProcessingAI.evolution,
+      examResults: isProcessingAI.examResults
     },
     form,
     prescriptionModels,

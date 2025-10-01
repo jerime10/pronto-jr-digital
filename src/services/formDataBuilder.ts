@@ -176,6 +176,24 @@ export function buildMedicalRecordFormData(params: FormDataBuilderParams): FormD
   formData.append('returnFileUrl', 'true');
   formData.append('documentType', 'prontuario');
   
+  // Adicionar campos dinâmicos separados
+  if (params.dynamicFields && Object.keys(params.dynamicFields).length > 0) {
+    console.log('Adicionando campos dinâmicos separados:', params.dynamicFields);
+    
+    // Adicionar cada campo dinâmico como uma variável individual
+    Object.entries(params.dynamicFields).forEach(([key, value]) => {
+      const sanitizedKey = key.replace(/[^a-zA-Z0-9_]/g, '_'); // Sanitizar nome do campo
+      formData.append(`dynamic_field_${sanitizedKey}`, value || '');
+    });
+    
+    // Também manter o objeto completo para compatibilidade
+    formData.append('dynamicFields', JSON.stringify(params.dynamicFields));
+    formData.append('dynamicFieldsCount', String(Object.keys(params.dynamicFields).length));
+  } else {
+    formData.append('dynamicFields', '{}');
+    formData.append('dynamicFieldsCount', '0');
+  }
+  
   console.log('FormData construído com sucesso');
   return formData;
 }

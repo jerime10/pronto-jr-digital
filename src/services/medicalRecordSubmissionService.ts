@@ -58,7 +58,8 @@ export async function submitMedicalRecordToWebhook(params: SubmitMedicalRecordPa
         signatureProfessionalTitle: siteSettings?.signature_professional_title || params.medicalRecord.professional?.specialty || 'Enfermeiro Obstetra',
         signatureProfessionalRegistry: siteSettings?.signature_professional_registry || params.medicalRecord.professional?.license_number || 'Coren 542061',
       },
-      selectedModelTitle: params.selectedModelTitle
+      selectedModelTitle: params.selectedModelTitle,
+      dynamicFields: params.dynamicFields
     });
 
     // Add clinic information to FormData
