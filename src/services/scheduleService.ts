@@ -136,7 +136,7 @@ export const scheduleAssignmentService = {
   async createAssignment(data: ScheduleAssignmentFormData): Promise<ScheduleAssignment> {
     const { data: assignment, error } = await supabase
       .from('schedule_assignments')
-      .insert(data)
+      .insert(data as any)
       .select()
       .single();
 
@@ -145,7 +145,7 @@ export const scheduleAssignmentService = {
       throw new Error(`Erro ao criar atribuição: ${error.message}`);
     }
 
-    return assignment;
+    return assignment as any;
   },
 
   // Listar atribuições por horário
@@ -165,7 +165,7 @@ export const scheduleAssignmentService = {
       throw new Error(`Erro ao buscar atribuições: ${error.message}`);
     }
 
-    return assignments || [];
+    return (assignments as any) || [];
   },
 
   // Listar atribuições por atendente e data
@@ -335,11 +335,11 @@ export const scheduleAssignmentService = {
         id: a.id,
         schedule_id: a.schedule_id,
         attendant_id: a.attendant_id,
-        attendant_name: a.attendant_name,
+        attendant_name: (a as any).attendant_name,
         schedule_info: a.schedule_info,
-        start_time: a.start_time,
-        end_time: a.end_time,
-        specific_date: a.specific_date,
+        start_time: (a as any).start_time,
+        end_time: (a as any).end_time,
+        specific_date: (a as any).specific_date,
         schedule: (a as any).schedule ? {
           id: (a as any).schedule.id,
           day: (a as any).schedule.day,
@@ -356,7 +356,7 @@ export const scheduleAssignmentService = {
       filteredAssignmentsCount: filteredAssignments.length
     });
 
-    return filteredAssignments;
+    return filteredAssignments as any;
   },
 
   // Atualizar atribuição
@@ -373,7 +373,7 @@ export const scheduleAssignmentService = {
       throw new Error(`Erro ao atualizar atribuição: ${error.message}`);
     }
 
-    return assignment;
+    return assignment as any;
   },
 
   // Deletar atribuição
@@ -450,7 +450,7 @@ export const appointmentService = {
       throw new Error(`Erro ao criar agendamento: ${error.message}`);
     }
 
-    return appointment;
+    return appointment as any;
   },
 
   // Listar agendamentos por atendente e período
@@ -540,7 +540,7 @@ export const appointmentService = {
       appointmentsCount: appointments?.length || 0
     });
 
-    return appointments || [];
+    return (appointments as any) || [];
   },
 
   // Listar agendamentos por data
@@ -561,7 +561,7 @@ export const appointmentService = {
       throw new Error(`Erro ao buscar agendamentos: ${error.message}`);
     }
 
-    return appointments || [];
+    return (appointments as any) || [];
   },
 
   // Atualizar agendamento
@@ -578,7 +578,7 @@ export const appointmentService = {
       throw new Error(`Erro ao atualizar agendamento: ${error.message}`);
     }
 
-    return appointment;
+    return appointment as any;
   },
 
   // Cancelar agendamento

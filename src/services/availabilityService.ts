@@ -483,12 +483,12 @@ export const availabilityService = {
       if (serviceId) {
         const { data: service } = await supabase
           .from('services')
-          .select('duration_minutes')
+          .select('duration')
           .eq('id', serviceId)
-          .single();
+          .maybeSingle();
         
-        if (service?.duration_minutes) {
-          serviceDuration = service.duration_minutes;
+        if (service?.duration) {
+          serviceDuration = service.duration;
         }
       }
 

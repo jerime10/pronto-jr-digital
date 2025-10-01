@@ -483,17 +483,21 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   const { processAIContent: processAIContentLocal } = useAIProcessing();
   
   // Criar processAIContent customizado que inclui updateDynamicFieldsFromAI
-  const processAIContentWithCallback = React.useCallback(async (field: string, content: string, dynamicFieldsParam?: Record<string, string>) => {
+  const processAIContentWithCallback = React.useCallback(async (
+    field: 'main_complaint' | 'evolution' | 'exam_result',
+    content: string,
+    dynamicFieldsParam?: Record<string, string>
+  ) => {
     if (processAIContentProp) {
-      // Se há processAIContent das props, precisamos interceptar para adicionar nosso callback
-      // Isso é um hack temporário - idealmente deveria ser refatorado
-      console.log('🔄 [ResultadoExames] Usando processAIContent das props com callback customizado');
-      
-      // Chamar o processAIContent original
+      // processAIContentProp tem assinatura: (field: string, content: string, dynamicFields?: Record<string, string>)
+      console.log('🔄 [ResultadoExames] Usando processAIContent das props');
       await processAIContentProp(field, content, dynamicFieldsParam);
     } else {
-      // Usar o local
-      await processAIContentLocal(field, content, dynamicFieldsParam);
+      // processAIContentLocal tem assinatura: (content, type, onSuccess, selectedModelTitle, dynamicFields)
+      console.log('🔄 [ResultadoExames] Usando processAIContent local');
+      await processAIContentLocal(content, field, (processed) => {
+        console.log('✅ Conteúdo processado via local');
+      }, null, dynamicFieldsParam);
     }
   }, [processAIContentProp, processAIContentLocal]);
   
