@@ -68,8 +68,14 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
   });
 
   const handleLoadDraft = async (draft: any) => {
+    console.log('📂 [DraftManager] Carregando rascunho:', draft);
     await loadDraft(draft);
     setIsDialogOpen(false);
+  };
+
+  const handleSaveDraft = () => {
+    console.log('💾 [DraftManager] Salvando rascunho com campos dinâmicos:', dynamicFields);
+    saveDraft(form, dynamicFields);
   };
 
   const canSaveDraft = pacienteSelecionado && form.queixaPrincipal.trim();
@@ -80,7 +86,7 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
       <Button
         variant="outline"
         size="sm"
-        onClick={() => saveDraft(form, dynamicFields)}
+        onClick={handleSaveDraft}
         disabled={!canSaveDraft || isSavingDraft}
         className="flex items-center gap-2"
       >

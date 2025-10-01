@@ -23,8 +23,12 @@ const NovoAtendimento = () => {
   
   // Handler para capturar os campos dinâmicos
   const handleDynamicFieldsChange = React.useCallback((fields: Record<string, string>) => {
-    console.log('🎯 [NovoAtendimento] handleDynamicFieldsChange chamado com:', fields);
-    setDynamicFields(fields);
+    console.log('🎯 [NovoAtendimento] handleDynamicFieldsChange RECEBIDO:', fields);
+    setDynamicFields(prevFields => {
+      console.log('🎯 [NovoAtendimento] Estado anterior dos campos dinâmicos:', prevFields);
+      console.log('🎯 [NovoAtendimento] Novo estado dos campos dinâmicos:', fields);
+      return fields;
+    });
   }, []);
   
   // Função para validar se o paciente tem dados válidos

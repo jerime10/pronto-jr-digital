@@ -106,7 +106,7 @@ export const useDraftManager = ({
   // Salvar rascunho atual
   const saveDraft = async (formData: FormState, fields?: Record<string, string>) => {
     if (!pacienteSelecionado || !profissionalAtual) {
-      console.error('❌ Dados insuficientes para salvar rascunho:', { 
+      console.error('❌ [useDraftManager] Dados insuficientes para salvar rascunho:', { 
         paciente: !!pacienteSelecionado, 
         profissional: !!profissionalAtual 
       });
@@ -114,10 +114,14 @@ export const useDraftManager = ({
       return;
     }
     
-    // Combinar formData com dynamicFields
+    // Combinar formData com dynamicFields (usar o que foi passado ou o do estado)
+    const camposDinamicosParaSalvar = fields || dynamicFields || {};
+    
+    console.log('💾 [useDraftManager] Salvando rascunho com campos dinâmicos:', camposDinamicosParaSalvar);
+    
     const formDataWithDynamicFields = {
       ...formData,
-      dynamicFields: fields || dynamicFields || {}
+      dynamicFields: camposDinamicosParaSalvar
     };
 
     try {
@@ -236,23 +240,35 @@ export const useDraftManager = ({
   // Carregar rascunho
   const loadDraft = async (draft: Draft) => {
     try {
-      // Selecionar o paciente
-      handleSelectPaciente(draft.patient_data);
+      console.log('📂 [useDraftManager] Carregando rascunho:', draft);
       
       // Separar dynamicFields do form_data
       const { dynamicFields: loadedDynamicFields, ...formDataWithoutDynamicFields } = draft.form_data;
       
-      // Carregar dados do formulário
+      console.log('📂 [useDraftManager] Campos dinâmicos do rascunho:', loadedDynamicFields);
+      console.log('📂 [useDraftManager] Dados do formulário (sem campos dinâmicos):', formDataWithoutDynamicFields);
+      
+      // PRIMEIRO: Carregar campos dinâmicos se existirem e o callback estiver disponível
+      if (loadedDynamicFields && onDynamicFieldsChange) {
+        console.log('📂 [useDraftManager] Chamando onDynamicFieldsChange com:', loadedDynamicFields);
+        onDynamicFieldsChange(loadedDynamicFields);
+      } else {
+        console.warn('⚠️ [useDraftManager] Campos dinâmicos não carregados:', {
+          temCamposDinamicos: !!loadedDynamicFields,
+          temCallback: !!onDynamicFieldsChange,
+          campos: loadedDynamicFields
+        });
+      }
+      
+      // DEPOIS: Carregar dados do formulário
       setFormData(formDataWithoutDynamicFields);
       
-      // Carregar campos dinâmicos se existirem
-      if (loadedDynamicFields && onDynamicFieldsChange) {
-        onDynamicFieldsChange(loadedDynamicFields);
-      }
+      // POR ÚLTIMO: Selecionar o paciente
+      handleSelectPaciente(draft.patient_data);
       
       toast.success(`Rascunho de ${draft.patient_data.name} carregado!`);
     } catch (error) {
-      console.error('Erro ao carregar rascunho:', error);
+      console.error('❌ [useDraftManager] Erro ao carregar rascunho:', error);
       toast.error('Erro ao carregar rascunho');
     }
   };
