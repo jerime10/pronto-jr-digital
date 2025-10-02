@@ -1309,23 +1309,37 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                         variant="outline"
                         size="sm"
                         onClick={async () => {
-                          if (fieldValue.trim() && selectedModel) {
-                            console.log('💾 [SAVE] Salvando campo:', field.key, field.label);
-                            setIsSavingField(field.key);
-                            
-                            try {
-                              await saveFieldTemplate({
-                                fieldKey: field.key,
-                                fieldLabel: field.label,
-                                fieldContent: fieldValue,
-                                modelName: selectedModel.name,
-                              });
-                              console.log('✅ [SAVE] Campo salvo com sucesso');
-                            } catch (error) {
-                              console.error('❌ [SAVE] Erro ao salvar:', error);
-                            } finally {
-                              setIsSavingField(null);
-                            }
+                          console.log('🔵 [CLICK] Botão de salvar clicado');
+                          console.log('🔵 [CLICK] fieldValue:', fieldValue);
+                          console.log('🔵 [CLICK] selectedModel:', selectedModel);
+                          
+                          if (!fieldValue.trim()) {
+                            toast.error('Por favor, preencha o campo antes de salvar.');
+                            return;
+                          }
+                          
+                          if (!selectedModel) {
+                            toast.error('Selecione um modelo de exame primeiro.');
+                            return;
+                          }
+                          
+                          console.log('💾 [SAVE] Salvando campo:', field.key, field.label);
+                          setIsSavingField(field.key);
+                          
+                          try {
+                            await saveFieldTemplate({
+                              fieldKey: field.key,
+                              fieldLabel: field.label,
+                              fieldContent: fieldValue,
+                              modelName: selectedModel.name,
+                            });
+                            console.log('✅ [SAVE] Campo salvo com sucesso');
+                            toast.success(`Campo ${field.label} salvo com sucesso!`);
+                          } catch (error) {
+                            console.error('❌ [SAVE] Erro ao salvar:', error);
+                            toast.error('Não foi possível salvar o template.');
+                          } finally {
+                            setIsSavingField(null);
                           }
                         }}
                         disabled={!fieldValue.trim() || isSavingField === field.key}
