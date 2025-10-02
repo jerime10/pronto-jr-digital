@@ -66,7 +66,7 @@ export const useIndividualFieldTemplates = () => {
     return data as IndividualFieldTemplate | null;
   };
 
-  // Salvar novo template
+  // Salvar novo template (sempre cria um novo registro)
   const saveFieldTemplate = useMutation({
     mutationFn: async ({
       fieldKey,
@@ -79,49 +79,26 @@ export const useIndividualFieldTemplates = () => {
       fieldContent: string;
       modelName: string;
     }) => {
-      console.log('💾 [HOOK] Iniciando salvamento:', { fieldKey, fieldLabel, modelName });
+      console.log('💾 [HOOK] Criando novo template:', { fieldKey, fieldLabel, modelName });
       
-      // Verificar se já existe
-      const existing = await getFieldTemplateByKey(fieldKey, modelName);
-      console.log('💾 [HOOK] Template existente:', existing);
+      // Sempre criar novo registro
+      const { data, error } = await supabase
+        .from('individual_field_templates')
+        .insert({
+          field_key: fieldKey,
+          field_label: fieldLabel,
+          field_content: fieldContent,
+          model_name: modelName,
+        })
+        .select()
+        .single();
 
-      if (existing) {
-        // Atualizar existente
-        console.log('💾 [HOOK] Atualizando template existente:', existing.id);
-        const { data, error } = await supabase
-          .from('individual_field_templates')
-          .update({ field_content: fieldContent, updated_at: new Date().toISOString() })
-          .eq('id', existing.id)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('❌ [HOOK] Erro ao atualizar:', error);
-          throw error;
-        }
-        console.log('✅ [HOOK] Template atualizado:', data);
-        return data;
-      } else {
-        // Criar novo
-        console.log('💾 [HOOK] Criando novo template');
-        const { data, error } = await supabase
-          .from('individual_field_templates')
-          .insert({
-            field_key: fieldKey,
-            field_label: fieldLabel,
-            field_content: fieldContent,
-            model_name: modelName,
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error('❌ [HOOK] Erro ao criar:', error);
-          throw error;
-        }
-        console.log('✅ [HOOK] Template criado:', data);
-        return data;
+      if (error) {
+        console.error('❌ [HOOK] Erro ao criar:', error);
+        throw error;
       }
+      console.log('✅ [HOOK] Template criado:', data);
+      return data;
     },
     onSuccess: (data) => {
       console.log('✅ [HOOK] Salvamento bem-sucedido:', data);
