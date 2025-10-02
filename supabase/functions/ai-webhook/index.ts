@@ -46,13 +46,19 @@ serve(async (req) => {
     // Extract text/content for compatibility
     const text = requestBody.text || requestBody.content;
     const type = requestBody.type;
+    const fieldKey = requestBody.fieldKey; // Identificar se é processamento de campo individual
     
     // Check if we have dynamic fields (campos de exame)
     const dynamicFields = Object.keys(requestBody).filter(key => 
-      !['text', 'content', 'type', 'selectedModelTitle', 'resultadoFinal', 'timestamp'].includes(key)
+      !['text', 'content', 'type', 'selectedModelTitle', 'resultadoFinal', 'timestamp', 'fieldKey'].includes(key)
     );
     const hasDynamicFields = dynamicFields.length > 0 && 
       dynamicFields.some(key => requestBody[key] && requestBody[key].toString().trim());
+    
+    console.log("=== DEBUG PROCESSAMENTO ===");
+    console.log("fieldKey:", fieldKey);
+    console.log("hasDynamicFields:", hasDynamicFields);
+    console.log("dynamicFields:", dynamicFields);
     
     // Validar: precisamos de campos dinâmicos OU text/content
     if (!hasDynamicFields && !text) {
@@ -400,6 +406,29 @@ serve(async (req) => {
       
       console.log("Campos individuais extraídos:", individualFields);
       console.log("Quantidade de campos extraídos:", Object.keys(individualFields).length);
+      
+      // Se foi processamento de campo individual, retornar apenas esse campo
+      if (fieldKey && individualFields[fieldKey]) {
+        console.log(`=== PROCESSAMENTO INDIVIDUAL: Campo ${fieldKey} ===`);
+        console.log(`Valor processado: ${individualFields[fieldKey].substring(0, 100)}...`);
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            fieldKey: fieldKey,
+            individual_fields: {
+              [fieldKey]: individualFields[fieldKey]
+            },
+            processed_content: individualFields[fieldKey]
+          }),
+          { 
+            headers: { 
+              ...corsHeaders,
+              'Content-Type': 'application/json' 
+            } 
+          }
+        );
+      }
       
       // Debug adicional: verificar se N8N retornou algum campo esperado
       const expectedFields = [

@@ -1057,6 +1057,9 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     }
   };
 
+  // Estado para rastrear qual campo está sendo processado
+  const [isProcessingField, setIsProcessingField] = React.useState<string | null>(null);
+
   const handleProcessWithAI = async () => {
     // Verificar se há campos dinâmicos preenchidos ou conteúdo no textarea
     const hasFilledDynamicFields = Object.values(dynamicFields).some(value => value?.trim());
@@ -1068,6 +1071,81 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
 
     // Usar o callback das props para processar com IA
     onProcessWithAI();
+  };
+
+  // Nova função para processar um campo individual com IA
+  const handleProcessFieldWithAI = async (field: DynamicField) => {
+    const fieldValue = dynamicFields[field.key];
+    
+    if (!fieldValue?.trim()) {
+      toast.error(`Por favor, preencha o campo ${field.label} primeiro`);
+      return;
+    }
+
+    console.log('🤖 [AI-FIELD] ===== PROCESSANDO CAMPO INDIVIDUAL =====');
+    console.log('🤖 [AI-FIELD] Campo:', field.label, '(', field.key, ')');
+    console.log('🤖 [AI-FIELD] Valor:', fieldValue);
+
+    setIsProcessingField(field.key);
+
+    try {
+      // Concatenar o título do campo com o valor
+      const contentWithTitle = `${field.label}: ${fieldValue}`;
+      console.log('🤖 [AI-FIELD] Conteúdo com título:', contentWithTitle);
+
+      // Chamar a edge function com apenas este campo específico
+      const { data, error } = await supabase.functions.invoke('ai-webhook', {
+        body: {
+          [field.key]: contentWithTitle,
+          selectedModelTitle: selectedModel?.name || null,
+          fieldKey: field.key, // Identificar qual campo está sendo processado
+          type: 'exam_result'
+        }
+      });
+
+      if (error) {
+        console.error('🤖 [AI-FIELD] Erro ao processar:', error);
+        toast.error('Erro ao processar campo com IA');
+        return;
+      }
+
+      console.log('🤖 [AI-FIELD] Resposta da IA:', data);
+
+      // Extrair o conteúdo processado da resposta
+      let processedContent = '';
+      
+      if (data.individual_fields && data.individual_fields[field.key]) {
+        processedContent = data.individual_fields[field.key];
+      } else if (data.processed_content) {
+        processedContent = data.processed_content;
+      } else if (data[field.key]) {
+        processedContent = data[field.key];
+      }
+
+      if (processedContent) {
+        console.log('🤖 [AI-FIELD] Conteúdo processado:', processedContent);
+        
+        // Atualizar apenas este campo específico
+        const updatedFields = {
+          ...dynamicFields,
+          [field.key]: processedContent
+        };
+        
+        setDynamicFields(updatedFields);
+        updateExamResults(updatedFields);
+        
+        toast.success(`Campo ${field.label} processado com sucesso!`);
+      } else {
+        console.warn('🤖 [AI-FIELD] Nenhum conteúdo processado retornado');
+        toast.warning('Nenhum conteúdo foi processado pela IA');
+      }
+    } catch (err) {
+      console.error('🤖 [AI-FIELD] Erro inesperado:', err);
+      toast.error('Erro ao processar campo com IA');
+    } finally {
+      setIsProcessingField(null);
+      console.log('🤖 [AI-FIELD] ===== PROCESSAMENTO CONCLUÍDO =====');
+    }
   };
 
 
@@ -1181,6 +1259,22 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                           className="min-h-[100px] flex-1"
                         />
                       )}
+                      {/* Botão para processar campo individual com IA */}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleProcessFieldWithAI(field)}
+                        disabled={!dynamicFields[field.key]?.trim() || isProcessingField === field.key}
+                        title="Processar este campo com IA"
+                      >
+                        {isProcessingField === field.key ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
+                      </Button>
+                      {/* Botão para excluir campo */}
                       <Button
                         type="button"
                         variant="outline"
