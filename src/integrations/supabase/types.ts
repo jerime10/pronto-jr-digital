@@ -246,6 +246,36 @@ export type Database = {
           },
         ]
       }
+      individual_field_templates: {
+        Row: {
+          created_at: string | null
+          field_content: string
+          field_key: string
+          field_label: string
+          id: string
+          model_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          field_content: string
+          field_key: string
+          field_label: string
+          id?: string
+          model_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          field_content?: string
+          field_key?: string
+          field_label?: string
+          id?: string
+          model_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       medical_record_drafts: {
         Row: {
           created_at: string

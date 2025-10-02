@@ -6,10 +6,22 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Sparkles, Trash2 } from 'lucide-react';
+import { Loader2, Sparkles, Trash2, Save, Eraser } from 'lucide-react';
 import { toast } from 'sonner';
 import { calculateDUMFromIG } from '@/utils/obstetricUtils';
 import { useAIProcessing } from '../hooks/useAIProcessing';
+import { FieldAutocomplete } from '@/components/ui/field-autocomplete';
+import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface ExamModel {
   id: string;
@@ -483,6 +495,17 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   const [selectedTemplate, setSelectedTemplate] = useState<ParsedTemplate | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [dynamicFields, setDynamicFields] = useState<Record<string, string>>({});
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [fieldToDelete, setFieldToDelete] = useState<{ key: string; label: string } | null>(null);
+  
+  // Hook para gerenciar templates salvos
+  const {
+    searchFieldTemplates,
+    saveFieldTemplate,
+    deleteFieldTemplate,
+    isSaving,
+    isDeleting,
+  } = useIndividualFieldTemplates();
   
   // Hook para processamento de IA (fallback se não vier das props)
   const { processAIContent: processAIContentLocal } = useAIProcessing();
@@ -1223,29 +1246,18 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Campos do Exame - {selectedModel?.name}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {selectedTemplate.fields.map((field) => (
+                {selectedTemplate.fields.map((field) => {
+                  const fieldValue = dynamicFields[field.key] || '';
+                  
+                  return (
                   <div key={field.key} className="space-y-2">
                     <Label htmlFor={field.key}>{field.label}</Label>
                     <div className="flex gap-2">
-                      {field.type === 'input' ? (
-                        <Input
-                          id={field.key}
-                          value={dynamicFields[field.key] || ''}
-                          onChange={(e) => {
-                            console.log('🎯 [INPUT] Campo alterado:', field.key, 'Valor:', e.target.value);
-                            const newFields = { ...dynamicFields, [field.key]: e.target.value };
-                            console.log('🎯 [INPUT] Novos campos:', newFields);
-                            setDynamicFields(newFields);
-                            updateExamResults(newFields);
-                          }}
-                          placeholder={field.placeholder}
-                          className="flex-1"
-                        />
-                      ) : field.type === 'date' ? (
+                      {field.type === 'date' ? (
                         <Input
                           id={field.key}
                           type="date"
-                          value={dynamicFields[field.key] || ''}
+                          value={fieldValue}
                           onChange={(e) => {
                             console.log('🎯 [DATE] Campo alterado:', field.key, 'Valor:', e.target.value);
                             const newFields = { ...dynamicFields, [field.key]: e.target.value };
@@ -1256,33 +1268,81 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                           className="flex-1"
                         />
                       ) : (
-                        <Textarea
-                          id={field.key}
-                          value={dynamicFields[field.key] || ''}
-                          onChange={(e) => {
-                            console.log('🎯 [TEXTAREA] Campo alterado:', field.key, 'Valor:', e.target.value);
-                            const newFields = { ...dynamicFields, [field.key]: e.target.value };
-                            console.log('🎯 [TEXTAREA] Novos campos:', newFields);
+                        <FieldAutocomplete
+                          value={fieldValue}
+                          onChange={(value) => {
+                            console.log('🎯 [AUTOCOMPLETE] Campo alterado:', field.key, 'Valor:', value);
+                            const newFields = { ...dynamicFields, [field.key]: value };
+                            console.log('🎯 [AUTOCOMPLETE] Novos campos:', newFields);
                             setDynamicFields(newFields);
                             updateExamResults(newFields);
                           }}
+                          onSearch={(searchTerm) => 
+                            searchFieldTemplates(field.key, searchTerm, selectedModel?.name || '')
+                          }
                           placeholder={field.placeholder}
-                          className="min-h-[100px] flex-1"
+                          type={field.type === 'input' ? 'input' : 'textarea'}
+                          className="flex-1"
                         />
                       )}
+                      
                       {/* Botão para processar campo individual com IA */}
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => handleProcessFieldWithAI(field)}
-                        disabled={!dynamicFields[field.key]?.trim() || isProcessingField === field.key}
+                        disabled={!fieldValue.trim() || isProcessingField === field.key}
                         title="Processar este campo com IA"
                       >
                         {isProcessingField === field.key ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <Sparkles className="h-4 w-4" />
+                        )}
+                      </Button>
+                      
+                      {/* Botão para salvar template do campo */}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (fieldValue.trim() && selectedModel) {
+                            saveFieldTemplate({
+                              fieldKey: field.key,
+                              fieldLabel: field.label,
+                              fieldContent: fieldValue,
+                              modelName: selectedModel.name,
+                            });
+                          }
+                        }}
+                        disabled={!fieldValue.trim() || isSaving}
+                        title="Salvar este campo como template"
+                      >
+                        {isSaving ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
+                      </Button>
+                      
+                      {/* Botão para limpar template salvo */}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setFieldToDelete({ key: field.key, label: field.label });
+                          setDeleteConfirmOpen(true);
+                        }}
+                        disabled={isDeleting}
+                        title="Limpar dados salvos deste campo"
+                      >
+                        {isDeleting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Eraser className="h-4 w-4" />
                         )}
                       </Button>
                       {/* Botão para excluir campo */}
@@ -1346,10 +1406,43 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                       </Button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
+          
+          {/* Dialog de confirmação para limpar template */}
+          <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Limpar template salvo?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja remover o template salvo do campo{' '}
+                  <strong>{fieldToDelete?.label}</strong>? Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setFieldToDelete(null)}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (fieldToDelete && selectedModel) {
+                      // Buscar o template salvo e deletar
+                      searchFieldTemplates(fieldToDelete.key, '', selectedModel.name).then((results) => {
+                        if (results.length > 0) {
+                          deleteFieldTemplate(results[0].id);
+                        }
+                      });
+                    }
+                    setFieldToDelete(null);
+                    setDeleteConfirmOpen(false);
+                  }}
+                >
+                  Confirmar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           
 
 
