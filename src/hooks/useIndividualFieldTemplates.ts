@@ -79,11 +79,15 @@ export const useIndividualFieldTemplates = () => {
       fieldContent: string;
       modelName: string;
     }) => {
+      console.log('💾 [HOOK] Iniciando salvamento:', { fieldKey, fieldLabel, modelName });
+      
       // Verificar se já existe
       const existing = await getFieldTemplateByKey(fieldKey, modelName);
+      console.log('💾 [HOOK] Template existente:', existing);
 
       if (existing) {
         // Atualizar existente
+        console.log('💾 [HOOK] Atualizando template existente:', existing.id);
         const { data, error } = await supabase
           .from('individual_field_templates')
           .update({ field_content: fieldContent, updated_at: new Date().toISOString() })
@@ -91,10 +95,15 @@ export const useIndividualFieldTemplates = () => {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ [HOOK] Erro ao atualizar:', error);
+          throw error;
+        }
+        console.log('✅ [HOOK] Template atualizado:', data);
         return data;
       } else {
         // Criar novo
+        console.log('💾 [HOOK] Criando novo template');
         const { data, error } = await supabase
           .from('individual_field_templates')
           .insert({
@@ -106,11 +115,16 @@ export const useIndividualFieldTemplates = () => {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ [HOOK] Erro ao criar:', error);
+          throw error;
+        }
+        console.log('✅ [HOOK] Template criado:', data);
         return data;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('✅ [HOOK] Salvamento bem-sucedido:', data);
       queryClient.invalidateQueries({ queryKey: ['individual_field_templates'] });
       toast({
         title: '✅ Campo salvo',
@@ -118,7 +132,7 @@ export const useIndividualFieldTemplates = () => {
       });
     },
     onError: (error) => {
-      console.error('Erro ao salvar template:', error);
+      console.error('❌ [HOOK] Erro ao salvar template:', error);
       toast({
         title: '❌ Erro ao salvar',
         description: 'Não foi possível salvar o template.',

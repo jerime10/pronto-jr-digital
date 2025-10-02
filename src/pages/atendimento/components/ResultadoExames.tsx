@@ -1082,6 +1082,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
 
   // Estado para rastrear qual campo está sendo processado
   const [isProcessingField, setIsProcessingField] = React.useState<string | null>(null);
+  const [isSavingField, setIsSavingField] = React.useState<string | null>(null);
 
   const handleProcessWithAI = async () => {
     // Verificar se há campos dinâmicos preenchidos ou conteúdo no textarea
@@ -1307,20 +1308,30 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => {
+                        onClick={async () => {
                           if (fieldValue.trim() && selectedModel) {
-                            saveFieldTemplate({
-                              fieldKey: field.key,
-                              fieldLabel: field.label,
-                              fieldContent: fieldValue,
-                              modelName: selectedModel.name,
-                            });
+                            console.log('💾 [SAVE] Salvando campo:', field.key, field.label);
+                            setIsSavingField(field.key);
+                            
+                            try {
+                              await saveFieldTemplate({
+                                fieldKey: field.key,
+                                fieldLabel: field.label,
+                                fieldContent: fieldValue,
+                                modelName: selectedModel.name,
+                              });
+                              console.log('✅ [SAVE] Campo salvo com sucesso');
+                            } catch (error) {
+                              console.error('❌ [SAVE] Erro ao salvar:', error);
+                            } finally {
+                              setIsSavingField(null);
+                            }
                           }
                         }}
-                        disabled={!fieldValue.trim() || isSaving}
+                        disabled={!fieldValue.trim() || isSavingField === field.key}
                         title="Salvar este campo como template"
                       >
-                        {isSaving ? (
+                        {isSavingField === field.key ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <Save className="h-4 w-4" />
