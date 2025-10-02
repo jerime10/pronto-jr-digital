@@ -1089,14 +1089,25 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     setIsProcessingField(field.key);
 
     try {
-      // Concatenar o título do campo com o valor
-      const contentWithTitle = `${field.label}: ${fieldValue}`;
-      console.log('🤖 [AI-FIELD] Conteúdo com título:', contentWithTitle);
+      // Preparar TODOS os campos com título concatenado (como antes)
+      const allFieldsWithTitles: Record<string, string> = {};
+      
+      if (selectedTemplate) {
+        selectedTemplate.fields.forEach((f) => {
+          const value = dynamicFields[f.key];
+          if (value) {
+            allFieldsWithTitles[f.key] = `${f.label}: ${value}`;
+          }
+        });
+      }
+      
+      console.log('🤖 [AI-FIELD] Enviando todos os campos:', Object.keys(allFieldsWithTitles));
+      console.log('🤖 [AI-FIELD] Campo a ser processado:', field.key);
 
-      // Chamar a edge function com apenas este campo específico
+      // Chamar a edge function com TODOS os campos, mas indicando qual processar
       const { data, error } = await supabase.functions.invoke('ai-webhook', {
         body: {
-          [field.key]: contentWithTitle,
+          ...allFieldsWithTitles, // Enviar todos os campos
           selectedModelTitle: selectedModel?.name || null,
           fieldKey: field.key, // Identificar qual campo está sendo processado
           type: 'exam_result'
