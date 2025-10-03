@@ -43,8 +43,15 @@ export function buildMedicalRecordFormData(params: FormDataBuilderParams): FormD
   formData.append('examObservations', params.medicalRecord.exam_observations || '');
   formData.append('examResults', params.medicalRecord.exam_results || '');
   
-  // Selected model title for exam results
-  formData.append('selectedModelTitle', params.selectedModelTitle || '');
+  // Selected model title for exam results - MÚLTIPLAS VERSÕES PARA COMPATIBILIDADE
+  const modelTitle = params.selectedModelTitle || '';
+  formData.append('selectedModelTitle', modelTitle);
+  formData.append('exam_model_title', modelTitle);
+  formData.append('examModelTitle', modelTitle);
+  formData.append('modelTitle', modelTitle);
+  formData.append('titulo_modelo', modelTitle);
+  
+  console.log('📋 [FormData] Título do modelo adicionado ao FormData:', modelTitle);
   
   // Complete medical record object
   const medicalRecordData = {
@@ -57,6 +64,7 @@ export function buildMedicalRecordFormData(params: FormDataBuilderParams): FormD
     exam_observations: params.medicalRecord.exam_observations || '',
     exam_results: params.medicalRecord.exam_results || '',
     selected_model_title: params.selectedModelTitle || '',
+    exam_model_title: params.selectedModelTitle || '',
     attendance_start_at: params.medicalRecord.attendance_start_at || '',
     attendance_end_at: params.medicalRecord.attendance_end_at || '',
     created_at: params.medicalRecord.created_at || new Date().toISOString(),
@@ -195,6 +203,10 @@ export function buildMedicalRecordFormData(params: FormDataBuilderParams): FormD
   }
   
   console.log('FormData construído com sucesso');
+  console.log('📋 [FormData] ===== RESUMO DO FORMDATA =====');
+  console.log('📋 [FormData] selectedModelTitle:', params.selectedModelTitle);
+  console.log('📋 [FormData] dynamicFields:', params.dynamicFields ? Object.keys(params.dynamicFields).length : 0);
+  
   return formData;
 }
 

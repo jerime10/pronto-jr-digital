@@ -45,6 +45,10 @@ export async function submitMedicalRecordToWebhook(params: SubmitMedicalRecordPa
     const webhookUrl = siteSettings?.medical_record_webhook_url || 'https://n8n.lovableproject.com/webhook/prontuario-jrs';
     console.log('URL do webhook a ser usada:', webhookUrl);
     
+    // Log do selectedModelTitle antes de construir o FormData
+    console.log('📋 [SUBMISSION] selectedModelTitle recebido:', params.selectedModelTitle);
+    console.log('📋 [SUBMISSION] dynamicFields recebidos:', (params as any).dynamicFields);
+    
     // Build complete FormData for webhook with all required information
     const formData = buildMedicalRecordFormData({
       medicalRecord: params.medicalRecord,

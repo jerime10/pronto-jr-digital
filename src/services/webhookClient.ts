@@ -36,6 +36,13 @@ export async function sendToWebhook(webhookUrl: string, formData: FormData): Pro
   const isProdUrl = webhookUrl.includes('n8n.mentoriajrs.com');
   console.log('Production URL detected:', isProdUrl, 'for URL:', webhookUrl);
   
+  // Log dos campos importantes do FormData antes de enviar
+  console.log('📋 [WEBHOOK-CLIENT] ===== ENVIANDO FORMDATA =====');
+  console.log('📋 [WEBHOOK-CLIENT] selectedModelTitle:', formData.get('selectedModelTitle'));
+  console.log('📋 [WEBHOOK-CLIENT] exam_model_title:', formData.get('exam_model_title'));
+  console.log('📋 [WEBHOOK-CLIENT] modelTitle:', formData.get('modelTitle'));
+  console.log('📋 [WEBHOOK-CLIENT] titulo_modelo:', formData.get('titulo_modelo'));
+  
   try {
     const response = await fetch(webhookUrl, {
       method: 'POST',

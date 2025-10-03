@@ -410,6 +410,10 @@ export const useSaveActions = ({
       };
 
       // Enviar via webhook com dados completos
+      console.log('📋 [WEBHOOK] ===== ENVIANDO PARA N8N =====');
+      console.log('📋 [WEBHOOK] selectedModelTitle:', selectedModelTitle);
+      console.log('📋 [WEBHOOK] dynamicFields:', dynamicFields);
+      
       const webhookResult = await submitMedicalRecordToWebhook({
         medicalRecord: medicalRecordData,
         images: form.images,
