@@ -409,16 +409,56 @@ export const useSaveActions = ({
         }
       };
 
-      // Enviar via webhook com dados completos
+      // FILTRAR campos dinâmicos para enviar apenas os do modelo selecionado
+      let filteredDynamicFields = dynamicFields || {};
+      
+      if (selectedModelTitle && dynamicFields && Object.keys(dynamicFields).length > 0) {
+        console.log('🔍 [FILTER] ===== FILTRANDO CAMPOS DINÂMICOS =====');
+        console.log('🔍 [FILTER] Modelo selecionado:', selectedModelTitle);
+        console.log('🔍 [FILTER] Campos antes da filtragem:', Object.keys(dynamicFields));
+        
+        try {
+          // Buscar campos válidos do modelo selecionado
+          const { data: validFields, error: fieldsError } = await supabase
+            .from('individual_field_templates')
+            .select('field_key')
+            .eq('model_name', selectedModelTitle);
+
+          if (fieldsError) {
+            console.error('❌ [FILTER] Erro ao buscar campos válidos:', fieldsError);
+          } else if (validFields && validFields.length > 0) {
+            const validFieldKeys = new Set(validFields.map(f => f.field_key));
+            console.log('✅ [FILTER] Campos válidos do modelo:', Array.from(validFieldKeys));
+            
+            // Filtrar apenas campos válidos
+            filteredDynamicFields = Object.entries(dynamicFields)
+              .filter(([key]) => validFieldKeys.has(key))
+              .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+            
+            console.log('✅ [FILTER] Campos após filtragem:', Object.keys(filteredDynamicFields));
+            console.log('✅ [FILTER] Total de campos filtrados:', Object.keys(filteredDynamicFields).length);
+          } else {
+            console.log('⚠️ [FILTER] Nenhum campo válido encontrado, mantendo todos');
+          }
+        } catch (error) {
+          console.error('❌ [FILTER] Erro ao filtrar campos:', error);
+        }
+        
+        console.log('🔍 [FILTER] ===== FIM DA FILTRAGEM =====');
+      }
+
+      // Enviar via webhook com dados completos e campos filtrados
       console.log('📋 [WEBHOOK] ===== ENVIANDO PARA N8N =====');
       console.log('📋 [WEBHOOK] selectedModelTitle:', selectedModelTitle);
-      console.log('📋 [WEBHOOK] dynamicFields:', dynamicFields);
+      console.log('📋 [WEBHOOK] dynamicFields originais:', dynamicFields ? Object.keys(dynamicFields).length : 0);
+      console.log('📋 [WEBHOOK] dynamicFields filtrados:', Object.keys(filteredDynamicFields).length);
+      console.log('📋 [WEBHOOK] Campos enviados:', filteredDynamicFields);
       
       const webhookResult = await submitMedicalRecordToWebhook({
         medicalRecord: medicalRecordData,
         images: form.images,
         selectedModelTitle: selectedModelTitle,
-        dynamicFields: dynamicFields
+        dynamicFields: filteredDynamicFields
       });
 
       if (!webhookResult.success) {

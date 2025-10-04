@@ -770,6 +770,17 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     console.log('🎯 [SELECT] Modelo encontrado:', selectedModel);
     
     if (selectedModel) {
+      console.log('🧹 [SELECT] LIMPANDO campos do modelo anterior...');
+      
+      // RESETAR campos dinâmicos quando modelo muda
+      setDynamicFields({});
+      
+      // Notificar componente pai para limpar também
+      if (onDynamicFieldsChange) {
+        onDynamicFieldsChange({});
+        console.log('✅ [SELECT] Campos dinâmicos resetados no componente pai');
+      }
+      
       // Atualizar os estados (o useEffect vai cuidar de adicionar o título)
       setSelectedModelId(modelId);
       setSelectedModel(selectedModel);
@@ -786,13 +797,19 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         console.log('🎯 [SELECT] Template parseado:', parsedTemplate);
         setSelectedTemplate(parsedTemplate);
         
-        // Limpar campos anteriores e inicializar novos campos vazios
+        // Inicializar novos campos vazios para o novo modelo
         const newFields: Record<string, string> = {};
         parsedTemplate.fields.forEach(field => {
           newFields[field.key] = '';
         });
-        console.log('🎯 [SELECT] Campos inicializados:', newFields);
+        console.log('🎯 [SELECT] Novos campos inicializados:', newFields);
         setDynamicFields(newFields);
+        
+        // Notificar componente pai sobre os novos campos
+        if (onDynamicFieldsChange) {
+          onDynamicFieldsChange(newFields);
+        }
+        
         onExamResultsChange('');
       } else {
         console.log('🎯 [SELECT] Nenhum template encontrado');
