@@ -1097,7 +1097,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     onProcessWithAI();
   };
 
-  // Nova função para processar um campo individual com IA
+  // Nova função para processar um campo individual com IA (ENVIO SELETIVO)
   const handleProcessFieldWithAI = async (field: DynamicField) => {
     const fieldValue = dynamicFields[field.key];
     
@@ -1106,34 +1106,71 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       return;
     }
 
-    console.log('🤖 [AI-FIELD] ===== PROCESSANDO CAMPO INDIVIDUAL =====');
+    console.log('🤖 [AI-FIELD] ===== PROCESSANDO CAMPO INDIVIDUAL (ENVIO SELETIVO) =====');
     console.log('🤖 [AI-FIELD] Campo:', field.label, '(', field.key, ')');
     console.log('🤖 [AI-FIELD] Valor:', fieldValue);
 
     setIsProcessingField(field.key);
 
     try {
-      // Preparar TODOS os campos com título concatenado (como antes)
-      const allFieldsWithTitles: Record<string, string> = {};
+      // Campos que precisam de contexto completo (TODOS os campos)
+      const fieldsWithFullContext = [
+        'impressaodiagnostica',
+        'achadosadicionais',
+        'recomendacoes'
+      ];
       
-      if (selectedTemplate) {
-        selectedTemplate.fields.forEach((f) => {
-          const value = dynamicFields[f.key];
-          if (value) {
-            allFieldsWithTitles[f.key] = `${f.label}: ${value}`;
-          }
-        });
+      // Determinar quais campos enviar
+      let fieldsToSend: Record<string, string> = {};
+      
+      if (fieldsWithFullContext.includes(field.key)) {
+        // ===== ENVIAR TODOS OS CAMPOS =====
+        console.log('🎯 [AI-FIELD] Campo especial detectado - Enviando TODOS os campos');
+        
+        if (selectedTemplate) {
+          selectedTemplate.fields.forEach((f) => {
+            const value = dynamicFields[f.key];
+            if (value) {
+              fieldsToSend[f.key] = `${f.label}: ${value}`;
+            }
+          });
+        }
+      } else if (field.key === 'percentil') {
+        // ===== PERCENTIL: Enviar apenas PERCENTIL + PESO + IG =====
+        console.log('🎯 [AI-FIELD] Campo PERCENTIL - Enviando PERCENTIL + PESO + IG');
+        
+        fieldsToSend[field.key] = `${field.label}: ${fieldValue}`;
+        
+        // Adicionar PESO se existir
+        const pesoField = selectedTemplate?.fields.find(f => f.key === 'peso');
+        const pesoValue = dynamicFields['peso'];
+        if (pesoField && pesoValue) {
+          fieldsToSend['peso'] = `${pesoField.label}: ${pesoValue}`;
+          console.log('  ✓ PESO incluído:', pesoValue);
+        }
+        
+        // Adicionar IG se existir
+        const igField = selectedTemplate?.fields.find(f => f.key === 'ig');
+        const igValue = dynamicFields['ig'];
+        if (igField && igValue) {
+          fieldsToSend['ig'] = `${igField.label}: ${igValue}`;
+          console.log('  ✓ IG incluído:', igValue);
+        }
+      } else {
+        // ===== DEMAIS CAMPOS: Enviar apenas o campo atual =====
+        console.log('🎯 [AI-FIELD] Campo padrão - Enviando apenas o campo atual');
+        fieldsToSend[field.key] = `${field.label}: ${fieldValue}`;
       }
       
-      console.log('🤖 [AI-FIELD] Enviando todos os campos:', Object.keys(allFieldsWithTitles));
+      console.log('🤖 [AI-FIELD] Campos sendo enviados:', Object.keys(fieldsToSend));
       console.log('🤖 [AI-FIELD] Campo a ser processado:', field.key);
 
-      // Chamar a edge function com TODOS os campos, mas indicando qual processar
+      // Chamar a edge function com os campos seletivos
       const { data, error } = await supabase.functions.invoke('ai-webhook', {
         body: {
-          ...allFieldsWithTitles, // Enviar todos os campos
+          ...fieldsToSend,
           selectedModelTitle: selectedModel?.name || null,
-          fieldKey: field.key, // Identificar qual campo está sendo processado
+          fieldKey: field.key,
           type: 'exam_result'
         }
       });

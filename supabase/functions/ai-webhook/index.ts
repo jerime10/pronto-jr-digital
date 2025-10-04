@@ -55,10 +55,23 @@ serve(async (req) => {
     const hasDynamicFields = dynamicFields.length > 0 && 
       dynamicFields.some(key => requestBody[key] && requestBody[key].toString().trim());
     
-    console.log("=== DEBUG PROCESSAMENTO ===");
+    console.log("=== DEBUG PROCESSAMENTO (ENVIO SELETIVO) ===");
     console.log("fieldKey:", fieldKey);
     console.log("hasDynamicFields:", hasDynamicFields);
-    console.log("dynamicFields:", dynamicFields);
+    console.log("dynamicFields recebidos:", dynamicFields);
+    console.log("Quantidade de campos:", dynamicFields.length);
+    
+    // Identificar o tipo de envio
+    if (fieldKey) {
+      const fieldsWithFullContext = ['impressaodiagnostica', 'achadosadicionais', 'recomendacoes'];
+      if (fieldsWithFullContext.includes(fieldKey)) {
+        console.log("🎯 ENVIO COMPLETO: Campo especial (precisa de contexto completo)");
+      } else if (fieldKey === 'percentil') {
+        console.log("🎯 ENVIO PERCENTIL: Deve conter PERCENTIL + PESO + IG");
+      } else {
+        console.log("🎯 ENVIO SELETIVO: Apenas o campo", fieldKey);
+      }
+    }
     
     // Validar: precisamos de campos dinâmicos OU text/content
     if (!hasDynamicFields && !text) {
