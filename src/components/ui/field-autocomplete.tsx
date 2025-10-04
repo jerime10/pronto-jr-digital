@@ -59,7 +59,7 @@ export const FieldAutocomplete = ({
     }
 
     // Se o valor estiver vazio, não buscar
-    if (newValue.length < 1) {
+    if (!newValue || newValue.trim().length === 0) {
       setSuggestions([]);
       setIsOpen(false);
       return;
