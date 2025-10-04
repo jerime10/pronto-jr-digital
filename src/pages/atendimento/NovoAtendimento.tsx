@@ -14,6 +14,11 @@ const NovoAtendimento = () => {
   const isEditing = !!id;
   const [selectedModelTitle, setSelectedModelTitle] = React.useState<string | null>(null);
   const [dynamicFields, setDynamicFields] = React.useState<Record<string, string>>({});
+  
+  // Log quando selectedModelTitle mudar
+  React.useEffect(() => {
+    console.log('🎯 [NovoAtendimento] selectedModelTitle ATUALIZADO:', selectedModelTitle);
+  }, [selectedModelTitle]);
   const [selectedExamModelId, setSelectedExamModelId] = React.useState<string>('');
   
   // Função para atualizar campos dinâmicos vindos da IA

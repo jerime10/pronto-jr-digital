@@ -786,7 +786,14 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       setSelectedModel(selectedModel);
       
       // Notificar o componente pai sobre a mudança do modelo
-      onSelectedModelChange?.(selectedModel.name);
+      console.log('🎯 [SELECT] Notificando componente pai sobre modelo selecionado:', selectedModel.name);
+      if (onSelectedModelChange) {
+        onSelectedModelChange(selectedModel.name);
+        console.log('✅ [SELECT] Componente pai notificado com selectedModelTitle:', selectedModel.name);
+      } else {
+        console.warn('⚠️ [SELECT] onSelectedModelChange NÃO está definido!');
+      }
+      
       // Notificar o componente pai sobre mudança do ID (para salvar no rascunho)
       onModelIdChange?.(modelId);
       

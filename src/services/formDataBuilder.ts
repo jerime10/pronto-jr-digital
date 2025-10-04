@@ -45,13 +45,21 @@ export function buildMedicalRecordFormData(params: FormDataBuilderParams): FormD
   
   // Selected model title for exam results - MÚLTIPLAS VERSÕES PARA COMPATIBILIDADE
   const modelTitle = params.selectedModelTitle || '';
+  
+  console.log('📋 [FormData] ===== ADICIONANDO TÍTULO DO MODELO =====');
+  console.log('📋 [FormData] selectedModelTitle recebido:', params.selectedModelTitle);
+  console.log('📋 [FormData] modelTitle processado:', modelTitle);
+  console.log('📋 [FormData] modelTitle LENGTH:', modelTitle.length);
+  console.log('📋 [FormData] modelTitle VAZIO?', modelTitle === '');
+  
   formData.append('selectedModelTitle', modelTitle);
   formData.append('exam_model_title', modelTitle);
   formData.append('examModelTitle', modelTitle);
   formData.append('modelTitle', modelTitle);
   formData.append('titulo_modelo', modelTitle);
   
-  console.log('📋 [FormData] Título do modelo adicionado ao FormData:', modelTitle);
+  console.log('✅ [FormData] Título do modelo adicionado em 5 formatos diferentes');
+  console.log('📋 [FormData] ===== FIM ADIÇÃO TÍTULO DO MODELO =====');
   
   // Complete medical record object
   const medicalRecordData = {
@@ -185,22 +193,32 @@ export function buildMedicalRecordFormData(params: FormDataBuilderParams): FormD
   formData.append('documentType', 'prontuario');
   
   // Adicionar campos dinâmicos separados
+  console.log('📋 [FormData] ===== ADICIONANDO CAMPOS DINÂMICOS =====');
+  console.log('📋 [FormData] dynamicFields recebidos:', params.dynamicFields);
+  console.log('📋 [FormData] Quantidade de campos:', params.dynamicFields ? Object.keys(params.dynamicFields).length : 0);
+  
   if (params.dynamicFields && Object.keys(params.dynamicFields).length > 0) {
-    console.log('Adicionando campos dinâmicos separados:', params.dynamicFields);
+    console.log('✅ [FormData] Adicionando campos dinâmicos separados...');
     
     // Adicionar cada campo dinâmico como uma variável individual
     Object.entries(params.dynamicFields).forEach(([key, value]) => {
       const sanitizedKey = key.replace(/[^a-zA-Z0-9_]/g, '_'); // Sanitizar nome do campo
-      formData.append(`dynamic_field_${sanitizedKey}`, value || '');
+      const fieldName = `dynamic_field_${sanitizedKey}`;
+      formData.append(fieldName, value || '');
+      console.log(`  ✅ Campo adicionado: ${fieldName} = ${value?.substring(0, 50)}...`);
     });
     
     // Também manter o objeto completo para compatibilidade
     formData.append('dynamicFields', JSON.stringify(params.dynamicFields));
     formData.append('dynamicFieldsCount', String(Object.keys(params.dynamicFields).length));
+    console.log('✅ [FormData] Total de campos dinâmicos adicionados:', Object.keys(params.dynamicFields).length);
   } else {
+    console.log('⚠️ [FormData] Nenhum campo dinâmico para adicionar');
     formData.append('dynamicFields', '{}');
     formData.append('dynamicFieldsCount', '0');
   }
+  
+  console.log('📋 [FormData] ===== FIM ADIÇÃO CAMPOS DINÂMICOS =====');
   
   console.log('FormData construído com sucesso');
   console.log('📋 [FormData] ===== RESUMO DO FORMDATA =====');

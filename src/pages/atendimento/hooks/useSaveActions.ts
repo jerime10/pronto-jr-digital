@@ -409,6 +409,20 @@ export const useSaveActions = ({
         }
       };
 
+      // ===== VALIDAÇÃO CRÍTICA: BLOQUEAR ENVIO SEM MODELO SELECIONADO =====
+      console.log('🔍 [VALIDATION] ===== VALIDAÇÃO DE ENVIO =====');
+      console.log('🔍 [VALIDATION] selectedModelTitle:', selectedModelTitle);
+      console.log('🔍 [VALIDATION] dynamicFields presentes:', dynamicFields ? Object.keys(dynamicFields).length : 0);
+      
+      if (!selectedModelTitle || selectedModelTitle.trim() === '') {
+        console.error('❌ [VALIDATION] ERRO: Nenhum modelo de exame selecionado!');
+        toast.error("Por favor, selecione um modelo de exame antes de finalizar o atendimento.");
+        setIsSubmittingRecord(false);
+        return;
+      }
+      
+      console.log('✅ [VALIDATION] Modelo selecionado válido:', selectedModelTitle);
+      
       // FILTRAR campos dinâmicos para enviar apenas os do modelo selecionado
       let filteredDynamicFields = dynamicFields || {};
       
@@ -450,9 +464,12 @@ export const useSaveActions = ({
       // Enviar via webhook com dados completos e campos filtrados
       console.log('📋 [WEBHOOK] ===== ENVIANDO PARA N8N =====');
       console.log('📋 [WEBHOOK] selectedModelTitle:', selectedModelTitle);
+      console.log('📋 [WEBHOOK] selectedModelTitle LENGTH:', selectedModelTitle?.length);
+      console.log('📋 [WEBHOOK] selectedModelTitle TRIM:', selectedModelTitle?.trim());
       console.log('📋 [WEBHOOK] dynamicFields originais:', dynamicFields ? Object.keys(dynamicFields).length : 0);
       console.log('📋 [WEBHOOK] dynamicFields filtrados:', Object.keys(filteredDynamicFields).length);
-      console.log('📋 [WEBHOOK] Campos enviados:', filteredDynamicFields);
+      console.log('📋 [WEBHOOK] Campos filtrados KEYS:', Object.keys(filteredDynamicFields));
+      console.log('📋 [WEBHOOK] Campos filtrados VALUES:', filteredDynamicFields);
       
       const webhookResult = await submitMedicalRecordToWebhook({
         medicalRecord: medicalRecordData,
