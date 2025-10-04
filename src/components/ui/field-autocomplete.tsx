@@ -58,8 +58,8 @@ export const FieldAutocomplete = ({
       clearTimeout(timeoutRef.current);
     }
 
-    // Se o valor for muito curto, não buscar
-    if (newValue.length < 2) {
+    // Se o valor estiver vazio, não buscar
+    if (newValue.length < 1) {
       setSuggestions([]);
       setIsOpen(false);
       return;
