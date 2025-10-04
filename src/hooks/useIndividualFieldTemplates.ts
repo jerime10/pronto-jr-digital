@@ -31,7 +31,7 @@ export const useIndividualFieldTemplates = () => {
 
   // Buscar templates por campo específico e modelo
   const searchFieldTemplates = async (fieldKey: string, searchTerm: string, modelName: string) => {
-    if (!searchTerm || searchTerm.length < 2) return [];
+    if (!searchTerm || searchTerm.trim().length === 0) return [];
 
     const { data, error } = await supabase
       .from('individual_field_templates')
