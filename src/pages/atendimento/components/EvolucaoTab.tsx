@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Sparkles } from 'lucide-react';
 import { FormState } from '../hooks/useFormData';
+import { FieldAutocomplete } from '@/components/ui/field-autocomplete';
+import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
 
 interface EvolucaoTabProps {
   form: FormState;
@@ -23,6 +23,12 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
   onProcessAI,
   isProcessingAI
 }) => {
+  const { searchFieldTemplates } = useIndividualFieldTemplates();
+
+  const handleSearchEvolution = async (searchTerm: string) => {
+    return await searchFieldTemplates('evolution', searchTerm, 'GERAL');
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -43,12 +49,13 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Textarea
+          <FieldAutocomplete
             value={form.evolucao}
-            onChange={(e) => onFieldChange('evolucao', e.target.value)}
+            onChange={(value) => onFieldChange('evolucao', value)}
+            onSearch={handleSearchEvolution}
             placeholder="Descreva a evolução do quadro clínico do paciente..."
-            rows={6}
-            className="w-full"
+            type="textarea"
+            className="w-full min-h-[150px]"
           />
         </CardContent>
       </Card>

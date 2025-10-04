@@ -1,11 +1,11 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Sparkles } from 'lucide-react';
 import { FormState } from '../hooks/useFormData';
+import { FieldAutocomplete } from '@/components/ui/field-autocomplete';
+import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
 
 interface InformacoesTabProps {
   form: FormState;
@@ -24,6 +24,20 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
   onProcessAI,
   isProcessingAI
 }) => {
+  const { searchFieldTemplates } = useIndividualFieldTemplates();
+
+  const handleSearchMainComplaint = async (searchTerm: string) => {
+    return await searchFieldTemplates('main_complaint', searchTerm, 'GERAL');
+  };
+
+  const handleSearchHistory = async (searchTerm: string) => {
+    return await searchFieldTemplates('history', searchTerm, 'GERAL');
+  };
+
+  const handleSearchAllergies = async (searchTerm: string) => {
+    return await searchFieldTemplates('allergies', searchTerm, 'GERAL');
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -44,12 +58,13 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Textarea
+          <FieldAutocomplete
             value={form.queixaPrincipal}
-            onChange={(e) => onFieldChange('queixaPrincipal', e.target.value)}
+            onChange={(value) => onFieldChange('queixaPrincipal', value)}
+            onSearch={handleSearchMainComplaint}
             placeholder="Descreva a queixa principal do paciente..."
-            rows={4}
-            className="w-full"
+            type="textarea"
+            className="w-full min-h-[100px]"
           />
         </CardContent>
       </Card>
@@ -59,12 +74,13 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
           <CardTitle>Antecedentes</CardTitle>
         </CardHeader>
         <CardContent>
-          <Textarea
+          <FieldAutocomplete
             value={form.antecedentes}
-            onChange={(e) => onFieldChange('antecedentes', e.target.value)}
+            onChange={(value) => onFieldChange('antecedentes', value)}
+            onSearch={handleSearchHistory}
             placeholder="Descreva os antecedentes médicos do paciente..."
-            rows={4}
-            className="w-full"
+            type="textarea"
+            className="w-full min-h-[100px]"
           />
         </CardContent>
       </Card>
@@ -74,12 +90,13 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
           <CardTitle>Alergias</CardTitle>
         </CardHeader>
         <CardContent>
-          <Textarea
+          <FieldAutocomplete
             value={form.alergias}
-            onChange={(e) => onFieldChange('alergias', e.target.value)}
+            onChange={(value) => onFieldChange('alergias', value)}
+            onSearch={handleSearchAllergies}
             placeholder="Liste as alergias conhecidas do paciente..."
-            rows={3}
-            className="w-full"
+            type="textarea"
+            className="w-full min-h-[75px]"
           />
         </CardContent>
       </Card>
