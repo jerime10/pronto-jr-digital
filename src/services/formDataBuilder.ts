@@ -50,11 +50,12 @@ export function buildMedicalRecordFormData(params: FormDataBuilderParams): FormD
   console.log('🔍 [OBSERVAÇÕES] exam_observations IS UNDEFINED?', params.medicalRecord.exam_observations === undefined);
   console.log('🔍 [OBSERVAÇÕES] exam_observations IS EMPTY?', params.medicalRecord.exam_observations === '');
   
-  // MÚLTIPLAS VERSÕES PARA COMPATIBILIDADE MÁXIMA (igual ao selectedModelTitle)
-  const observacoesValue = params.medicalRecord.exam_observations || '';
+  // ⚠️ CRITICAL: Se o valor estiver vazio, usar um texto que seja visível no n8n para debug
+  const observacoesValue = params.medicalRecord.exam_observations || '[CAMPO_OBSERVACOES_VAZIO_OU_NAO_PREENCHIDO]';
   const resultadosValue = params.medicalRecord.exam_results || '';
   
   console.log('🔍 [OBSERVAÇÕES] Valor processado para envio:', observacoesValue);
+  console.log('🔍 [OBSERVAÇÕES] Valor é o placeholder?', observacoesValue === '[CAMPO_OBSERVACOES_VAZIO_OU_NAO_PREENCHIDO]');
   console.log('🔍 [OBSERVAÇÕES] Adicionando em múltiplos formatos...');
   
   // Observações dos Exames - 5 formatos diferentes
@@ -257,9 +258,24 @@ export function buildMedicalRecordFormData(params: FormDataBuilderParams): FormD
   console.log('📋 [FormData] ===== FIM ADIÇÃO CAMPOS DINÂMICOS =====');
   
   console.log('FormData construído com sucesso');
-  console.log('📋 [FormData] ===== RESUMO DO FORMDATA =====');
+  console.log('📋 [FormData] ===== RESUMO FINAL DO FORMDATA =====');
   console.log('📋 [FormData] selectedModelTitle:', params.selectedModelTitle);
   console.log('📋 [FormData] dynamicFields:', params.dynamicFields ? Object.keys(params.dynamicFields).length : 0);
+  
+  // 🔍 VERIFICAÇÃO FINAL: Confirmar que os campos de observações estão no FormData
+  console.log('');
+  console.log('📋 [FormData] ===== VERIFICAÇÃO FINAL - OBSERVAÇÕES =====');
+  console.log('📋 [FormData] examObservations no FormData?', formData.has('examObservations'));
+  console.log('📋 [FormData] examObservations valor:', formData.get('examObservations'));
+  console.log('📋 [FormData] exam_observations no FormData?', formData.has('exam_observations'));
+  console.log('📋 [FormData] exam_observations valor:', formData.get('exam_observations'));
+  console.log('📋 [FormData] observacoesExames no FormData?', formData.has('observacoesExames'));
+  console.log('📋 [FormData] observacoesExames valor:', formData.get('observacoesExames'));
+  console.log('📋 [FormData] observacoes no FormData?', formData.has('observacoes'));
+  console.log('📋 [FormData] observacoes valor:', formData.get('observacoes'));
+  console.log('📋 [FormData] exam_obs no FormData?', formData.has('exam_obs'));
+  console.log('📋 [FormData] exam_obs valor:', formData.get('exam_obs'));
+  console.log('📋 [FormData] ===== FIM VERIFICAÇÃO FINAL =====');
   
   return formData;
 }
