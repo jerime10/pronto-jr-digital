@@ -409,57 +409,86 @@ export const useSaveActions = ({
         }
       };
 
-      // ===== VALIDAÇÃO CRÍTICA: BLOQUEAR ENVIO SEM MODELO SELECIONADO =====
-      console.log('🔍 [VALIDATION] ===== VALIDAÇÃO DE ENVIO =====');
-      console.log('🔍 [VALIDATION] selectedModelTitle:', selectedModelTitle);
-      console.log('🔍 [VALIDATION] dynamicFields presentes:', dynamicFields ? Object.keys(dynamicFields).length : 0);
+      // ===== ETAPA 1: VALIDAÇÃO E FILTRAGEM ROBUSTA =====
+      console.log('🎯 [SAVE-ACTIONS] ===== VALIDAÇÃO DE MODELO =====');
       
-      if (!selectedModelTitle || selectedModelTitle.trim() === '') {
-        console.error('❌ [VALIDATION] ERRO: Nenhum modelo de exame selecionado!');
-        toast.error("Por favor, selecione um modelo de exame antes de finalizar o atendimento.");
+      // 1.1 - Validar selectedModelTitle
+      if (!selectedModelTitle?.trim()) {
+        console.error('❌ [SAVE-ACTIONS] Nenhum modelo de exame foi selecionado');
+        toast.error('Por favor, selecione um modelo de exame antes de finalizar o atendimento.');
         setIsSubmittingRecord(false);
         return;
       }
       
-      console.log('✅ [VALIDATION] Modelo selecionado válido:', selectedModelTitle);
+      console.log('📌 [SAVE-ACTIONS] Modelo selecionado:', selectedModelTitle);
       
-      // FILTRAR campos dinâmicos para enviar apenas os do modelo selecionado
-      let filteredDynamicFields = dynamicFields || {};
+      // 1.2 - Buscar campos do template com retry
+      let templateFields;
+      let retryCount = 0;
+      const maxRetries = 2;
       
-      if (selectedModelTitle && dynamicFields && Object.keys(dynamicFields).length > 0) {
-        console.log('🔍 [FILTER] ===== FILTRANDO CAMPOS DINÂMICOS =====');
-        console.log('🔍 [FILTER] Modelo selecionado:', selectedModelTitle);
-        console.log('🔍 [FILTER] Campos antes da filtragem:', Object.keys(dynamicFields));
+      while (retryCount <= maxRetries) {
+        const { data: fields, error: templateError } = await supabase
+          .from('individual_field_templates')
+          .select('field_key, field_label, field_content')
+          .eq('model_name', selectedModelTitle);
         
-        try {
-          // Buscar campos válidos do modelo selecionado
-          const { data: validFields, error: fieldsError } = await supabase
-            .from('individual_field_templates')
-            .select('field_key')
-            .eq('model_name', selectedModelTitle);
-
-          if (fieldsError) {
-            console.error('❌ [FILTER] Erro ao buscar campos válidos:', fieldsError);
-          } else if (validFields && validFields.length > 0) {
-            const validFieldKeys = new Set(validFields.map(f => f.field_key));
-            console.log('✅ [FILTER] Campos válidos do modelo:', Array.from(validFieldKeys));
-            
-            // Filtrar apenas campos válidos
-            filteredDynamicFields = Object.entries(dynamicFields)
-              .filter(([key]) => validFieldKeys.has(key))
-              .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
-            
-            console.log('✅ [FILTER] Campos após filtragem:', Object.keys(filteredDynamicFields));
-            console.log('✅ [FILTER] Total de campos filtrados:', Object.keys(filteredDynamicFields).length);
+        if (templateError) {
+          console.error(`❌ [SAVE-ACTIONS] Erro ao buscar campos (tentativa ${retryCount + 1}/${maxRetries + 1}):`, templateError);
+          
+          if (retryCount < maxRetries) {
+            console.log(`🔄 [SAVE-ACTIONS] Tentando novamente em 1 segundo...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            retryCount++;
+            continue;
           } else {
-            console.log('⚠️ [FILTER] Nenhum campo válido encontrado, mantendo todos');
+            toast.error(`Erro ao buscar campos do modelo: ${templateError.message}`);
+            setIsSubmittingRecord(false);
+            return;
           }
-        } catch (error) {
-          console.error('❌ [FILTER] Erro ao filtrar campos:', error);
         }
         
-        console.log('🔍 [FILTER] ===== FIM DA FILTRAGEM =====');
+        templateFields = fields;
+        break;
       }
+      
+      // 1.3 - Validar que pelo menos 1 campo foi encontrado
+      if (!templateFields || templateFields.length === 0) {
+        console.error('❌ [SAVE-ACTIONS] Nenhum campo encontrado para o modelo');
+        toast.error(`Nenhum campo encontrado para o modelo "${selectedModelTitle}". Verifique a configuração no menu Administração.`);
+        setIsSubmittingRecord(false);
+        return;
+      }
+      
+      console.log('📌 [SAVE-ACTIONS] Campos esperados do template:', templateFields.map(f => f.field_key));
+      console.log('📌 [SAVE-ACTIONS] Total de campos no template:', templateFields.length);
+      
+      // 1.4 - Filtrar dynamicFields para incluir apenas campos do modelo
+      const validFieldKeys = new Set(templateFields.map(f => f.field_key));
+      const filteredDynamicFields = Object.keys(dynamicFields || {})
+        .filter(key => validFieldKeys.has(key))
+        .reduce((acc, key) => {
+          const value = dynamicFields![key];
+          if (value && String(value).trim()) { // Incluir apenas campos com valor
+            return { ...acc, [key]: value };
+          }
+          return acc;
+        }, {} as Record<string, string>);
+      
+      console.log('📌 [SAVE-ACTIONS] Campos dinâmicos recebidos:', Object.keys(dynamicFields || {}));
+      console.log('📌 [SAVE-ACTIONS] Campos filtrados (válidos):', Object.keys(filteredDynamicFields));
+      console.log('📌 [SAVE-ACTIONS] Total de campos a enviar:', Object.keys(filteredDynamicFields).length);
+      
+      // 1.5 - Validação crítica: verificar se temos campos para enviar
+      if (Object.keys(filteredDynamicFields).length === 0) {
+        console.error('❌ [SAVE-ACTIONS] Nenhum campo válido para enviar');
+        toast.error('Nenhum campo preenchido para o modelo selecionado. Preencha ao menos um campo antes de finalizar.');
+        setIsSubmittingRecord(false);
+        return;
+      }
+      
+      console.log('✅ [SAVE-ACTIONS] Validação concluída com sucesso');
+      console.log('🎯 [SAVE-ACTIONS] ===== FIM DA VALIDAÇÃO =====\n')
 
       // Enviar via webhook com dados completos e campos filtrados
       console.log('📋 [WEBHOOK] ===== ENVIANDO PARA N8N =====');

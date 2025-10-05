@@ -151,11 +151,16 @@ serve(async (req) => {
     try {
       let n8nPayload: Record<string, any> = {};
       
+      // ===== ETAPA 3: LOGS DETALHADOS DO PAYLOAD =====
+      console.log('🚀 [AI-WEBHOOK] ===== PREPARANDO PAYLOAD PARA N8N =====');
+      console.log('🚀 [AI-WEBHOOK] selectedModelTitle:', requestBody.selectedModelTitle);
+      console.log('🚀 [AI-WEBHOOK] hasDynamicFields:', hasDynamicFields);
+      
       if (hasDynamicFields) {
         // Se há campos dinâmicos, enviar apenas eles (comportamento novo)
-        console.log("Enviando apenas campos dinâmicos para N8N");
-        console.log("selectedModelTitle no requestBody:", requestBody.selectedModelTitle);
+        console.log("🚀 [AI-WEBHOOK] Enviando apenas campos dinâmicos para N8N");
         
+        // Adicionar todos os campos dinâmicos
         Object.keys(requestBody).forEach(key => {
           if (!['text', 'content', 'type', 'selectedModelTitle', 'resultadoFinal', 'timestamp'].includes(key)) {
             n8nPayload[key] = requestBody[key];
@@ -165,18 +170,15 @@ serve(async (req) => {
         // IMPORTANTE: Incluir selectedModelTitle no payload para N8N
         if (requestBody.selectedModelTitle) {
           n8nPayload.selectedModelTitle = requestBody.selectedModelTitle;
-          console.log("selectedModelTitle incluído no payload N8N:", requestBody.selectedModelTitle);
+          console.log("🚀 [AI-WEBHOOK] selectedModelTitle incluído no payload:", requestBody.selectedModelTitle);
         } else {
-          console.log("⚠️ selectedModelTitle não encontrado no requestBody");
+          console.warn("⚠️ [AI-WEBHOOK] selectedModelTitle não encontrado no requestBody");
         }
-        
-        // NÃO incluir resultadoFinal - apenas campos dinâmicos individuais
-        console.log("🎯 Enviando APENAS campos dinâmicos individuais para N8N");
         
         n8nPayload.timestamp = new Date().toISOString();
       } else {
         // Se não há campos dinâmicos, enviar text/type (compatibilidade com botões individuais)
-        console.log("Enviando text/type para N8N (requisição individual)");
+        console.log("🚀 [AI-WEBHOOK] Enviando text/type para N8N (requisição individual)");
         n8nPayload = {
           text,
           type,
@@ -189,7 +191,25 @@ serve(async (req) => {
         }
       }
       
-      console.log("Enviando payload para n8n:", n8nPayload);
+      // Log detalhado de TODOS os campos dinâmicos
+      console.log('🚀 [AI-WEBHOOK] ===== CAMPOS DINÂMICOS NO PAYLOAD =====');
+      let dynamicFieldsCount = 0;
+      Object.keys(n8nPayload).forEach(key => {
+        if (!['timestamp', 'selectedModelTitle', 'text', 'type'].includes(key)) {
+          dynamicFieldsCount++;
+          const value = n8nPayload[key];
+          const preview = typeof value === 'string' 
+            ? (value.length > 100 ? value.substring(0, 100) + '...' : value)
+            : value;
+          console.log(`  🔸 ${key}:`, preview);
+        }
+      });
+      
+      console.log('🚀 [AI-WEBHOOK] ===== RESUMO DO PAYLOAD =====');
+      console.log('🚀 [AI-WEBHOOK] Total de campos no payload:', Object.keys(n8nPayload).length);
+      console.log('🚀 [AI-WEBHOOK] Total de campos dinâmicos:', dynamicFieldsCount);
+      console.log('🚀 [AI-WEBHOOK] URL de destino:', n8nWebhookUrl);
+      console.log('🚀 [AI-WEBHOOK] ===== FIM DOS LOGS =====\n');
       
       // Try with fetch to n8n webhook directly
       const n8nResponse = await fetch(n8nWebhookUrl, {
