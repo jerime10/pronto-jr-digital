@@ -41,7 +41,7 @@ export function buildMedicalRecordFormData(params: FormDataBuilderParams): FormD
   formData.append('evolution', params.medicalRecord.evolution || '');
   formData.append('prescription', params.medicalRecord.custom_prescription || '');
   
-  // 🔍 DEBUG CRÍTICO: Observações dos Exames
+  // 🔍 DEBUG CRÍTICO: Observações dos Exames - MÚLTIPLAS VERSÕES
   console.log('🔍 [OBSERVAÇÕES] ===== DEBUG CAMPO OBSERVAÇÕES =====');
   console.log('🔍 [OBSERVAÇÕES] exam_observations VALOR:', params.medicalRecord.exam_observations);
   console.log('🔍 [OBSERVAÇÕES] exam_observations TYPE:', typeof params.medicalRecord.exam_observations);
@@ -50,10 +50,29 @@ export function buildMedicalRecordFormData(params: FormDataBuilderParams): FormD
   console.log('🔍 [OBSERVAÇÕES] exam_observations IS UNDEFINED?', params.medicalRecord.exam_observations === undefined);
   console.log('🔍 [OBSERVAÇÕES] exam_observations IS EMPTY?', params.medicalRecord.exam_observations === '');
   
-  formData.append('examObservations', params.medicalRecord.exam_observations || '');
-  formData.append('examResults', params.medicalRecord.exam_results || '');
+  // MÚLTIPLAS VERSÕES PARA COMPATIBILIDADE MÁXIMA (igual ao selectedModelTitle)
+  const observacoesValue = params.medicalRecord.exam_observations || '';
+  const resultadosValue = params.medicalRecord.exam_results || '';
   
-  console.log('✅ [OBSERVAÇÕES] Campo examObservations adicionado ao FormData');
+  console.log('🔍 [OBSERVAÇÕES] Valor processado para envio:', observacoesValue);
+  console.log('🔍 [OBSERVAÇÕES] Adicionando em múltiplos formatos...');
+  
+  // Observações dos Exames - 5 formatos diferentes
+  formData.append('examObservations', observacoesValue);
+  formData.append('exam_observations', observacoesValue);
+  formData.append('observacoesExames', observacoesValue);
+  formData.append('observacoes', observacoesValue);
+  formData.append('exam_obs', observacoesValue);
+  
+  // Resultados dos Exames - 5 formatos diferentes
+  formData.append('examResults', resultadosValue);
+  formData.append('exam_results', resultadosValue);
+  formData.append('resultadosExames', resultadosValue);
+  formData.append('resultados', resultadosValue);
+  formData.append('exam_res', resultadosValue);
+  
+  console.log('✅ [OBSERVAÇÕES] Campo observações adicionado em 5 formatos diferentes');
+  console.log('✅ [OBSERVAÇÕES] Campo resultados adicionado em 5 formatos diferentes');
   console.log('🔍 [OBSERVAÇÕES] ===== FIM DEBUG OBSERVAÇÕES =====');
   
   // Selected model title for exam results - MÚLTIPLAS VERSÕES PARA COMPATIBILIDADE

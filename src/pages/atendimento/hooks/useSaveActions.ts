@@ -471,6 +471,14 @@ export const useSaveActions = ({
       console.log('📋 [WEBHOOK] Campos filtrados KEYS:', Object.keys(filteredDynamicFields));
       console.log('📋 [WEBHOOK] Campos filtrados VALUES:', filteredDynamicFields);
       
+      // 🔍 DEBUG CRÍTICO: Verificação final dos campos antes do webhook
+      console.log('🔍 [PRE-WEBHOOK] ===== VERIFICAÇÃO FINAL =====');
+      console.log('🔍 [PRE-WEBHOOK] form.observacoesExames:', form.observacoesExames);
+      console.log('🔍 [PRE-WEBHOOK] savedRecord.exam_observations:', savedRecord.exam_observations);
+      console.log('🔍 [PRE-WEBHOOK] medicalRecordData.exam_observations:', medicalRecordData.exam_observations);
+      console.log('🔍 [PRE-WEBHOOK] medicalRecordData completo (stringified):', JSON.stringify(medicalRecordData, null, 2));
+      console.log('🔍 [PRE-WEBHOOK] ===== FIM VERIFICAÇÃO FINAL =====');
+      
       const webhookResult = await submitMedicalRecordToWebhook({
         medicalRecord: medicalRecordData,
         images: form.images,
