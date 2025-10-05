@@ -1531,8 +1531,19 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
           </AlertDialog>
           
 
-
           
+          
+          <div className="space-y-2">
+            <Label htmlFor="examObservations">Observações</Label>
+            <Textarea
+              id="examObservations"
+              value={examObservations}
+              onChange={(e) => onExamObservationsChange(e.target.value)}
+              placeholder="Digite as observações sobre os exames solicitados..."
+              className="min-h-[100px]"
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="examResults">Resultado Final</Label>
             <Textarea
