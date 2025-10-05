@@ -1,10 +1,13 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Sparkles } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Sparkles, Save, Eraser, Loader2 } from 'lucide-react';
 import { FormState } from '../hooks/useFormData';
+import { FieldAutocomplete } from '@/components/ui/field-autocomplete';
+import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
+import { toast } from '@/hooks/use-toast';
 
 interface EvolucaoTabProps {
   form: FormState;
@@ -23,6 +26,30 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
   onProcessAI,
   isProcessingAI
 }) => {
+  const { searchFieldTemplates, saveFieldTemplate, deleteFieldTemplate } = useIndividualFieldTemplates();
+  const [isSavingEvolucao, setIsSavingEvolucao] = useState(false);
+
+  // Salvar Evolução
+  const handleSaveEvolucao = async () => {
+    if (!form.evolucao.trim()) return;
+    setIsSavingEvolucao(true);
+    try {
+      await saveFieldTemplate({
+        fieldKey: 'evolucao',
+        fieldLabel: 'Evolução do Paciente',
+        fieldContent: form.evolucao,
+        modelName: 'ATENDIMENTO'
+      });
+    } finally {
+      setIsSavingEvolucao(false);
+    }
+  };
+
+  // Limpar Evolução
+  const handleClearEvolucao = () => {
+    onFieldChange('evolucao', '');
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -43,13 +70,45 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Textarea
-            value={form.evolucao}
-            onChange={(e) => onFieldChange('evolucao', e.target.value)}
-            placeholder="Descreva a evolução do quadro clínico do paciente..."
-            rows={6}
-            className="w-full"
-          />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Evolução do Paciente</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSaveEvolucao}
+                  disabled={!form.evolucao.trim() || isSavingEvolucao}
+                  title="Salvar conteúdo do campo"
+                >
+                  {isSavingEvolucao ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearEvolucao}
+                  disabled={!form.evolucao.trim()}
+                  title="Limpar campo"
+                >
+                  <Eraser className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <FieldAutocomplete
+              value={form.evolucao}
+              onChange={(value) => onFieldChange('evolucao', value)}
+              onSearch={(searchTerm) => searchFieldTemplates('evolucao', searchTerm, 'ATENDIMENTO')}
+              placeholder="Descreva a evolução do quadro clínico do paciente..."
+              type="textarea"
+              className="w-full min-h-[150px]"
+            />
+          </div>
         </CardContent>
       </Card>
     </div>
