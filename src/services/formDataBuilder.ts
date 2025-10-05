@@ -40,8 +40,21 @@ export function buildMedicalRecordFormData(params: FormDataBuilderParams): FormD
   formData.append('allergies', params.medicalRecord.allergies || '');
   formData.append('evolution', params.medicalRecord.evolution || '');
   formData.append('prescription', params.medicalRecord.custom_prescription || '');
+  
+  // 🔍 DEBUG CRÍTICO: Observações dos Exames
+  console.log('🔍 [OBSERVAÇÕES] ===== DEBUG CAMPO OBSERVAÇÕES =====');
+  console.log('🔍 [OBSERVAÇÕES] exam_observations VALOR:', params.medicalRecord.exam_observations);
+  console.log('🔍 [OBSERVAÇÕES] exam_observations TYPE:', typeof params.medicalRecord.exam_observations);
+  console.log('🔍 [OBSERVAÇÕES] exam_observations LENGTH:', params.medicalRecord.exam_observations?.length || 0);
+  console.log('🔍 [OBSERVAÇÕES] exam_observations IS NULL?', params.medicalRecord.exam_observations === null);
+  console.log('🔍 [OBSERVAÇÕES] exam_observations IS UNDEFINED?', params.medicalRecord.exam_observations === undefined);
+  console.log('🔍 [OBSERVAÇÕES] exam_observations IS EMPTY?', params.medicalRecord.exam_observations === '');
+  
   formData.append('examObservations', params.medicalRecord.exam_observations || '');
   formData.append('examResults', params.medicalRecord.exam_results || '');
+  
+  console.log('✅ [OBSERVAÇÕES] Campo examObservations adicionado ao FormData');
+  console.log('🔍 [OBSERVAÇÕES] ===== FIM DEBUG OBSERVAÇÕES =====');
   
   // Selected model title for exam results - MÚLTIPLAS VERSÕES PARA COMPATIBILIDADE
   const modelTitle = params.selectedModelTitle || '';
@@ -78,6 +91,10 @@ export function buildMedicalRecordFormData(params: FormDataBuilderParams): FormD
     created_at: params.medicalRecord.created_at || new Date().toISOString(),
     updated_at: params.medicalRecord.updated_at || new Date().toISOString()
   };
+  
+  console.log('🔍 [MEDICAL_RECORD_DATA] exam_observations no objeto:', medicalRecordData.exam_observations);
+  console.log('🔍 [MEDICAL_RECORD_DATA] exam_observations length:', medicalRecordData.exam_observations?.length || 0);
+  
   formData.append('medicalRecordData', JSON.stringify(medicalRecordData));
   
   // Exam requests with proper formatting

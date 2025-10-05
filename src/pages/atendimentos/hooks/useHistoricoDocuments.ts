@@ -20,7 +20,6 @@ export interface HistoricoDocument {
   dum?: string | null; // Data da Última Menstruação
   appointment?: {
     dum?: string | null;
-    service?: string | null;
   } | null;
 }
 
@@ -55,8 +54,7 @@ export const useHistoricoDocuments = () => {
             ),
             appointments(
               id,
-              dum,
-              service
+              dum
             )
           `)
           .not('file_url_storage', 'is', null)
@@ -87,8 +85,7 @@ export const useHistoricoDocuments = () => {
             ),
             appointments(
               id,
-              dum,
-              service
+              dum
             )
           `)
           .or('file_url_storage.is.null,file_url_storage.eq."",file_url_storage.eq."processing_error"')
@@ -122,8 +119,7 @@ export const useHistoricoDocuments = () => {
                 status: 'ready' as const,
                 dum: (record as any).appointments?.dum || null,
                 appointment: (record as any).appointments ? {
-                  dum: (record as any).appointments.dum,
-                  service: (record as any).appointments.service_name
+                  dum: (record as any).appointments.dum
                 } : null
               });
             } catch (error) {
@@ -158,8 +154,7 @@ export const useHistoricoDocuments = () => {
                 status,
                 dum: (record as any).appointments?.dum || null,
                 appointment: (record as any).appointments ? {
-                  dum: (record as any).appointments.dum,
-                  service: (record as any).appointments.service_name
+                  dum: (record as any).appointments.dum
                 } : null
               });
             } catch (error) {
