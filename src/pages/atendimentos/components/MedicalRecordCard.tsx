@@ -48,6 +48,20 @@ export const MedicalRecordCard: React.FC<MedicalRecordCardProps> = ({
             <p className="text-sm text-muted-foreground line-clamp-2">{record.evolution}</p>
           </div>
         )}
+        
+        {record.exam_observations && (
+          <div className="mb-3">
+            <p className="font-medium text-sm">Observações dos Exames:</p>
+            <p className="text-sm text-muted-foreground line-clamp-2">{record.exam_observations}</p>
+          </div>
+        )}
+        
+        {record.exam_results && (
+          <div className="mb-3">
+            <p className="font-medium text-sm">Resultados dos Exames:</p>
+            <p className="text-sm text-muted-foreground line-clamp-2">{record.exam_results}</p>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="pt-2 pb-4 flex flex-wrap gap-2">
         <Button 
