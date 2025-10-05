@@ -45,17 +45,11 @@ export const useFormData = () => {
   const { data: examModels = [], isLoading: isLoadingExams } = useExamModels();
 
   const handleChange = useCallback((field: keyof FormState, value: any) => {
-    console.log('🔵🔵🔵 [FORM-DATA] ===== handleChange CHAMADO =====');
-    console.log('🔵 [FORM-DATA] Campo:', field);
-    console.log('🔵 [FORM-DATA] Valor:', value);
-    console.log('🔵 [FORM-DATA] Estado anterior:', form[field]);
     setForm(prev => ({
       ...prev,
       [field]: value
     }));
-    console.log('🔵 [FORM-DATA] Estado atualizado');
-    console.log('🔵🔵🔵 [FORM-DATA] ===== FIM =====');
-  }, [form]);
+  }, []);
 
   const handleModeloPrescricaoChange = useCallback((modelId: string) => {
     const selectedModel = prescriptionModels.find(model => model.id === modelId);
@@ -74,25 +68,10 @@ export const useFormData = () => {
   }, []);
 
   const updateFormField = useCallback((field: keyof FormState, value: any) => {
-    console.log('🟣🟣🟣 [FORM-DATA] ===== updateFormField CHAMADO =====');
-    console.log('🟣 [FORM-DATA] Campo:', field);
-    console.log('🟣 [FORM-DATA] Valor:', value);
-    if (field === 'observacoesExames') {
-      console.log('🔴🔴🔴 [FORM-DATA-OBSERVACOES] ===== CAMPO OBSERVAÇÕES =====');
-      console.log('🔴 [OBSERVACOES] Valor recebido:', value);
-      console.log('🔴 [OBSERVACOES] Tamanho:', value?.length || 0);
-      console.log('🔴 [OBSERVACOES] É vazio?', value === '');
-      console.log('🔴🔴🔴 [FORM-DATA-OBSERVACOES] ===== FIM =====');
-    }
-    setForm(prev => {
-      const newForm = {
-        ...prev,
-        [field]: value
-      };
-      console.log('🟣 [FORM-DATA] Novo estado:', newForm[field]);
-      return newForm;
-    });
-    console.log('🟣🟣🟣 [FORM-DATA] ===== FIM =====');
+    setForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
   }, []);
 
   const setFormData = useCallback((newFormData: Partial<FormState>) => {

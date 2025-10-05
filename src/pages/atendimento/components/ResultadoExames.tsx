@@ -76,43 +76,6 @@ const parseTemplateToFields = (template: string, modelName: string): ParsedTempl
   console.log('🔍 [PARSE] Template recebido:', template);
   console.log('🔍 [PARSE] Modelo:', modelName);
   
-  // ===== LOG ESPECIAL PARA MODELO OBSTÉTRICO =====
-  const isObstetricModel = modelName.includes('OBSTÉTRICA') || modelName.includes('OBSTETRICA');
-  if (isObstetricModel) {
-    console.log('🎯🎯🎯 [PARSE-OBSTÉTRICO] ===== MODELO OBSTÉTRICO DETECTADO =====');
-    console.log('🎯 [PARSE-OBSTÉTRICO] Procurando por "IMPRESSÃO DIAGNÓSTICA" no template...');
-    
-    // Verificar se "IMPRESSÃO DIAGNÓSTICA" está no template
-    const hasImpressaoDiagnostica = 
-      template.includes('IMPRESSÃO DIAGNÓSTICA') ||
-      template.includes('IMPRESSAO DIAGNOSTICA') ||
-      template.includes('IMPRESSÃO') ||
-      template.includes('DIAGNÓSTICA');
-    
-    console.log('🎯 [PARSE-OBSTÉTRICO] Template contém "IMPRESSÃO DIAGNÓSTICA"?', hasImpressaoDiagnostica);
-    
-    if (hasImpressaoDiagnostica) {
-      console.log('🎯 [PARSE-OBSTÉTRICO] ✅ "IMPRESSÃO DIAGNÓSTICA" ENCONTRADA NO TEMPLATE!');
-      
-      // Encontrar a linha exata
-      const lines = template.split('\n');
-      const impressaoLine = lines.find(line => 
-        line.includes('IMPRESSÃO DIAGNÓSTICA') ||
-        line.includes('IMPRESSAO DIAGNOSTICA') ||
-        (line.includes('IMPRESSÃO') && line.includes('DIAGNÓSTICA'))
-      );
-      
-      if (impressaoLine) {
-        console.log('🎯 [PARSE-OBSTÉTRICO] Linha encontrada:', impressaoLine);
-        console.log('🎯 [PARSE-OBSTÉTRICO] Caracteres da linha:', 
-          impressaoLine.split('').map((char, idx) => `${idx}: '${char}' (${char.charCodeAt(0)})`));
-      }
-    } else {
-      console.warn('⚠️ [PARSE-OBSTÉTRICO] "IMPRESSÃO DIAGNÓSTICA" NÃO ENCONTRADA NO TEMPLATE!');
-    }
-    console.log('🎯🎯🎯 [PARSE-OBSTÉTRICO] ===== FIM LOG ESPECIAL =====');
-  }
-  
   if (!template) {
     return { fields: [], template: '' };
   }
@@ -485,61 +448,6 @@ const parseTemplateToFields = (template: string, modelName: string): ParsedTempl
    console.log('🔍 [PARSE] ===== RESULTADO FINAL =====');
   console.log('🔍 [PARSE] Total de campos encontrados:', fields.length);
   console.log('🔍 [PARSE] Campos:', fields.map(f => ({ label: f.label, key: f.key, type: f.type })));
-  
-  // ===== LOG ESPECIAL PARA IMPRESSÃO DIAGNÓSTICA =====
-  if (isObstetricModel) {
-    console.log('🎯🎯🎯 [PARSE-OBSTÉTRICO-FINAL] ===== VERIFICAÇÃO FINAL =====');
-    
-    // Procurar por "IMPRESSÃO DIAGNÓSTICA" nos campos detectados
-    const impressaoDiagnosticaField = fields.find(f => 
-      f.key.includes('impressao') || 
-      f.key.includes('diagnostica') ||
-      f.label.toUpperCase().includes('IMPRESSÃO') ||
-      f.label.toUpperCase().includes('DIAGNÓSTICA')
-    );
-    
-    if (impressaoDiagnosticaField) {
-      console.log('🎯 [PARSE-OBSTÉTRICO-FINAL] ✅ CAMPO "IMPRESSÃO DIAGNÓSTICA" DETECTADO!');
-      console.log('🎯 [PARSE-OBSTÉTRICO-FINAL] Detalhes do campo:');
-      console.log('  - Label:', impressaoDiagnosticaField.label);
-      console.log('  - Key (normalizada):', impressaoDiagnosticaField.key);
-      console.log('  - Type:', impressaoDiagnosticaField.type);
-      console.log('  - Placeholder:', impressaoDiagnosticaField.placeholder);
-      
-      // Verificar se a chave normalizada está na lista fieldsWithFullContext
-      const fieldsWithFullContext = [
-        'impressaodiagnostica',
-        'impressao',
-        'diagnostica',
-        'impressaodiagnostico',
-        'diagnostico',
-        'achadosadicionais',
-        'achados',
-        'adicionais',
-        'recomendacoes',
-        'recomendacao',
-        'conclusao',
-        'comentarios',
-        'observacoes'
-      ];
-      
-      const isInFullContextList = fieldsWithFullContext.includes(impressaoDiagnosticaField.key);
-      console.log('🎯 [PARSE-OBSTÉTRICO-FINAL] Chave está na lista fieldsWithFullContext?', isInFullContextList);
-      
-      if (!isInFullContextList) {
-        console.warn('⚠️⚠️⚠️ [PARSE-OBSTÉTRICO-FINAL] ATENÇÃO: Chave normalizada NÃO está na lista!');
-        console.warn('⚠️ [PARSE-OBSTÉTRICO-FINAL] Chave normalizada:', impressaoDiagnosticaField.key);
-        console.warn('⚠️ [PARSE-OBSTÉTRICO-FINAL] Lista atual:', fieldsWithFullContext);
-        console.warn('⚠️ [PARSE-OBSTÉTRICO-FINAL] SOLUÇÃO: O fallback pelo label deve funcionar!');
-      }
-    } else {
-      console.error('❌❌❌ [PARSE-OBSTÉTRICO-FINAL] ERRO: CAMPO "IMPRESSÃO DIAGNÓSTICA" NÃO DETECTADO!');
-      console.error('❌ [PARSE-OBSTÉTRICO-FINAL] Campos disponíveis:', fields.map(f => f.label));
-    }
-    
-    console.log('🎯🎯🎯 [PARSE-OBSTÉTRICO-FINAL] ===== FIM VERIFICAÇÃO FINAL =====');
-  }
-  
   console.log('🔍 [PARSE] ===== FIM parseTemplateToFields =====');
   
   return { fields, template };
@@ -1224,90 +1132,33 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
 
     console.log('🤖 [AI-FIELD] ===== PROCESSANDO CAMPO INDIVIDUAL (ENVIO SELETIVO) =====');
     console.log('🤖 [AI-FIELD] Campo:', field.label, '(', field.key, ')');
-    console.log('🤖 [AI-FIELD] Chave normalizada:', field.key);
     console.log('🤖 [AI-FIELD] Valor:', fieldValue);
-    console.log('🤖 [AI-FIELD] Modelo atual:', selectedModel?.name);
 
     setIsProcessingField(field.key);
 
     try {
-      // ===== LISTA EXPANDIDA: Campos que precisam de contexto completo (TODOS os campos) =====
+      // Campos que precisam de contexto completo (TODOS os campos)
       const fieldsWithFullContext = [
-        // Variações de "Impressão Diagnóstica"
         'impressaodiagnostica',
-        'impressao',
-        'diagnostica',
-        'impressaodiagnostico',
-        'diagnostico',
-        // Achados adicionais
         'achadosadicionais',
-        'achados',
-        'adicionais',
-        // Recomendações
-        'recomendacoes',
-        'recomendacao',
-        'conclusao',
-        'comentarios',
-        'observacoes'
+        'recomendacoes'
       ];
       
-      console.log('🔍 [AI-FIELD] Lista de campos com contexto completo:', fieldsWithFullContext);
-      console.log('🔍 [AI-FIELD] Campo atual está na lista?', fieldsWithFullContext.includes(field.key));
-      
-      // ===== FALLBACK ROBUSTO: Verificar se o label contém "IMPRESSÃO" ou "DIAGNÓSTICA" =====
-      const labelContainsImpressaoOuDiagnostica = 
-        field.label.toUpperCase().includes('IMPRESSÃO') || 
-        field.label.toUpperCase().includes('IMPRESSAO') ||
-        field.label.toUpperCase().includes('DIAGNÓSTICA') ||
-        field.label.toUpperCase().includes('DIAGNOSTICA') ||
-        field.label.toUpperCase().includes('DIAGNÓSTICO') ||
-        field.label.toUpperCase().includes('DIAGNOSTICO');
-      
-      console.log('🔍 [AI-FIELD] Label contém "IMPRESSÃO" ou "DIAGNÓSTICA"?', labelContainsImpressaoOuDiagnostica);
-      
-      // ===== VALIDAÇÃO ESPECÍFICA PARA MODELO OBSTÉTRICO =====
-      const isObstetricModel = selectedModel?.name?.includes('OBSTÉTRICA') || selectedModel?.name?.includes('OBSTETRICA');
-      console.log('🔍 [AI-FIELD] É modelo obstétrico?', isObstetricModel);
-      
-      if (isObstetricModel) {
-        console.log('🎯 [OBSTÉTRICO] ===== MODELO OBSTÉTRICO DETECTADO =====');
-        console.log('🎯 [OBSTÉTRICO] Todos os campos disponíveis:', selectedTemplate?.fields.map(f => ({ key: f.key, label: f.label })));
-        console.log('🎯 [OBSTÉTRICO] Campo atual:', { key: field.key, label: field.label });
-      }
-      
-      // ===== DETERMINAR QUAIS CAMPOS ENVIAR =====
+      // Determinar quais campos enviar
       let fieldsToSend: Record<string, string> = {};
       
-      // Critérios para enviar TODOS os campos:
-      // 1. Campo está na lista fieldsWithFullContext
-      // 2. Label contém "IMPRESSÃO" ou "DIAGNÓSTICA" (fallback robusto)
-      // 3. É modelo obstétrico E campo é "IMPRESSÃO DIAGNÓSTICA"
-      const shouldSendAllFields = 
-        fieldsWithFullContext.includes(field.key) || 
-        labelContainsImpressaoOuDiagnostica ||
-        (isObstetricModel && labelContainsImpressaoOuDiagnostica);
-      
-      console.log('🎯 [AI-FIELD] Deve enviar todos os campos?', shouldSendAllFields);
-      console.log('🎯 [AI-FIELD] Motivos:');
-      console.log('  - Está em fieldsWithFullContext:', fieldsWithFullContext.includes(field.key));
-      console.log('  - Label contém IMPRESSÃO/DIAGNÓSTICA:', labelContainsImpressaoOuDiagnostica);
-      console.log('  - É modelo obstétrico com IMPRESSÃO/DIAGNÓSTICA:', isObstetricModel && labelContainsImpressaoOuDiagnostica);
-      
-      if (shouldSendAllFields) {
+      if (fieldsWithFullContext.includes(field.key)) {
         // ===== ENVIAR TODOS OS CAMPOS =====
-        console.log('🎯 [AI-FIELD] ✅ ENVIANDO TODOS OS CAMPOS (CONTEXTO COMPLETO)');
+        console.log('🎯 [AI-FIELD] Campo especial detectado - Enviando TODOS os campos');
         
         if (selectedTemplate) {
           selectedTemplate.fields.forEach((f) => {
             const value = dynamicFields[f.key];
             if (value) {
               fieldsToSend[f.key] = `${f.label}: ${value}`;
-              console.log(`  ✓ Campo incluído: ${f.label} (${f.key})`);
             }
           });
         }
-        
-        console.log('🎯 [AI-FIELD] Total de campos enviados:', Object.keys(fieldsToSend).length);
       } else if (field.key === 'percentil') {
         // ===== PERCENTIL: Enviar apenas PERCENTIL + PESO + IG =====
         console.log('🎯 [AI-FIELD] Campo PERCENTIL - Enviando PERCENTIL + PESO + IG');
@@ -1687,15 +1538,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
             <Textarea
               id="examObservations"
               value={examObservations}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                console.log('🔴🔴🔴 [TEXTAREA-OBSERVACOES] ===== USUÁRIO DIGITOU =====');
-                console.log('🔴 [TEXTAREA] Novo valor:', newValue);
-                console.log('🔴 [TEXTAREA] Tamanho:', newValue.length);
-                console.log('🔴 [TEXTAREA] É vazio?', newValue === '');
-                console.log('🔴🔴🔴 [TEXTAREA-OBSERVACOES] ===== FIM =====');
-                onExamObservationsChange(newValue);
-              }}
+              onChange={(e) => onExamObservationsChange(e.target.value)}
               placeholder="Digite as observações sobre os exames solicitados..."
               className="min-h-[100px]"
             />

@@ -141,14 +141,7 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
           examResults={form.resultadoExames}
           onExamResultsChange={(value: string) => updateFormField('resultadoExames', value)}
           examObservations={form.observacoesExames}
-          onExamObservationsChange={(value: string) => {
-            console.log('🟢🟢🟢 [ATENDINENTO-TABS] ===== onExamObservationsChange CHAMADO =====');
-            console.log('🟢 [TABS] Valor recebido:', value);
-            console.log('🟢 [TABS] form.observacoesExames ANTES:', form.observacoesExames);
-            updateFormField('observacoesExames', value);
-            console.log('🟢 [TABS] updateFormField CHAMADO com:', value);
-            console.log('🟢🟢🟢 [ATENDINENTO-TABS] ===== FIM =====');
-          }}
+          onExamObservationsChange={(value: string) => updateFormField('observacoesExames', value)}
           isProcessingAI={{ examResults: isProcessingAI.examResults }}
           onProcessWithAI={() => handleProcessAI('examResults')}
           onSelectedModelChange={handleSelectedModelChange}
