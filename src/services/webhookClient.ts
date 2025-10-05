@@ -36,34 +36,12 @@ export async function sendToWebhook(webhookUrl: string, formData: FormData): Pro
   const isProdUrl = webhookUrl.includes('n8n.mentoriajrs.com');
   console.log('Production URL detected:', isProdUrl, 'for URL:', webhookUrl);
   
-  // ===== ETAPA 2: LOGS COMPLETOS DO FORMDATA =====
-  console.log('📤 [WEBHOOK-CLIENT] ===== TODOS OS DADOS DO FORMDATA =====');
-  
-  // Contar campos dinâmicos (começam com letra minúscula, exceto campos especiais)
-  let dynamicFieldsCount = 0;
-  const dynamicFieldsPreview: Record<string, any> = {};
-  
-  for (const [key, value] of formData.entries()) {
-    // Identificar campos dinâmicos
-    if (key.charAt(0) === key.charAt(0).toLowerCase() && 
-        !['selectedModelTitle', 'timestamp'].includes(key)) {
-      dynamicFieldsCount++;
-      const strValue = String(value);
-      dynamicFieldsPreview[key] = strValue.substring(0, 100); // Preview de 100 chars
-    }
-    
-    // Logar todos os campos
-    const displayValue = typeof value === 'string' 
-      ? (value.length > 150 ? value.substring(0, 150) + '...' : value)
-      : value;
-    console.log(`📤 [WEBHOOK-CLIENT] ${key}:`, displayValue);
-  }
-  
-  console.log(`📤 [WEBHOOK-CLIENT] ===== RESUMO =====`);
-  console.log(`📤 [WEBHOOK-CLIENT] Total de campos dinâmicos: ${dynamicFieldsCount}`);
-  console.log(`📤 [WEBHOOK-CLIENT] Campos dinâmicos (preview):`, dynamicFieldsPreview);
-  console.log(`📤 [WEBHOOK-CLIENT] selectedModelTitle:`, formData.get('selectedModelTitle'));
-  console.log(`📤 [WEBHOOK-CLIENT] ===== FIM DOS LOGS =====\n`);
+  // Log dos campos importantes do FormData antes de enviar
+  console.log('📋 [WEBHOOK-CLIENT] ===== ENVIANDO FORMDATA =====');
+  console.log('📋 [WEBHOOK-CLIENT] selectedModelTitle:', formData.get('selectedModelTitle'));
+  console.log('📋 [WEBHOOK-CLIENT] exam_model_title:', formData.get('exam_model_title'));
+  console.log('📋 [WEBHOOK-CLIENT] modelTitle:', formData.get('modelTitle'));
+  console.log('📋 [WEBHOOK-CLIENT] titulo_modelo:', formData.get('titulo_modelo'));
   
   try {
     const response = await fetch(webhookUrl, {
