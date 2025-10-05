@@ -49,9 +49,23 @@ export function buildMedicalRecordFormData(params: FormDataBuilderParams): FormD
   console.log('🔍 [OBSERVAÇÕES] exam_observations IS NULL?', params.medicalRecord.exam_observations === null);
   console.log('🔍 [OBSERVAÇÕES] exam_observations IS UNDEFINED?', params.medicalRecord.exam_observations === undefined);
   console.log('🔍 [OBSERVAÇÕES] exam_observations IS EMPTY?', params.medicalRecord.exam_observations === '');
+  console.log('🔍 [OBSERVAÇÕES] dynamicFields:', params.dynamicFields);
+  console.log('🔍 [OBSERVAÇÕES] dynamicFields.observacoes:', params.dynamicFields?.observacoes);
   
-  // ⚠️ CRITICAL: Se o valor estiver vazio, usar um texto que seja visível no n8n para debug
-  const observacoesValue = params.medicalRecord.exam_observations || '[CAMPO_OBSERVACOES_VAZIO_OU_NAO_PREENCHIDO]';
+  // ⚠️ CRITICAL FIX: Se exam_observations estiver vazio, tentar usar campo dinâmico
+  let observacoesValue = params.medicalRecord.exam_observations || '';
+  
+  // Se vazio, verificar se existe no dynamicFields
+  if (!observacoesValue && params.dynamicFields?.observacoes) {
+    console.log('🔧 [AUTO-FIX] exam_observations vazio, usando dynamicFields.observacoes');
+    observacoesValue = params.dynamicFields.observacoes;
+  }
+  
+  // Se ainda estiver vazio, usar placeholder para debug no n8n
+  if (!observacoesValue) {
+    observacoesValue = '[CAMPO_OBSERVACOES_VAZIO_OU_NAO_PREENCHIDO]';
+  }
+  
   const resultadosValue = params.medicalRecord.exam_results || '';
   
   console.log('🔍 [OBSERVAÇÕES] Valor processado para envio:', observacoesValue);

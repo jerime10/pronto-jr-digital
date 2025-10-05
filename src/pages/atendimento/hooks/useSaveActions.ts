@@ -334,6 +334,33 @@ export const useSaveActions = ({
       console.log('🔍 patientIdToUse antes da inserção:', patientIdToUse);
       console.log('🔍 professionalIdToUse antes da inserção:', professionalIdToUse);
       
+      // ===== 🔴 DEBUG CRÍTICO: OBSERVAÇÕES ANTES DO INSERT =====
+      console.log('🔴🔴🔴 [CRITICAL-DEBUG] ===== FORM STATE COMPLETO =====');
+      console.log('🔴 [CRITICAL] form.observacoesExames:', form.observacoesExames);
+      console.log('🔴 [CRITICAL] form.observacoesExames TYPE:', typeof form.observacoesExames);
+      console.log('🔴 [CRITICAL] form.observacoesExames LENGTH:', form.observacoesExames?.length || 0);
+      console.log('🔴 [CRITICAL] form.observacoesExames IS EMPTY?:', form.observacoesExames === '');
+      console.log('🔴 [CRITICAL] form.observacoesExames IS NULL?:', form.observacoesExames === null);
+      console.log('🔴 [CRITICAL] form.observacoesExames IS UNDEFINED?:', form.observacoesExames === undefined);
+      console.log('🔴 [CRITICAL] form.observacoesExames VALOR EXATO:', `"${form.observacoesExames}"`);
+      console.log('🔴 [CRITICAL] dynamicFields:', dynamicFields);
+      console.log('🔴 [CRITICAL] dynamicFields.observacoes:', dynamicFields?.observacoes);
+      console.log('🔴 [CRITICAL] form completo:', JSON.stringify(form, null, 2));
+      
+      // ===== 🔧 CORREÇÃO AUTOMÁTICA: Mapear campo dinâmico para exam_observations =====
+      let finalExamObservations = form.observacoesExames || '';
+      
+      // Se o campo manual está vazio, mas existe o campo dinâmico "observacoes", usar esse valor
+      if (!finalExamObservations && dynamicFields?.observacoes) {
+        console.log('🔧 [AUTO-FIX] Campo observacoesExames vazio, usando valor do campo dinâmico');
+        console.log('🔧 [AUTO-FIX] Valor do campo dinâmico observacoes:', dynamicFields.observacoes);
+        finalExamObservations = dynamicFields.observacoes;
+      }
+      
+      console.log('🔴 [CRITICAL] finalExamObservations que será salvo:', finalExamObservations);
+      console.log('🔴 [CRITICAL] finalExamObservations LENGTH:', finalExamObservations?.length || 0);
+      console.log('🔴🔴🔴 [CRITICAL-DEBUG] ===== FIM DEBUG =====');
+      
       const { data: savedRecord, error: saveError } = await supabase
         .from('medical_records')
         .insert({
@@ -347,7 +374,7 @@ export const useSaveActions = ({
           custom_prescription: form.prescricaoPersonalizada,
           prescription_model_id: form.modeloPrescricao || null,
           exam_requests: form.examesSelecionados as any,
-          exam_observations: form.observacoesExames,
+          exam_observations: finalExamObservations, // Usar valor corrigido
           exam_results: form.resultadoExames,
           images_data: imagesDataJson as any,
           attendance_start_at: attendanceStartAt,
@@ -371,6 +398,16 @@ export const useSaveActions = ({
 
       console.log('Prontuário salvo no banco:', savedRecord);
 
+      // ===== 🔧 CORREÇÃO: Usar valor correto de exam_observations =====
+      // Se o savedRecord.exam_observations estiver vazio mas o campo dinâmico existir, usar esse
+      let finalExamObservationsForWebhook = savedRecord.exam_observations || '';
+      if (!finalExamObservationsForWebhook && dynamicFields?.observacoes) {
+        console.log('🔧 [WEBHOOK-FIX] exam_observations vazio no banco, usando campo dinâmico');
+        finalExamObservationsForWebhook = dynamicFields.observacoes;
+      }
+      
+      console.log('🔧 [WEBHOOK-FIX] finalExamObservationsForWebhook:', finalExamObservationsForWebhook);
+
       // Preparar dados completos para envio via webhook
       const medicalRecordData: any = {
         id: savedRecord.id,
@@ -387,7 +424,7 @@ export const useSaveActions = ({
         exam_requests: Array.isArray(savedRecord.exam_requests) 
           ? savedRecord.exam_requests.map(req => String(req))
           : savedRecord.exam_requests ? [String(savedRecord.exam_requests)] : [],
-        exam_observations: savedRecord.exam_observations,
+        exam_observations: finalExamObservationsForWebhook, // Usar valor corrigido
         exam_results: savedRecord.exam_results,
         attendance_start_at: savedRecord.attendance_start_at,
         attendance_end_at: savedRecord.attendance_end_at,
