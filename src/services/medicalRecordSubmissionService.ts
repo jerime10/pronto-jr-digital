@@ -37,6 +37,16 @@ export async function submitMedicalRecordToWebhook(params: SubmitMedicalRecordPa
   try {
     console.log('Iniciando envio do prontuário médico:', params);
 
+    // 🔍 DEBUG CRÍTICO: Verificar campo exam_observations NO INÍCIO
+    console.log('🔍 [SUBMISSION] ===== DEBUG CAMPO OBSERVAÇÕES =====');
+    console.log('🔍 [SUBMISSION] params.medicalRecord.exam_observations:', params.medicalRecord.exam_observations);
+    console.log('🔍 [SUBMISSION] exam_observations TYPE:', typeof params.medicalRecord.exam_observations);
+    console.log('🔍 [SUBMISSION] exam_observations LENGTH:', params.medicalRecord.exam_observations?.length || 0);
+    console.log('🔍 [SUBMISSION] exam_observations IS NULL?', params.medicalRecord.exam_observations === null);
+    console.log('🔍 [SUBMISSION] exam_observations IS UNDEFINED?', params.medicalRecord.exam_observations === undefined);
+    console.log('🔍 [SUBMISSION] exam_observations IS EMPTY?', params.medicalRecord.exam_observations === '');
+    console.log('🔍 [SUBMISSION] ===== FIM DEBUG OBSERVAÇÕES =====');
+
     // Fetch site settings for logo and professional data
     const siteSettings = await fetchSiteSettings();
     console.log('Configurações do site carregadas:', siteSettings);
@@ -48,6 +58,14 @@ export async function submitMedicalRecordToWebhook(params: SubmitMedicalRecordPa
     // Log do selectedModelTitle antes de construir o FormData
     console.log('📋 [SUBMISSION] selectedModelTitle recebido:', params.selectedModelTitle);
     console.log('📋 [SUBMISSION] dynamicFields recebidos:', (params as any).dynamicFields);
+    
+    // 🔍 DEBUG FINAL: Verificar medicalRecord completo ANTES de construir FormData
+    console.log('🔍 [FORMDATA-PRE] ===== OBJETO COMPLETO ANTES DO FORMDATA =====');
+    console.log('🔍 [FORMDATA-PRE] params.medicalRecord.id:', params.medicalRecord.id);
+    console.log('🔍 [FORMDATA-PRE] params.medicalRecord.exam_observations:', params.medicalRecord.exam_observations);
+    console.log('🔍 [FORMDATA-PRE] params.medicalRecord.exam_results:', params.medicalRecord.exam_results);
+    console.log('🔍 [FORMDATA-PRE] params.medicalRecord completo:', JSON.stringify(params.medicalRecord, null, 2));
+    console.log('🔍 [FORMDATA-PRE] ===== FIM OBJETO ANTES DO FORMDATA =====');
     
     // Build complete FormData for webhook with all required information
     const formData = buildMedicalRecordFormData({
