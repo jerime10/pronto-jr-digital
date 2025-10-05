@@ -1538,7 +1538,15 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
             <Textarea
               id="examObservations"
               value={examObservations}
-              onChange={(e) => onExamObservationsChange(e.target.value)}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                console.log('🔴🔴🔴 [TEXTAREA-OBSERVACOES] ===== USUÁRIO DIGITOU =====');
+                console.log('🔴 [TEXTAREA] Novo valor:', newValue);
+                console.log('🔴 [TEXTAREA] Tamanho:', newValue.length);
+                console.log('🔴 [TEXTAREA] É vazio?', newValue === '');
+                console.log('🔴🔴🔴 [TEXTAREA-OBSERVACOES] ===== FIM =====');
+                onExamObservationsChange(newValue);
+              }}
               placeholder="Digite as observações sobre os exames solicitados..."
               className="min-h-[100px]"
             />
