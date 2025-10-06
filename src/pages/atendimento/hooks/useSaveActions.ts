@@ -426,6 +426,15 @@ export const useSaveActions = ({
       // FILTRAR campos dinâmicos para enviar apenas os do modelo selecionado
       let filteredDynamicFields = dynamicFields || {};
       
+      // Incluir campo observacoes se estiver preenchido
+      if (form.observacoesExames && form.observacoesExames.trim()) {
+        filteredDynamicFields = {
+          ...filteredDynamicFields,
+          observacoes: form.observacoesExames
+        };
+        console.log('✅ [OBSERVACOES] Campo observacoes adicionado aos dynamicFields:', form.observacoesExames);
+      }
+      
       if (selectedModelTitle && dynamicFields && Object.keys(dynamicFields).length > 0) {
         console.log('🔍 [FILTER] ===== FILTRANDO CAMPOS DINÂMICOS =====');
         console.log('🔍 [FILTER] Modelo selecionado:', selectedModelTitle);
@@ -444,9 +453,9 @@ export const useSaveActions = ({
             const validFieldKeys = new Set(validFields.map(f => f.field_key));
             console.log('✅ [FILTER] Campos válidos do modelo:', Array.from(validFieldKeys));
             
-            // Filtrar apenas campos válidos
-            filteredDynamicFields = Object.entries(dynamicFields)
-              .filter(([key]) => validFieldKeys.has(key))
+            // Filtrar apenas campos válidos, mas sempre manter o campo observacoes se existir
+            filteredDynamicFields = Object.entries(filteredDynamicFields)
+              .filter(([key]) => validFieldKeys.has(key) || key === 'observacoes')
               .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
             
             console.log('✅ [FILTER] Campos após filtragem:', Object.keys(filteredDynamicFields));
@@ -459,6 +468,15 @@ export const useSaveActions = ({
         }
         
         console.log('🔍 [FILTER] ===== FIM DA FILTRAGEM =====');
+      } else {
+        // Se não há modelo selecionado ou campos dinâmicos, ainda incluir observacoes se existir
+        if (form.observacoesExames && form.observacoesExames.trim()) {
+          filteredDynamicFields = {
+            ...filteredDynamicFields,
+            observacoes: form.observacoesExames
+          };
+          console.log('✅ [OBSERVACOES] Campo observacoes adicionado (sem filtragem):', form.observacoesExames);
+        }
       }
 
       // Enviar via webhook com dados completos e campos filtrados

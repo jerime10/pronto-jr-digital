@@ -157,7 +157,7 @@ serve(async (req) => {
         console.log("selectedModelTitle no requestBody:", requestBody.selectedModelTitle);
         
         Object.keys(requestBody).forEach(key => {
-          if (!['text', 'content', 'type', 'selectedModelTitle', 'resultadoFinal', 'timestamp'].includes(key)) {
+          if (!['text', 'content', 'type', 'selectedModelTitle', 'resultadoFinal', 'timestamp', 'fieldKey'].includes(key)) {
             n8nPayload[key] = requestBody[key];
           }
         });
@@ -280,7 +280,7 @@ serve(async (req) => {
       
       // Check if n8nData contains individual fields (any field that matches our dynamic fields)
       const sentDynamicFields = Object.keys(requestBody).filter(key => 
-        !['text', 'content', 'type', 'selectedModelTitle', 'timestamp'].includes(key)
+        !['text', 'content', 'type', 'selectedModelTitle', 'timestamp', 'fieldKey'].includes(key)
       );
       
       // Extract individual fields from n8nData if they exist

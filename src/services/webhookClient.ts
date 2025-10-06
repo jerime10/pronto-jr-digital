@@ -30,9 +30,19 @@ export async function fetchWebhookUrl(): Promise<string> {
 }
 
 /**
- * Sends FormData to webhook
+ * Interface for webhook response data
  */
-export async function sendToWebhook(webhookUrl: string, formData: FormData): Promise<Response> {
+export interface WebhookResponseData {
+  success: boolean;
+  processed_content?: string;
+  individual_fields?: Record<string, string>;
+  [key: string]: any;
+}
+
+/**
+ * Sends FormData to webhook and returns parsed response data
+ */
+export async function sendToWebhook(webhookUrl: string, formData: FormData): Promise<{ response: Response; data?: WebhookResponseData }> {
   const isProdUrl = webhookUrl.includes('n8n.mentoriajrs.com');
   console.log('Production URL detected:', isProdUrl, 'for URL:', webhookUrl);
   
@@ -55,14 +65,37 @@ export async function sendToWebhook(webhookUrl: string, formData: FormData): Pro
     if (isProdUrl && response.status === 0) {
       console.log('no-cors mode: Assuming success since fetch completed without error');
       // Create a mock successful response for no-cors mode
-      return new Response(JSON.stringify({ success: true }), {
+      const mockResponse = new Response(JSON.stringify({ success: true }), {
         status: 200,
         statusText: 'OK',
         headers: { 'Content-Type': 'application/json' }
       });
+      return { response: mockResponse, data: { success: true } };
     }
     
-    return response;
+    // Try to parse response data when not in no-cors mode
+    let responseData: WebhookResponseData | undefined;
+    try {
+      if (response.ok) {
+        const text = await response.text();
+        if (text) {
+          responseData = JSON.parse(text);
+          console.log('📋 [WEBHOOK-CLIENT] Resposta do webhook:', responseData);
+          
+          // Log specific fields we're interested in
+          if (responseData?.individual_fields) {
+            console.log('📋 [WEBHOOK-CLIENT] Campos individuais recebidos:', responseData.individual_fields);
+            if (responseData.individual_fields.observacoes) {
+              console.log('📋 [WEBHOOK-CLIENT] Observações processadas:', responseData.individual_fields.observacoes);
+            }
+          }
+        }
+      }
+    } catch (parseError) {
+      console.warn('Não foi possível fazer parse da resposta do webhook:', parseError);
+    }
+    
+    return { response, data: responseData };
   } catch (error) {
     console.error('Error sending to webhook:', error);
     throw error;

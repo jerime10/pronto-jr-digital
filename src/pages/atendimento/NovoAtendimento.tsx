@@ -109,6 +109,7 @@ const NovoAtendimento = () => {
     handleInputFocus,
     handleInputBlur,
     handleModeloPrescricaoChange,
+    handleModelosPrescricaoChange,
     handleExamesChange,
     processAIContent,
     handleSalvarAtendimento,
@@ -210,6 +211,7 @@ const NovoAtendimento = () => {
       prescriptionModels={prescriptionModels}
       isLoadingPrescriptions={isLoadingPrescriptions}
       handleModeloPrescricaoChange={handleModeloPrescricaoChange}
+      handleModelosPrescricaoChange={handleModelosPrescricaoChange}
       updateFormField={updateFormField}
       handleSalvarAtendimento={handleSalvarAtendimento}
       handleGerarPDF={() => Promise.resolve()}

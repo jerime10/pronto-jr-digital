@@ -219,6 +219,51 @@ const parseTemplateToFields = (template: string, modelName: string): ParsedTempl
       }
     }
     
+    // Padrão 0: Campos obstétricos específicos - CAMPO: _______________
+    const obstetricFieldMatch = line.match(/^([A-ZÀ-ÿ\s\(\)]+):\s*_{10,}$/);
+    if (obstetricFieldMatch) {
+      const label = obstetricFieldMatch[1].trim();
+      const key = normalizeKey(label);
+      
+      if (!addedKeys.has(key)) {
+        const fieldType = getFieldType(key, label);
+        fields.push({
+          key,
+          label,
+          type: fieldType,
+          placeholder: getPlaceholder(label, fieldType)
+        });
+        addedKeys.add(key);
+        console.log(`✅ [OBSTÉTRICO] Campo capturado: "${label}" -> key: "${key}"`);
+      }
+      continue;
+    }
+
+    // Padrão 0.5: Campos obstétricos com underscores na próxima linha - CAMPO:
+    const obstetricNextLineMatch = line.match(/^([A-ZÀ-ÿ\s\(\)]+):\s*$/);
+    if (obstetricNextLineMatch && i + 1 < lines.length) {
+      const nextLine = lines[i + 1].trim();
+      const hasUnderscores = nextLine.match(/^_{10,}$/);
+      
+      if (hasUnderscores) {
+        const label = obstetricNextLineMatch[1].trim();
+        const key = normalizeKey(label);
+        
+        if (!addedKeys.has(key)) {
+          const fieldType = getFieldType(key, label);
+          fields.push({
+            key,
+            label,
+            type: fieldType,
+            placeholder: getPlaceholder(label, fieldType)
+          });
+          addedKeys.add(key);
+          console.log(`✅ [OBSTÉTRICO-NEXTLINE] Campo capturado: "${label}" -> key: "${key}"`);
+        }
+        continue;
+      }
+    }
+
     // Padrão 1: Campos com dois pontos e underscores - CAMPO: ___UNIDADE
     const colonFieldMatch = line.match(/^([A-ZÁÊÇÕ\s\(\)]+):\s*_{2,}([A-Z]*)/);
     if (colonFieldMatch) {
@@ -1530,20 +1575,6 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
             </AlertDialogContent>
           </AlertDialog>
           
-
-          
-          
-          <div className="space-y-2">
-            <Label htmlFor="examObservations">Observações</Label>
-            <Textarea
-              id="examObservations"
-              value={examObservations}
-              onChange={(e) => onExamObservationsChange(e.target.value)}
-              placeholder="Digite as observações sobre os exames solicitados..."
-              className="min-h-[100px]"
-            />
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="examResults">Resultado Final</Label>
             <Textarea

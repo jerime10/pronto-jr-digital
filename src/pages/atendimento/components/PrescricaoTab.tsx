@@ -2,8 +2,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { MultiSelectSearch } from '@/components/ui/multi-select-search';
 import { FormState } from '../hooks/useFormData';
 
 interface PrescricaoTabProps {
@@ -12,6 +12,7 @@ interface PrescricaoTabProps {
   isLoadingPrescriptions: boolean;
   onFieldChange: (field: keyof FormState, value: any) => void;
   onModelChange: (modelId: string) => void;
+  onMultiModelChange?: (modelosIds: string[]) => void;
 }
 
 const PrescricaoTab: React.FC<PrescricaoTabProps> = ({
@@ -19,34 +20,50 @@ const PrescricaoTab: React.FC<PrescricaoTabProps> = ({
   prescriptionModels,
   isLoadingPrescriptions,
   onFieldChange,
-  onModelChange
+  onModelChange,
+  onMultiModelChange
 }) => {
+  // Handler para multisseleção de modelos
+  const handleModelosPrescricaoChange = (selectedIds: string[]) => {
+    // Usar o handler externo se disponível, senão usar o handler local
+    if (onMultiModelChange) {
+      onMultiModelChange(selectedIds);
+    } else {
+      // Fallback para o comportamento local
+      onFieldChange('modelosPrescricaoSelecionados', selectedIds);
+      
+      // Concatenar as descrições dos modelos selecionados
+      const selectedModels = prescriptionModels.filter(model => 
+        selectedIds.includes(model.id)
+      );
+      
+      const concatenatedDescriptions = selectedModels
+        .map(model => model.description)
+        .join('\n\n... ... ...\n\n');
+      
+      // Atualizar a prescrição personalizada com as descrições concatenadas
+      onFieldChange('prescricaoPersonalizada', concatenatedDescriptions);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Modelo de Prescrição</CardTitle>
+          <CardTitle>Modelos de Prescrição</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="modelo-prescricao">Selecionar Modelo</Label>
-              <Select 
-                value={form.modeloPrescricao} 
-                onValueChange={onModelChange}
+              <Label htmlFor="modelos-prescricao">Selecionar Modelos</Label>
+              <MultiSelectSearch
+                options={prescriptionModels}
+                selectedValues={form.modelosPrescricaoSelecionados || []}
+                onSelectionChange={handleModelosPrescricaoChange}
+                placeholder="Digite para buscar e selecionar modelos..."
                 disabled={isLoadingPrescriptions}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um modelo de prescrição" />
-                </SelectTrigger>
-                <SelectContent>
-                  {prescriptionModels.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                      {model.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                className="w-full"
+              />
             </div>
           </div>
         </CardContent>

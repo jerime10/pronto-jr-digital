@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { Home, Users, FileText, Clipboard, Calendar, Settings, Menu, X, LogOut, User, CalendarDays, UserCheck, Clock, Wrench, DollarSign } from 'lucide-react';
+import { Home, Users, FileText, Clipboard, Calendar, Settings, Menu, X, LogOut, User, CalendarDays, UserCheck, Clock, Wrench, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
 import Logo from '../Logo';
 import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,29 +10,43 @@ interface SidebarLinkProps {
   icon: React.ElementType;
   label: string;
   isActive: boolean;
+  isCollapsed?: boolean;
 }
+
 const SidebarLink: React.FC<SidebarLinkProps> = ({
   to,
   icon: Icon,
   label,
-  isActive
+  isActive,
+  isCollapsed = false
 }) => {
-  return <Link to={to} className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/50'}`}>
-      <Icon size={20} />
-      <span className="font-medium">{label}</span>
-    </Link>;
+  return <Link 
+    to={to} 
+    className={`flex items-center ${isCollapsed ? 'justify-center px-2' : 'space-x-3 px-4'} py-3 rounded-lg transition-all duration-200 ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/50'}`}
+    title={isCollapsed ? label : undefined}
+  >
+    <Icon size={20} />
+    {!isCollapsed && <span className="font-medium">{label}</span>}
+  </Link>;
 };
 const MainLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const { user, logout } = useSimpleAuth();
   const isAdmin = user?.isAdmin || false;
+
   const isActive = (path: string) => {
     return location.pathname === path;
   };
+
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed(!isSidebarCollapsed);
   };
   const handleSignOut = async () => {
     logout();
@@ -40,35 +54,46 @@ const MainLayout: React.FC = () => {
   };
   return <div className="min-h-screen flex">
       {/* Sidebar for desktop */}
-      <aside className={`bg-sidebar fixed inset-y-0 left-0 z-20 transform transition-transform duration-300 md:relative md:translate-x-0 w-64 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`bg-sidebar fixed inset-y-0 left-0 z-20 transform transition-all duration-300 md:relative md:translate-x-0 ${isSidebarCollapsed ? 'w-16' : 'w-64'} ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col h-full">
-          <div className="p-4 border-b border-sidebar-border bg-rose-300">
+          <div className={`${isSidebarCollapsed ? 'p-2' : 'p-4'} border-b border-sidebar-border bg-rose-300 transition-all duration-300`}>
             <div className="flex items-center justify-between">
-              <Logo className="text-white" />
-              <button className="p-1 rounded-md text-sidebar-foreground md:hidden" onClick={toggleSidebar}>
-                <X size={20} />
-              </button>
+              {!isSidebarCollapsed && <Logo className="text-white" />}
+              <div className="flex items-center space-x-1">
+                {/* Botão de recolher/expandir - apenas no desktop */}
+                <button 
+                  className="hidden md:flex p-1 rounded-md text-white hover:bg-white/20 transition-colors" 
+                  onClick={toggleSidebarCollapse}
+                  title={isSidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}
+                >
+                  {isSidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+                </button>
+                {/* Botão de fechar - apenas no mobile */}
+                <button className="p-1 rounded-md text-white md:hidden" onClick={toggleSidebar}>
+                  <X size={20} />
+                </button>
+              </div>
             </div>
           </div>
           
-          <div className="flex-1 py-6 px-3 space-y-1 overflow-y-auto bg-[#c669b0]/[0.81]">
-            <SidebarLink to="/dashboard" icon={Home} label="Dashboard" isActive={isActive('/dashboard')} />
-            <SidebarLink to="/pacientes" icon={Users} label="Pacientes" isActive={isActive('/pacientes')} />
-            <SidebarLink to="/prescricoes" icon={FileText} label="Prescrições" isActive={isActive('/prescricoes')} />
-            <SidebarLink to="/exames" icon={Clipboard} label="Exames" isActive={isActive('/exames')} />
-            <SidebarLink to="/atendimento/novo" icon={Calendar} label="Atendimento" isActive={isActive('/atendimento/novo')} />
-            <SidebarLink to="/historico" icon={FileText} label="Histórico Atendimentos" isActive={isActive('/historico')} />
+          <div className={`flex-1 py-6 ${isSidebarCollapsed ? 'px-1' : 'px-3'} space-y-1 overflow-y-auto bg-[#c669b0]/[0.81] transition-all duration-300`}>
+            <SidebarLink to="/dashboard" icon={Home} label="Dashboard" isActive={isActive('/dashboard')} isCollapsed={isSidebarCollapsed} />
+            <SidebarLink to="/pacientes" icon={Users} label="Pacientes" isActive={isActive('/pacientes')} isCollapsed={isSidebarCollapsed} />
+            <SidebarLink to="/prescricoes" icon={FileText} label="Prescrições" isActive={isActive('/prescricoes')} isCollapsed={isSidebarCollapsed} />
+            <SidebarLink to="/exames" icon={Clipboard} label="Exames" isActive={isActive('/exames')} isCollapsed={isSidebarCollapsed} />
+            <SidebarLink to="/atendimento/novo" icon={Calendar} label="Atendimento" isActive={isActive('/atendimento/novo')} isCollapsed={isSidebarCollapsed} />
+            <SidebarLink to="/historico" icon={FileText} label="Histórico Atendimentos" isActive={isActive('/historico')} isCollapsed={isSidebarCollapsed} />
             
             {/* Sistema de Agendamento */}
-            <SidebarLink to="/agendamentos" icon={CalendarDays} label="Agendamentos" isActive={isActive('/agendamentos')} />
-            <SidebarLink to="/atendentes" icon={UserCheck} label="Atendentes" isActive={isActive('/atendentes')} />
-            <SidebarLink to="/horarios" icon={Clock} label="Horários" isActive={isActive('/horarios')} />
-            <SidebarLink to="/servicos" icon={Wrench} label="Serviços" isActive={isActive('/servicos')} />
-            <SidebarLink to="/financeiro" icon={DollarSign} label="Financeiro" isActive={isActive('/financeiro')} />
+            <SidebarLink to="/agendamentos" icon={CalendarDays} label="Agendamentos" isActive={isActive('/agendamentos')} isCollapsed={isSidebarCollapsed} />
+            <SidebarLink to="/atendentes" icon={UserCheck} label="Atendentes" isActive={isActive('/atendentes')} isCollapsed={isSidebarCollapsed} />
+            <SidebarLink to="/horarios" icon={Clock} label="Horários" isActive={isActive('/horarios')} isCollapsed={isSidebarCollapsed} />
+            <SidebarLink to="/servicos" icon={Wrench} label="Serviços" isActive={isActive('/servicos')} isCollapsed={isSidebarCollapsed} />
+            <SidebarLink to="/financeiro" icon={DollarSign} label="Financeiro" isActive={isActive('/financeiro')} isCollapsed={isSidebarCollapsed} />
           </div>
           
-          <div className="p-4 border-t border-sidebar-border bg-rose-400">
-            {isAdmin && <SidebarLink to="/configuracoes" icon={Settings} label="Configurações" isActive={isActive('/configuracoes')} />}
+          <div className={`${isSidebarCollapsed ? 'p-2' : 'p-4'} border-t border-sidebar-border bg-rose-400 transition-all duration-300`}>
+            {isAdmin && <SidebarLink to="/configuracoes" icon={Settings} label="Configurações" isActive={isActive('/configuracoes')} isCollapsed={isSidebarCollapsed} />}
           </div>
         </div>
       </aside>

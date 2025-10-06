@@ -23,6 +23,7 @@ interface AtendimentoTabsProps {
   prescriptionModels: any[];
   isLoadingPrescriptions: boolean;
   handleModeloPrescricaoChange: (value: string) => void;
+  handleModelosPrescricaoChange: (modelosIds: string[]) => void;
   updateFormField: (field: string, value: any) => void;
   onSelectedModelChange?: (modelTitle: string | null) => void;
   patientId?: string;
@@ -43,6 +44,7 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
   prescriptionModels,
   isLoadingPrescriptions,
   handleModeloPrescricaoChange,
+  handleModelosPrescricaoChange,
   updateFormField,
   onSelectedModelChange,
   patientId,
@@ -131,6 +133,7 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
           isLoadingPrescriptions={isLoadingPrescriptions}
           onFieldChange={handleFieldChange}
           onModelChange={handleModeloPrescricaoChange}
+          onMultiModelChange={handleModelosPrescricaoChange}
         />
       </TabsContent>
       

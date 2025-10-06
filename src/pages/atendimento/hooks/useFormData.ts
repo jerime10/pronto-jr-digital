@@ -9,7 +9,8 @@ export interface FormState {
   alergias: string;
   evolucao: string;
   prescricaoPersonalizada: string;
-  modeloPrescricao: string;
+  modeloPrescricao: string; // Mantido para compatibilidade
+  modelosPrescricaoSelecionados: string[]; // Novo campo para múltiplos modelos
   examesSelecionados: string[];
   observacoesExames: string;
   resultadoExames: string;
@@ -27,6 +28,7 @@ const initialFormState: FormState = {
   evolucao: '',
   prescricaoPersonalizada: '',
   modeloPrescricao: '',
+  modelosPrescricaoSelecionados: [],
   examesSelecionados: [],
   observacoesExames: '',
   resultadoExames: '',
@@ -57,6 +59,18 @@ export const useFormData = () => {
       ...prev,
       modeloPrescricao: modelId,
       prescricaoPersonalizada: selectedModel?.description || prev.prescricaoPersonalizada
+    }));
+  }, [prescriptionModels]);
+
+  const handleModelosPrescricaoChange = useCallback((modelIds: string[]) => {
+    // Atualizar prescrição personalizada com os modelos selecionados
+    const selectedModels = prescriptionModels.filter(model => modelIds.includes(model.id));
+    const combinedDescription = selectedModels.map(model => model.description).join('\n\n... ... ...\n\n');
+    
+    setForm(prev => ({
+      ...prev,
+      modelosPrescricaoSelecionados: modelIds,
+      prescricaoPersonalizada: combinedDescription || prev.prescricaoPersonalizada
     }));
   }, [prescriptionModels]);
 
@@ -96,6 +110,7 @@ export const useFormData = () => {
     isLoadingExams,
     handleChange,
     handleModeloPrescricaoChange,
+    handleModelosPrescricaoChange,
     handleExamesChange,
     updateFormField,
     setFormData,

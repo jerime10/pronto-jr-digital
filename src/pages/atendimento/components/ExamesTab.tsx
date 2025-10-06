@@ -9,8 +9,7 @@ import { toast } from 'sonner';
 interface ExamModel {
   id: string;
   name: string;
-  result_template: string | null;
-  instructions?: string | null;
+  instructions: string | null;
 }
 
 interface ExamesTabProps {
@@ -59,8 +58,8 @@ const ExamesTab: React.FC<ExamesTabProps> = ({
       setIsLoading(true);
       try {
         const { data, error } = await supabase
-          .from('modelo-result-exames')
-          .select('id, name, result_template')
+          .from('exam_models')
+          .select('id, name, instructions')
           .order('name');
 
         if (error) {

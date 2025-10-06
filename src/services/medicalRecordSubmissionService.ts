@@ -4,7 +4,7 @@ import { SubmitMedicalRecordParams, MedicalRecordResponse } from '@/types/medica
 import { storeGeneratedDocument } from './documentStorageService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { sendToWebhook } from './webhookClient';
+import { sendToWebhook, WebhookResponseData } from './webhookClient';
 
 /**
  * Fetches site settings including logo and professional data
@@ -87,8 +87,11 @@ export async function submitMedicalRecordToWebhook(params: SubmitMedicalRecordPa
     console.log('Enviando dados para o webhook...');
     
     let response: Response;
+    let webhookData: WebhookResponseData | undefined;
     try {
-      response = await sendToWebhook(webhookUrl, formData);
+      const webhookResult = await sendToWebhook(webhookUrl, formData);
+      response = webhookResult.response;
+      webhookData = webhookResult.data;
     } catch (fetchError) {
       console.error('Erro na requisição fetch:', fetchError);
       throw new Error(`Erro de conexão com o webhook: ${fetchError instanceof Error ? fetchError.message : 'Erro desconhecido'}`);
@@ -96,6 +99,7 @@ export async function submitMedicalRecordToWebhook(params: SubmitMedicalRecordPa
 
     console.log('Status da resposta do webhook:', response.status);
     console.log('Headers da resposta:', Object.fromEntries(response.headers.entries()));
+    console.log('Dados processados do webhook:', webhookData);
 
     // Special handling for no-cors responses (status 0 means the request was sent but we can't read the response)
     const isProdUrl = webhookUrl.includes('n8n.mentoriajrs.com');
@@ -154,6 +158,33 @@ export async function submitMedicalRecordToWebhook(params: SubmitMedicalRecordPa
       }
       
       console.log('URL salva com sucesso na tabela medical_records');
+      
+      // Update exam_observations with processed observacoes if available
+      if (webhookData?.individual_fields?.observacoes) {
+        console.log('🔄 [OBSERVACOES] Atualizando exam_observations com dados processados do N8N...');
+        console.log('🔄 [OBSERVACOES] Valor original:', params.medicalRecord.exam_observations);
+        console.log('🔄 [OBSERVACOES] Valor processado:', webhookData.individual_fields.observacoes);
+        
+        try {
+          const { error: observacoesUpdateError } = await supabase
+            .from('medical_records')
+            .update({ exam_observations: webhookData.individual_fields.observacoes })
+            .eq('id', medicalRecordId);
+          
+          if (observacoesUpdateError) {
+            console.error('❌ [OBSERVACOES] Erro ao atualizar exam_observations:', observacoesUpdateError);
+          } else {
+            console.log('✅ [OBSERVACOES] exam_observations atualizado com sucesso!');
+          }
+        } catch (observacoesError) {
+          console.error('❌ [OBSERVACOES] Erro ao processar atualização de observações:', observacoesError);
+        }
+      } else {
+        console.log('⚠️ [OBSERVACOES] Nenhuma observação processada encontrada na resposta do webhook');
+        console.log('⚠️ [OBSERVACOES] webhookData:', webhookData);
+        console.log('⚠️ [OBSERVACOES] individual_fields:', webhookData?.individual_fields);
+      }
+      
       toast.success('Prontuário enviado e processado com sucesso!');
       
     } catch (storageError) {

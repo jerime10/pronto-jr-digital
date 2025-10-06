@@ -52,6 +52,7 @@ interface AtendimentoLayoutProps {
   prescriptionModels: any[];
   isLoadingPrescriptions: boolean;
   handleModeloPrescricaoChange: (modeloId: string) => void;
+  handleModelosPrescricaoChange: (modelosIds: string[]) => void;
   updateFormField: (fieldName: keyof FormState, value: any) => void;
   handleSalvarAtendimento: () => Promise<any>;
   handleGerarPDF: () => Promise<void>;
@@ -90,6 +91,7 @@ export const AtendimentoLayout: React.FC<AtendimentoLayoutProps> = ({
   prescriptionModels,
   isLoadingPrescriptions,
   handleModeloPrescricaoChange,
+  handleModelosPrescricaoChange,
   updateFormField,
   handleSalvarAtendimento,
   handleGerarPDF,
@@ -161,6 +163,7 @@ export const AtendimentoLayout: React.FC<AtendimentoLayoutProps> = ({
             prescriptionModels={prescriptionModels}
             isLoadingPrescriptions={isLoadingPrescriptions}
             handleModeloPrescricaoChange={handleModeloPrescricaoChange}
+            handleModelosPrescricaoChange={handleModelosPrescricaoChange}
             updateFormField={handleFieldChange}
             onSelectedModelChange={onSelectedModelChange}
             patientId={pacienteSelecionado.id}
