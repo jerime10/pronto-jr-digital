@@ -93,6 +93,8 @@ export const PublicAppointmentBooking: React.FC = () => {
   const [isUpdatingPhone, setIsUpdatingPhone] = useState(false);
   const [greeting, setGreeting] = useState('');
   const [validationAttempts, setValidationAttempts] = useState(0);
+  const [showRegistrationButton, setShowRegistrationButton] = useState(false);
+  const [dynamicMessage, setDynamicMessage] = useState('');
 
   // Estado para dados obstétricos
   const [obstetricData, setObstetricData] = useState({
@@ -499,165 +501,61 @@ export const PublicAppointmentBooking: React.FC = () => {
 
   // Novas funções para as etapas melhoradas
 
+  // Função para atualizar mensagens dinâmicas baseadas no número de dígitos
+  const updateDynamicMessage = (input: string) => {
+    const cleanNumber = cleanCpfOrSus(input);
+    
+    if (cleanNumber.length === 0) {
+      setDynamicMessage('');
+      return;
+    }
+    
+    if (cleanNumber.length < 11) {
+      setDynamicMessage('Digite o CPF com 11 números');
+    } else if (cleanNumber.length === 11) {
+      setDynamicMessage('');
+    } else if (cleanNumber.length > 11 && cleanNumber.length < 15) {
+      setDynamicMessage('Digite o SUS com 15 números');
+    } else if (cleanNumber.length === 15) {
+      setDynamicMessage('');
+    } else {
+      setDynamicMessage('Número muito longo. CPF: 11 dígitos, SUS: 15 dígitos');
+    }
+  };
+
+  // Função para cancelar e ocultar os botões
+  const cancelRegistration = () => {
+    setShowRegistrationButton(false);
+    setDynamicMessage('');
+    setCpfSusInput('');
+    toast.info('Tente novamente digitando seu CPF ou SUS.');
+  };
+
   const validateCpfSus = async () => {
     if (!cpfSusInput.trim()) {
       toast.error('Por favor, insira o CPF ou SUS.');
       return;
     }
 
-    // Verificar se o usuário digitou 7 números (validação especial para CPF)
-    const sevenDigitValidation = validateSevenDigitInput(cpfSusInput.trim());
-    
-    if (sevenDigitValidation.isSevenDigits) {
-      if (sevenDigitValidation.shouldRedirectToRegistration) {
-        // Incrementar tentativas mesmo para 7 dígitos especiais
-        const newAttempts = validationAttempts + 1;
-        setValidationAttempts(newAttempts);
-        
-        if (newAttempts >= 3) {
-          console.log('🚨 3 tentativas fracassadas - redirecionando...');
-          console.log('🔗 publicLinks.public_registration_url:', publicLinks.public_registration_url);
-          console.log('🔗 URL de redirecionamento final:', publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`);
-          
-          toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
-          setTimeout(() => {
-            const redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
-            console.log('🚀 Redirecionando para:', redirectUrl);
-            window.location.href = redirectUrl;
-          }, 2000);
-          return;
-        }
-        
-        const remainingAttempts = 3 - newAttempts;
-        toast.error(`${sevenDigitValidation.message} Tentativas restantes: ${remainingAttempts}`);
-        return;
-      } else {
-        toast.info(sevenDigitValidation.message);
-        return;
-      }
-    }
-
     const cleanNumber = cleanCpfOrSus(cpfSusInput.trim());
     
-    // Verificar se tem o número mínimo de dígitos para CPF ou SUS
-    if (cleanNumber.length < 11) {
-      const newAttempts = validationAttempts + 1;
-      setValidationAttempts(newAttempts);
-      
-      if (newAttempts >= 3) {
-        console.log('🚨 3 tentativas fracassadas - CPF com menos de 11 dígitos');
-        console.log('🔗 Estado atual do publicLinks:', publicLinks);
-        console.log('🔗 publicLinks.public_registration_url:', publicLinks.public_registration_url);
-        
-        toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
-        setTimeout(() => {
-          const redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
-          console.log('🚀 Redirecionando para cadastro (CPF inválido):', redirectUrl);
-          window.location.href = redirectUrl;
-        }, 2000);
-        return;
-      }
-      
-      const remainingAttempts = 3 - newAttempts;
-      toast.error(`CPF deve ter 11 dígitos ou SUS deve ter 15 dígitos. Tentativas restantes: ${remainingAttempts}`);
+    // Só proceder com validação se tiver exatamente 11 ou 15 dígitos
+    if (cleanNumber.length !== 11 && cleanNumber.length !== 15) {
+      // Não fazer nada, deixar as mensagens dinâmicas guiarem o usuário
       return;
     }
 
-    // Se tem 11 dígitos, tratar como CPF
-    if (cleanNumber.length === 11) {
-      if (!isValidCpfOrSus(cpfSusInput.trim())) {
-        const newAttempts = validationAttempts + 1;
-        setValidationAttempts(newAttempts);
-        
-        if (newAttempts >= 3) {
-          console.log('🚨 3 tentativas fracassadas - CPF inválido');
-          console.log('🔗 Estado atual do publicLinks:', publicLinks);
-          console.log('🔗 publicLinks.public_registration_url:', publicLinks.public_registration_url);
-          
-          toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
-          setTimeout(() => {
-            const redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
-            console.log('🚀 Redirecionando para cadastro (CPF inválido):', redirectUrl);
-            window.location.href = redirectUrl;
-          }, 2000);
-          return;
-        }
-        
-        const remainingAttempts = 3 - newAttempts;
-        toast.error(`CPF inválido. Verifique os dígitos digitados. Tentativas restantes: ${remainingAttempts}`);
-        return;
-      }
-    }
-    
-    // Se tem 15 dígitos, tratar como SUS
-    if (cleanNumber.length === 15) {
-      if (!isValidCpfOrSus(cpfSusInput.trim())) {
-        const newAttempts = validationAttempts + 1;
-        setValidationAttempts(newAttempts);
-        
-        if (newAttempts >= 3) {
-          console.log('🚨 3 tentativas fracassadas - SUS inválido');
-          console.log('🔗 Estado atual do publicLinks:', publicLinks);
-          console.log('🔗 publicLinks.public_registration_url:', publicLinks.public_registration_url);
-          
-          toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
-          setTimeout(() => {
-            const redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
-            console.log('🚀 Redirecionando para cadastro (SUS inválido):', redirectUrl);
-            window.location.href = redirectUrl;
-          }, 2000);
-          return;
-        }
-        
-        const remainingAttempts = 3 - newAttempts;
-        toast.error(`SUS inválido. Verifique os dígitos digitados. Tentativas restantes: ${remainingAttempts}`);
-        return;
-      }
-    }
-    
-    // Se não tem 11 nem 15 dígitos, mas tem mais de 11
-    if (cleanNumber.length > 11 && cleanNumber.length < 15) {
-      const newAttempts = validationAttempts + 1;
-      setValidationAttempts(newAttempts);
-      
-      if (newAttempts >= 3) {
-        console.log('🚨 3 tentativas fracassadas - Número com tamanho inválido');
-        console.log('🔗 Estado atual do publicLinks:', publicLinks);
-        console.log('🔗 publicLinks.public_registration_url:', publicLinks.public_registration_url);
-        
-        toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
-        setTimeout(() => {
-          const redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
-          console.log('🚀 Redirecionando para cadastro (tamanho inválido):', redirectUrl);
-          window.location.href = redirectUrl;
-        }, 2000);
-        return;
-      }
-      
-      const remainingAttempts = 3 - newAttempts;
-      toast.error(`SUS deve ter 15 dígitos. Tentativas restantes: ${remainingAttempts}`);
-      return;
-    }
-    
-    if (cleanNumber.length > 15) {
-      const newAttempts = validationAttempts + 1;
-      setValidationAttempts(newAttempts);
-      
-      if (newAttempts >= 3) {
-          toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
-          setTimeout(() => {
-            window.location.href = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
-          }, 2000);
-          return;
-        }
-      
-      const remainingAttempts = 3 - newAttempts;
-      toast.error(`Número muito longo. CPF deve ter 11 dígitos ou SUS deve ter 15 dígitos. Tentativas restantes: ${remainingAttempts}`);
+    // Validar formato do CPF (11 dígitos) ou SUS (15 dígitos)
+    if (!isValidCpfOrSus(cpfSusInput.trim())) {
+      const documentType = cleanNumber.length === 11 ? 'CPF' : 'SUS';
+      toast.error(`${documentType} inválido. Verifique os dígitos digitados.`);
       return;
     }
 
     try {
       setIsLoading(true);
+      setShowRegistrationButton(false);
+      setDynamicMessage('');
       
       const { data, error } = await supabase
         .from('patients')
@@ -670,8 +568,10 @@ export const PublicAppointmentBooking: React.FC = () => {
       }
 
       if (data) {
-        // Paciente encontrado - resetar tentativas e prosseguir
+        // Paciente encontrado - resetar estados e prosseguir
         setValidationAttempts(0);
+        setShowRegistrationButton(false);
+        setDynamicMessage('');
         setPatient(data);
         setTempPhone(data.phone || '');
         setFormData(prev => ({
@@ -686,27 +586,10 @@ export const PublicAppointmentBooking: React.FC = () => {
         setCurrentStep('welcome_update');
         toast.success(`${timeGreeting}, ${firstName}! Vamos agendar sua consulta.`);
       } else {
-        // Paciente não encontrado - incrementar tentativas
-        const newAttempts = validationAttempts + 1;
-        setValidationAttempts(newAttempts);
-        
-        if (newAttempts >= 3) {
-          console.log('🚨 3 tentativas fracassadas - Paciente não encontrado');
-          console.log('🔗 Estado atual do publicLinks:', publicLinks);
-          console.log('🔗 publicLinks.public_registration_url:', publicLinks.public_registration_url);
-          
-          toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
-          setTimeout(() => {
-            const redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
-            console.log('🚀 Redirecionando para cadastro (paciente não encontrado):', redirectUrl);
-            window.location.href = redirectUrl;
-          }, 2000);
-          return;
-        }
-        
+        // Paciente não encontrado - mostrar botões de cadastro
         const documentType = cleanNumber.length === 11 ? 'CPF' : 'SUS';
-        const remainingAttempts = 3 - newAttempts;
-        toast.error(`${documentType} não encontrado. Verifique os dados ou tente novamente. Tentativas restantes: ${remainingAttempts}`);
+        setShowRegistrationButton(true);
+        toast.error(`${documentType} não encontrado no sistema.`);
       }
       
     } catch (error) {
@@ -1363,7 +1246,11 @@ export const PublicAppointmentBooking: React.FC = () => {
                     <Input
                       id="cpf-sus"
                       value={cpfSusInput}
-                      onChange={(e) => setCpfSusInput(formatCpfOrSus(e.target.value))}
+                      onChange={(e) => {
+                        const formattedValue = formatCpfOrSus(e.target.value);
+                        setCpfSusInput(formattedValue);
+                        updateDynamicMessage(formattedValue);
+                      }}
                       placeholder="CPF (XXX.XXX.XXX-XX) OU SUS (XXX XXXX XXXX XXXX)"
                       required
                       className="bg-slate-700/50 border-slate-600/50 text-white placeholder:text-slate-400 focus:border-purple-500 focus:ring-purple-500/20 h-12 sm:h-14 text-base sm:text-lg backdrop-blur-sm transition-all duration-300 hover:bg-slate-700/70"
@@ -1371,14 +1258,42 @@ export const PublicAppointmentBooking: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 rounded-md pointer-events-none opacity-0 transition-opacity duration-300 hover:opacity-100"></div>
                   </div>
                   
-                  {/* Feedback de tentativas */}
-                  {validationAttempts > 0 && (
-                    <Alert className="bg-yellow-500/10 border-yellow-500/30 text-yellow-300">
+                  {/* Mensagem dinâmica */}
+                  {dynamicMessage && (
+                    <Alert className="bg-blue-500/10 border-blue-500/30 text-blue-300">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
-                        {validationAttempts === 1 && "Primeira tentativa incorreta. Você tem mais 2 tentativas."}
-                        {validationAttempts === 2 && "Segunda tentativa incorreta. Você tem mais 1 tentativa."}
-                        {validationAttempts >= 3 && "Muitas tentativas incorretas. Redirecionando para cadastro..."}
+                        <p className="font-semibold">{dynamicMessage}</p>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {/* Mensagem de cadastro com dois botões */}
+                  {showRegistrationButton && (
+                    <Alert className="bg-orange-500/10 border-orange-500/30 text-orange-300">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription className="space-y-3">
+                        <p className="font-semibold">Não Cadastrado. Por favor, realize seu cadastro uma única vez.</p>
+                        <div className="flex gap-3">
+                          <Button 
+                            onClick={() => {
+                              const redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
+                              console.log('🚀 Redirecionando para cadastro via botão:', redirectUrl);
+                              window.location.href = redirectUrl;
+                            }}
+                            className="flex-1 h-10 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold text-sm tracking-wide transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-green-500/25"
+                          >
+                            <User className="mr-2 h-4 w-4" />
+                            CADASTRAR
+                          </Button>
+                          <Button 
+                            onClick={cancelRegistration}
+                            variant="outline"
+                            className="flex-1 h-10 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white font-bold text-sm tracking-wide transition-all duration-300"
+                          >
+                            CANCELAR
+                          </Button>
+                        </div>
                       </AlertDescription>
                     </Alert>
                   )}
@@ -1386,8 +1301,8 @@ export const PublicAppointmentBooking: React.FC = () => {
                 
                 <Button 
                   onClick={validateCpfSus} 
-                  disabled={isLoading}
-                  className="w-full h-12 sm:h-14 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white font-bold text-sm sm:text-base tracking-wide transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-purple-500/25 futuristic-hover focus-glow smooth-transition"
+                  disabled={isLoading || (cleanCpfOrSus(cpfSusInput).length !== 11 && cleanCpfOrSus(cpfSusInput).length !== 15)}
+                  className="w-full h-12 sm:h-14 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white font-bold text-sm sm:text-base tracking-wide transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-purple-500/25 futuristic-hover focus-glow smooth-transition disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   aria-label="Próximo"
                 >
                   {isLoading && <div className="mr-3 h-5 w-5 animate-spin rounded-full border-2 border-r-transparent" />}
