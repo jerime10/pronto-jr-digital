@@ -333,6 +333,7 @@ export type SiteSettings = {
   clinic_address?: string;
   clinic_phone?: string;
   n8n_webhook_url: string | null;
+  public_registration_url: string | null;
   pdf_header_template?: string;
   pdf_footer_template?: string;
   pdf_patient_info_template?: string;

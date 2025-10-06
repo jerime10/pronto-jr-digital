@@ -70,7 +70,8 @@ export const PublicAppointmentBooking: React.FC = () => {
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [publicLinks, setPublicLinks] = useState({
-    exit_url: ''
+    exit_url: '',
+    public_registration_url: ''
   });
   const [formData, setFormData] = useState<AppointmentFormData>({
     client_name: '',
@@ -234,6 +235,7 @@ export const PublicAppointmentBooking: React.FC = () => {
 
   const loadPublicLinks = async () => {
     try {
+      console.log('🔍 Carregando links públicos...');
       const { data, error } = await supabase
         .from('site_settings')
         .select('*')
@@ -241,19 +243,37 @@ export const PublicAppointmentBooking: React.FC = () => {
         .single();
 
       if (error) {
-        console.error('Erro ao carregar links públicos:', error);
+        console.error('❌ Erro ao carregar links públicos:', error);
+        setPublicLinks({
+          exit_url: 'https://preview--cjrs-landing-craft.lovable.app',
+          public_registration_url: `${window.location.origin}/cadastro-paciente`
+        });
         return;
       }
 
       if (data) {
+        console.log('📊 Dados carregados do site_settings:', data);
+        console.log('🔗 public_registration_url encontrado:', data.public_registration_url);
+        
+        const newLinks = {
+          exit_url: data.medical_record_webhook_url || 'https://preview--cjrs-landing-craft.lovable.app',
+          public_registration_url: data.public_registration_url || `${window.location.origin}/cadastro-paciente`
+        };
+        
+        console.log('✅ Links configurados:', newLinks);
+        setPublicLinks(newLinks);
+      } else {
+        console.log('⚠️ Nenhum dado encontrado, usando valores padrão');
         setPublicLinks({
-          exit_url: (data as any).post_registration_redirect_url || 'https://preview--cjrs-landing-craft.lovable.app'
+          exit_url: 'https://preview--cjrs-landing-craft.lovable.app',
+          public_registration_url: `${window.location.origin}/cadastro-paciente`
         });
       }
     } catch (error) {
-      console.error('Erro ao carregar configurações de links:', error);
+      console.error('❌ Erro ao carregar configurações de links:', error);
       setPublicLinks({
-        exit_url: 'https://preview--cjrs-landing-craft.lovable.app'
+        exit_url: 'https://preview--cjrs-landing-craft.lovable.app',
+        public_registration_url: `${window.location.origin}/cadastro-paciente`
       });
     }
   };
@@ -456,10 +476,16 @@ export const PublicAppointmentBooking: React.FC = () => {
         const firstName = data.name.split(' ')[0];
         toast.success(`${getTimeGreeting()}, ${firstName}! Vamos agendar sua consulta.`);
       } else {
+        console.log('👤 Paciente não encontrado - redirecionando para cadastro...');
+        console.log('🔗 Estado atual do publicLinks:', publicLinks);
+        console.log('🔗 publicLinks.public_registration_url:', publicLinks.public_registration_url);
+        
         toast.error('Paciente não encontrado. É necessário realizar o cadastro primeiro.');
         // Redirecionar para cadastro público
         setTimeout(() => {
-          window.location.href = '/public/patient-registration';
+          const redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
+          console.log('🚀 Redirecionando para cadastro:', redirectUrl);
+          window.location.href = redirectUrl;
         }, 2000);
       }
       
@@ -489,9 +515,15 @@ export const PublicAppointmentBooking: React.FC = () => {
         setValidationAttempts(newAttempts);
         
         if (newAttempts >= 3) {
+          console.log('🚨 3 tentativas fracassadas - redirecionando...');
+          console.log('🔗 publicLinks.public_registration_url:', publicLinks.public_registration_url);
+          console.log('🔗 URL de redirecionamento final:', publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`);
+          
           toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
           setTimeout(() => {
-            window.location.href = 'http://localhost:8080/cadastro-paciente';
+            const redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
+            console.log('🚀 Redirecionando para:', redirectUrl);
+            window.location.href = redirectUrl;
           }, 2000);
           return;
         }
@@ -513,9 +545,15 @@ export const PublicAppointmentBooking: React.FC = () => {
       setValidationAttempts(newAttempts);
       
       if (newAttempts >= 3) {
+        console.log('🚨 3 tentativas fracassadas - CPF com menos de 11 dígitos');
+        console.log('🔗 Estado atual do publicLinks:', publicLinks);
+        console.log('🔗 publicLinks.public_registration_url:', publicLinks.public_registration_url);
+        
         toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
         setTimeout(() => {
-          window.location.href = 'http://localhost:8080/cadastro-paciente';
+          const redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
+          console.log('🚀 Redirecionando para cadastro (CPF inválido):', redirectUrl);
+          window.location.href = redirectUrl;
         }, 2000);
         return;
       }
@@ -532,9 +570,15 @@ export const PublicAppointmentBooking: React.FC = () => {
         setValidationAttempts(newAttempts);
         
         if (newAttempts >= 3) {
+          console.log('🚨 3 tentativas fracassadas - CPF inválido');
+          console.log('🔗 Estado atual do publicLinks:', publicLinks);
+          console.log('🔗 publicLinks.public_registration_url:', publicLinks.public_registration_url);
+          
           toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
           setTimeout(() => {
-            window.location.href = 'http://localhost:8080/cadastro-paciente';
+            const redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
+            console.log('🚀 Redirecionando para cadastro (CPF inválido):', redirectUrl);
+            window.location.href = redirectUrl;
           }, 2000);
           return;
         }
@@ -552,9 +596,15 @@ export const PublicAppointmentBooking: React.FC = () => {
         setValidationAttempts(newAttempts);
         
         if (newAttempts >= 3) {
+          console.log('🚨 3 tentativas fracassadas - SUS inválido');
+          console.log('🔗 Estado atual do publicLinks:', publicLinks);
+          console.log('🔗 publicLinks.public_registration_url:', publicLinks.public_registration_url);
+          
           toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
           setTimeout(() => {
-            window.location.href = 'http://localhost:8080/cadastro-paciente';
+            const redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
+            console.log('🚀 Redirecionando para cadastro (SUS inválido):', redirectUrl);
+            window.location.href = redirectUrl;
           }, 2000);
           return;
         }
@@ -571,9 +621,15 @@ export const PublicAppointmentBooking: React.FC = () => {
       setValidationAttempts(newAttempts);
       
       if (newAttempts >= 3) {
+        console.log('🚨 3 tentativas fracassadas - Número com tamanho inválido');
+        console.log('🔗 Estado atual do publicLinks:', publicLinks);
+        console.log('🔗 publicLinks.public_registration_url:', publicLinks.public_registration_url);
+        
         toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
         setTimeout(() => {
-          window.location.href = 'http://localhost:8080/cadastro-paciente';
+          const redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
+          console.log('🚀 Redirecionando para cadastro (tamanho inválido):', redirectUrl);
+          window.location.href = redirectUrl;
         }, 2000);
         return;
       }
@@ -588,12 +644,12 @@ export const PublicAppointmentBooking: React.FC = () => {
       setValidationAttempts(newAttempts);
       
       if (newAttempts >= 3) {
-        toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
-        setTimeout(() => {
-          window.location.href = 'http://localhost:8080/cadastro-paciente';
-        }, 2000);
-        return;
-      }
+          toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
+          setTimeout(() => {
+            window.location.href = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
+          }, 2000);
+          return;
+        }
       
       const remainingAttempts = 3 - newAttempts;
       toast.error(`Número muito longo. CPF deve ter 11 dígitos ou SUS deve ter 15 dígitos. Tentativas restantes: ${remainingAttempts}`);
@@ -635,9 +691,15 @@ export const PublicAppointmentBooking: React.FC = () => {
         setValidationAttempts(newAttempts);
         
         if (newAttempts >= 3) {
+          console.log('🚨 3 tentativas fracassadas - Paciente não encontrado');
+          console.log('🔗 Estado atual do publicLinks:', publicLinks);
+          console.log('🔗 publicLinks.public_registration_url:', publicLinks.public_registration_url);
+          
           toast.error('Muitas tentativas incorretas. Redirecionando para cadastro de novo paciente.');
           setTimeout(() => {
-            window.location.href = 'http://localhost:8080/cadastro-paciente';
+            const redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
+            console.log('🚀 Redirecionando para cadastro (paciente não encontrado):', redirectUrl);
+            window.location.href = redirectUrl;
           }, 2000);
           return;
         }
