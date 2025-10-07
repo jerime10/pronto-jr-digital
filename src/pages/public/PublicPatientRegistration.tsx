@@ -4,13 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { UserPlus, Search, CheckCircle, AlertCircle, Sparkles, Shield } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { UserPlus, Search, CheckCircle, AlertCircle, Sparkles, Shield, Users, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { PatientFormFields } from '../pacientes/components/PatientFormFields';
 import { calculateAgeInYears, formatDateForDB } from '@/utils/dateUtils';
 import { formatPhoneNumber, isValidPhoneNumber, cleanPhoneNumber } from '@/utils/phoneUtils';
 import { formatCpfOrSus, isValidCpfOrSus, cleanCpfOrSus, validateSevenDigitInput } from '@/utils/cpfSusUtils';
+import { UserService } from '@/services/userService';
+import { Usuario } from '@/types/database';
 import '../../styles/animations.css';
 
 interface PatientFormData {
@@ -31,10 +34,20 @@ export const PublicPatientRegistration: React.FC = () => {
   const [susNumber, setSusNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [existingPatient, setExistingPatient] = useState<any>(null);
+  const [isButtonEnabled, setIsButtonEnabled] = useState(false);
+  const [dynamicMessage, setDynamicMessage] = useState('Digite o CPF');
   const [publicLinks, setPublicLinks] = useState({
     scheduling_url: '',
     exit_url: ''
   });
+  
+  // Estados para sistema de parcerias
+  const [partnerInfo, setPartnerInfo] = useState<Usuario | null>(null);
+  const [partnerUsername, setPartnerUsername] = useState<string>('');
+  const [partnerCode, setPartnerCode] = useState<string>('');
+  const [isPartnerContext, setIsPartnerContext] = useState(false);
+  const [shouldRedirectToScheduling, setShouldRedirectToScheduling] = useState(false);
+  
   const [formData, setFormData] = useState<PatientFormData>({
     name: '',
     sus: '',
@@ -48,7 +61,92 @@ export const PublicPatientRegistration: React.FC = () => {
 
   useEffect(() => {
     loadPublicLinks();
+    extractAndValidatePartnerInfo();
   }, []);
+
+  // Função para obter parâmetros da URL
+  const getUrlParams = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return {
+      redirect: urlParams.get('redirect'),
+      partner: urlParams.get('partner'),
+      code: urlParams.get('code'),
+      cpf_sus: urlParams.get('cpf_sus')
+    };
+  };
+
+  // Função para extrair e validar informações do parceiro
+  const extractAndValidatePartnerInfo = async () => {
+    try {
+      const urlParams = getUrlParams();
+      const { redirect, partner, code, cpf_sus } = urlParams;
+      
+      console.log('🔍 Parâmetros da URL detectados:', { redirect, partner, code, cpf_sus });
+      
+      // Verificar se é um contexto de parceiro
+      if (partner || code) {
+        setIsPartnerContext(true);
+        
+        // Verificar se deve redirecionar para agendamento após cadastro
+        if (redirect === 'agendamento') {
+          setShouldRedirectToScheduling(true);
+        }
+        
+        // Pré-preencher CPF/SUS se fornecido
+        if (cpf_sus) {
+          setSusNumber(formatCpfOrSus(cpf_sus));
+          updateDynamicMessage(cpf_sus);
+        }
+        
+        // Validar parceiro por username
+        if (partner) {
+          setPartnerUsername(partner);
+          
+          const partnerData = await UserService.getUserByUsername(partner);
+          
+          if (partnerData && partnerData.user_type === 'partner' && partnerData.is_active) {
+            setPartnerInfo(partnerData);
+            setPartnerCode(partnerData.partner_code || '');
+            console.log('✅ Parceiro válido encontrado:', partnerData.full_name || partnerData.username);
+            
+            toast.success(`Cadastro via parceiro: ${partnerData.full_name || partnerData.username}`);
+          } else {
+            console.log('⚠️ Parceiro inválido ou inativo');
+            setIsPartnerContext(false);
+            toast.error('Link de parceiro inválido ou inativo.');
+          }
+        }
+        
+        // Validar parceiro por código
+        else if (code) {
+          setPartnerCode(code);
+          
+          const { data: partnerData, error } = await supabase
+            .from('usuarios')
+            .select('*')
+            .eq('partner_code', code)
+            .eq('user_type', 'partner')
+            .eq('is_active', true)
+            .single();
+            
+          if (!error && partnerData) {
+            setPartnerInfo(partnerData);
+            setPartnerUsername(partnerData.username);
+            console.log('✅ Parceiro encontrado pelo código:', partnerData.full_name || partnerData.username);
+            
+            toast.success(`Cadastro via parceiro: ${partnerData.full_name || partnerData.username}`);
+          } else {
+            console.log('⚠️ Código de parceiro inválido');
+            setIsPartnerContext(false);
+            toast.error('Código de parceiro inválido.');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro ao extrair informações do parceiro:', error);
+      setIsPartnerContext(false);
+    }
+  };
 
   const loadPublicLinks = async () => {
     try {
@@ -86,6 +184,22 @@ export const PublicPatientRegistration: React.FC = () => {
     return 'Boa noite';
   };
 
+  const updateDynamicMessage = (value: string) => {
+    const cleanNumber = value.replace(/\D/g, '');
+    const length = cleanNumber.length;
+    
+    if (length === 0) {
+      setDynamicMessage('Digite o CPF');
+      setIsButtonEnabled(false);
+    } else if (length <= 11) {
+      setDynamicMessage('Digite o CPF');
+      setIsButtonEnabled(length === 11);
+    } else {
+      setDynamicMessage('Digite o SUS');
+      setIsButtonEnabled(length === 15);
+    }
+  };
+
   const validateSusNumber = async () => {
     if (!susNumber.trim()) {
       toast.error('Por favor, insira o CPF ou SUS.');
@@ -97,21 +211,38 @@ export const PublicPatientRegistration: React.FC = () => {
     
     if (sevenDigitValidation.isSevenDigits) {
       if (sevenDigitValidation.shouldRedirectToRegistration) {
-        toast.error(sevenDigitValidation.message);
-        // Como já estamos na página de cadastro, apenas prosseguir para o formulário
+        // CPF válido de 7 dígitos - prosseguir para o formulário
         setFormData(prev => ({ ...prev, sus: cleanCpfOrSus(susNumber.trim()) }));
         setCurrentStep('form_fields');
         return;
       } else {
-        toast.info(sevenDigitValidation.message);
+        // CPF inválido de 7 dígitos - mostrar erro e não prosseguir
+        toast.error(sevenDigitValidation.message);
         return;
       }
     }
 
     // Validar formato antes de prosseguir
-    if (!isValidCpfOrSus(susNumber.trim())) {
-      toast.error('CPF deve ter 11 dígitos ou SUS deve ter 15 dígitos.');
-      return;
+    const cleanNumber = cleanCpfOrSus(susNumber.trim());
+    const isValid = isValidCpfOrSus(susNumber.trim());
+    
+    if (!isValid) {
+      // Se o CPF/SUS é inválido, permitir prosseguir para cadastro
+      // mas mostrar uma mensagem informativa
+      if (cleanNumber.length === 11) {
+        toast.error('CPF inválido. Prosseguindo para cadastro com os dados informados.');
+        setFormData(prev => ({ ...prev, sus: cleanNumber }));
+        setCurrentStep('form_fields');
+        return;
+      } else if (cleanNumber.length === 15) {
+        toast.error('SUS inválido. Prosseguindo para cadastro com os dados informados.');
+        setFormData(prev => ({ ...prev, sus: cleanNumber }));
+        setCurrentStep('form_fields');
+        return;
+      } else {
+        toast.error('CPF deve ter 11 dígitos ou SUS deve ter 15 dígitos.');
+        return;
+      }
     }
 
     try {
@@ -119,9 +250,6 @@ export const PublicPatientRegistration: React.FC = () => {
       
       // Limpar estado anterior
       setExistingPatient(null);
-      
-      // Limpar formatação para busca no banco
-      const cleanNumber = cleanCpfOrSus(susNumber.trim());
       
       // Verificar se o número já existe no banco
       const { data, error } = await supabase
@@ -232,9 +360,21 @@ export const PublicPatientRegistration: React.FC = () => {
 
       toast.success('Cadastro realizado com sucesso!');
       
-      // Redirecionar para URL de saída após 2 segundos
+      // Verificar se há parâmetro redirect para redirecionar adequadamente
+      const urlParams = getUrlParams();
+      
+      // Redirecionar após 2 segundos
       setTimeout(() => {
-        if (publicLinks.exit_url) {
+        if (urlParams.redirect === 'agendamento') {
+          // Se veio do link de parceiro, redirecionar para agendamento com os parâmetros
+          const redirectParams = new URLSearchParams();
+          if (urlParams.partner) redirectParams.set('partner', urlParams.partner);
+          if (urlParams.code) redirectParams.set('code', urlParams.code);
+          
+          const redirectUrl = `/public/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
+          window.location.href = redirectUrl;
+        } else if (publicLinks.exit_url) {
+          // Redirecionamento padrão
           window.location.href = publicLinks.exit_url;
         }
       }, 2000);
@@ -330,9 +470,21 @@ export const PublicPatientRegistration: React.FC = () => {
 
       toast.success('Dados atualizados com sucesso!');
       
-      // Redirecionar para URL de saída após 2 segundos
+      // Verificar se há parâmetro redirect para redirecionar adequadamente
+      const urlParams = getUrlParams();
+      
+      // Redirecionar após 2 segundos
       setTimeout(() => {
-        if (publicLinks.exit_url) {
+        if (urlParams.redirect === 'agendamento') {
+          // Se veio do link de parceiro, redirecionar para agendamento com os parâmetros
+          const redirectParams = new URLSearchParams();
+          if (urlParams.partner) redirectParams.set('partner', urlParams.partner);
+          if (urlParams.code) redirectParams.set('code', urlParams.code);
+          
+          const redirectUrl = `/public/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
+          window.location.href = redirectUrl;
+        } else if (publicLinks.exit_url) {
+          // Redirecionamento padrão
           window.location.href = publicLinks.exit_url;
         } else {
           toast.error('URL de saída não configurada.');
@@ -348,9 +500,51 @@ export const PublicPatientRegistration: React.FC = () => {
   };
 
   const handleScheduling = () => {
-    if (publicLinks.scheduling_url) {
+    console.log('🚀 Iniciando redirecionamento para agendamento...');
+    console.log('📋 Estado atual:', {
+      shouldRedirectToScheduling,
+      isPartnerContext,
+      partnerUsername,
+      partnerCode,
+      partnerInfo: partnerInfo?.full_name || partnerInfo?.username
+    });
+    
+    // Se é contexto de parceiro ou deve redirecionar para agendamento
+    if (shouldRedirectToScheduling || isPartnerContext) {
+      const redirectParams = new URLSearchParams();
+      
+      // Priorizar informações do estado sobre parâmetros da URL
+      if (partnerUsername) {
+        redirectParams.set('partner', partnerUsername);
+      }
+      if (partnerCode) {
+        redirectParams.set('code', partnerCode);
+      }
+      
+      // Fallback para parâmetros da URL se não tiver no estado
+      if (!partnerUsername && !partnerCode) {
+        const urlParams = getUrlParams();
+        if (urlParams.partner) redirectParams.set('partner', urlParams.partner);
+        if (urlParams.code) redirectParams.set('code', urlParams.code);
+      }
+      
+      const redirectUrl = `/public/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
+      
+      console.log('🎯 Redirecionando para agendamento interno:', redirectUrl);
+      console.log('📋 Parâmetros preservados:', Object.fromEntries(redirectParams));
+      
+      // Mostrar mensagem de sucesso se há parceiro
+      if (partnerInfo) {
+        toast.success(`Redirecionando para agendamento via ${partnerInfo.full_name || partnerInfo.username}`);
+      }
+      
+      window.location.href = redirectUrl;
+    } else if (publicLinks.scheduling_url) {
+      // Redirecionamento padrão para URL externa
+      console.log('🌐 Redirecionando para URL externa:', publicLinks.scheduling_url);
       window.open(publicLinks.scheduling_url, '_blank');
     } else {
+      console.log('❌ Nenhum link de agendamento configurado');
       toast.error('Link de agendamento não configurado.');
     }
   };
@@ -402,6 +596,31 @@ export const PublicPatientRegistration: React.FC = () => {
               <span className="text-xs text-green-400 font-medium tracking-wide">SEGURO E CONFIDENCIAL</span>
             </div>
           </CardHeader>
+          
+          {/* Exibição das informações do parceiro */}
+          {isPartnerContext && partnerInfo && (
+            <div className="px-6 sm:px-8 pb-4">
+              <Alert className="bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border-purple-500/30 backdrop-blur-sm">
+                <Users className="h-4 w-4 text-purple-400" />
+                <AlertDescription className="text-slate-200">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">Cadastro via parceiro:</span>
+                      <Badge variant="secondary" className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+                        {partnerInfo.full_name || partnerInfo.username}
+                      </Badge>
+                    </div>
+                    {shouldRedirectToScheduling && (
+                      <div className="flex items-center gap-1 text-xs text-cyan-400">
+                        <ExternalLink className="h-3 w-3" />
+                        <span>Retornará ao agendamento</span>
+                      </div>
+                    )}
+                  </div>
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
           
           <CardContent className="p-6 sm:p-8">
             {currentStep === 'existing_user' && (
@@ -479,7 +698,11 @@ export const PublicPatientRegistration: React.FC = () => {
                     <Input
                       id="sus"
                       value={susNumber}
-                      onChange={(e) => setSusNumber(formatCpfOrSus(e.target.value))}
+                      onChange={(e) => {
+                        const formattedValue = formatCpfOrSus(e.target.value);
+                        setSusNumber(formattedValue);
+                        updateDynamicMessage(formattedValue);
+                      }}
                       placeholder="CPF (XXX.XXX.XXX-XX) OU SUS (XXX XXXX XXXX XXXX)"
                       required
                       className="bg-slate-700/50 border-slate-600/50 text-white placeholder:text-slate-400 focus:border-purple-500 focus:ring-purple-500/20 h-12 sm:h-14 text-base sm:text-lg backdrop-blur-sm transition-all duration-300 hover:bg-slate-700/70"
@@ -488,10 +711,16 @@ export const PublicPatientRegistration: React.FC = () => {
                   </div>
                 </div>
                 
+                {!isButtonEnabled && (
+                  <div className="text-center text-slate-400 text-sm py-2">
+                    {dynamicMessage}
+                  </div>
+                )}
+                
                 <Button 
                     onClick={validateSusNumber} 
-                    disabled={loading}
-                    className="w-full h-12 sm:h-14 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white font-bold text-sm sm:text-base tracking-wide transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-purple-500/25 futuristic-hover focus-glow smooth-transition"
+                    disabled={loading || !isButtonEnabled}
+                    className="w-full h-12 sm:h-14 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white font-bold text-sm sm:text-base tracking-wide transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-purple-500/25 futuristic-hover focus-glow smooth-transition disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     aria-label="Verificar número do SUS"
                   >
                     {loading && <div className="mr-3 h-5 w-5 animate-spin rounded-full border-2 border-r-transparent" />}

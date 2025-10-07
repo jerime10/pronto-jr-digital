@@ -3,6 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Trash } from 'lucide-react';
+import { ActionButtonGuard } from '@/components/PermissionGuard';
 
 interface PatientFormHeaderProps {
   isEditMode: boolean;
@@ -35,10 +36,12 @@ export const PatientFormHeader: React.FC<PatientFormHeaderProps> = ({
         </Button>
         
         {isEditMode && (
-          <Button variant="destructive" onClick={onDelete} disabled={loading}>
-            <Trash className="mr-2 h-4 w-4" />
-            Excluir
-          </Button>
+          <ActionButtonGuard permission="pacientes_excluir">
+            <Button variant="destructive" onClick={onDelete} disabled={loading}>
+              <Trash className="mr-2 h-4 w-4" />
+              Excluir
+            </Button>
+          </ActionButtonGuard>
         )}
       </div>
     </div>

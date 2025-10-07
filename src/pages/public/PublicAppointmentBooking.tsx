@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Search, CheckCircle, AlertCircle, Sparkles, Shield, Clock, User, Phone, ChevronLeft, ChevronRight, ArrowRight, FileText, Save, Copy } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Calendar, Search, CheckCircle, AlertCircle, Sparkles, Shield, Clock, User, Phone, ChevronLeft, ChevronRight, ArrowRight, FileText, Save, Copy, Users } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +19,8 @@ import { appointmentService } from '@/services/scheduleService';
 import { serviceAssignmentService } from '@/services/serviceAssignmentService';
 import { debugLogger, startTimer, endTimer } from '@/utils/debugLogger';
 import { useDocumentAssets } from '@/hooks/useDocumentAssets';
+import { UserService } from '@/services/userService';
+import { Usuario } from '@/types/database';
 import '../../styles/animations.css';
 
 interface Patient {
@@ -73,6 +76,11 @@ export const PublicAppointmentBooking: React.FC = () => {
     exit_url: '',
     public_registration_url: ''
   });
+  
+  // Estados para sistema de parcerias
+  const [partnerInfo, setPartnerInfo] = useState<Usuario | null>(null);
+  const [partnerUsername, setPartnerUsername] = useState<string>('');
+  const [partnerCode, setPartnerCode] = useState<string>('');
   const [formData, setFormData] = useState<AppointmentFormData>({
     client_name: '',
     client_phone: '',
@@ -92,7 +100,6 @@ export const PublicAppointmentBooking: React.FC = () => {
   const [tempPhone, setTempPhone] = useState('');
   const [isUpdatingPhone, setIsUpdatingPhone] = useState(false);
   const [greeting, setGreeting] = useState('');
-  const [validationAttempts, setValidationAttempts] = useState(0);
   const [showRegistrationButton, setShowRegistrationButton] = useState(false);
   const [dynamicMessage, setDynamicMessage] = useState('');
 
@@ -109,7 +116,71 @@ export const PublicAppointmentBooking: React.FC = () => {
 
   useEffect(() => {
     loadInitialData();
+    extractPartnerFromURL();
   }, []);
+
+  // Função para extrair informações do parceiro da URL
+  const extractPartnerFromURL = async () => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const partnerParam = urlParams.get('partner') || urlParams.get('p');
+      const codeParam = urlParams.get('code') || urlParams.get('c');
+      const cpfSusParam = urlParams.get('cpf_sus');
+      
+      // Processar CPF/SUS da URL se presente
+      if (cpfSusParam) {
+        console.log('🔍 CPF/SUS detectado na URL:', cpfSusParam);
+        const formattedValue = formatCpfOrSus(cpfSusParam);
+        setCpfSusInput(formattedValue);
+        console.log('✅ CPF/SUS preenchido automaticamente:', formattedValue);
+      }
+      
+      if (partnerParam) {
+        console.log('🔍 Parceiro detectado na URL:', partnerParam);
+        setPartnerUsername(partnerParam);
+        
+        // Buscar informações do parceiro
+        const partner = await UserService.getUserByUsername(partnerParam);
+        
+        if (partner && partner.user_type === 'partner' && partner.is_active) {
+          setPartnerInfo(partner);
+          setPartnerCode(partner.partner_code || '');
+          console.log('✅ Parceiro válido encontrado:', partner.full_name || partner.username);
+          
+          toast.success(`Agendamento via parceiro: ${partner.full_name || partner.username}`);
+        } else {
+          console.log('⚠️ Parceiro inválido ou inativo');
+          setPartnerUsername('');
+          setPartnerCode('');
+        }
+      } else if (codeParam) {
+        console.log('🔍 Código de parceiro detectado na URL:', codeParam);
+        setPartnerCode(codeParam);
+        
+        // Buscar parceiro pelo código
+        const { data: partners, error } = await supabase
+          .from('usuarios')
+          .select('*')
+          .eq('partner_code', codeParam)
+          .eq('user_type', 'partner')
+          .eq('is_active', true)
+          .single();
+          
+        if (!error && partners) {
+          setPartnerInfo(partners);
+          setPartnerUsername(partners.username);
+          console.log('✅ Parceiro encontrado pelo código:', partners.full_name || partners.username);
+          
+          toast.success(`Agendamento via parceiro: ${partners.full_name || partners.username}`);
+        } else {
+          console.log('⚠️ Código de parceiro inválido');
+          setPartnerCode('');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro ao extrair informações do parceiro:', error);
+    }
+  };
 
   // Atualizar saudação automaticamente a cada minuto
   useEffect(() => {
@@ -445,15 +516,21 @@ export const PublicAppointmentBooking: React.FC = () => {
       return;
     }
 
-    if (!isValidCpfOrSus(susNumber.trim())) {
+    // Verificar se tem o número correto de dígitos (11 para CPF, 15 para SUS)
+    const cleanNumber = cleanCpfOrSus(susNumber.trim());
+    if (cleanNumber.length !== 11 && cleanNumber.length !== 15) {
       toast.error('CPF deve ter 11 dígitos ou SUS deve ter 15 dígitos.');
       return;
+    }
+    
+    // Validar formato, mas continuar mesmo se inválido (para permitir CPF/SUS de teste)
+    const isValid = isValidCpfOrSus(susNumber.trim());
+    if (!isValid) {
+      console.log(`Documento com formato inválido, mas tentando buscar no banco: ${cleanNumber}`);
     }
 
     try {
       setIsLoading(true);
-      
-      const cleanNumber = cleanCpfOrSus(susNumber.trim());
       
       const { data, error } = await supabase
         .from('patients')
@@ -481,12 +558,53 @@ export const PublicAppointmentBooking: React.FC = () => {
         console.log('👤 Paciente não encontrado - redirecionando para cadastro...');
         console.log('🔗 Estado atual do publicLinks:', publicLinks);
         console.log('🔗 publicLinks.public_registration_url:', publicLinks.public_registration_url);
+        console.log('🤝 Informações do parceiro:', { partnerUsername, partnerCode, partnerInfo });
         
         toast.error('Paciente não encontrado. É necessário realizar o cadastro primeiro.');
-        // Redirecionar para cadastro público
+        
+        // Redirecionar para cadastro público preservando contexto do parceiro
         setTimeout(() => {
-          const redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
-          console.log('🚀 Redirecionando para cadastro:', redirectUrl);
+          let redirectUrl;
+          
+          // Diferenciar entre redirecionamento de administrador vs parceiro
+          if (partnerUsername || partnerCode) {
+            // Para parceiros: usar URL relativa local para preservar contexto
+            redirectUrl = `${window.location.origin}/cadastro-paciente`;
+            
+            const urlParams = new URLSearchParams();
+            
+            // Adicionar parâmetros do parceiro
+            if (partnerUsername) {
+              urlParams.set('partner', partnerUsername);
+            }
+            if (partnerCode) {
+              urlParams.set('code', partnerCode);
+            }
+            
+            // Adicionar parâmetro de redirecionamento para agendamento
+            urlParams.set('redirect', 'agendamento');
+            
+            // Preservar CPF/SUS digitado para facilitar o cadastro
+            if (cleanNumber) {
+              urlParams.set('cpf_sus', cleanNumber);
+            }
+            
+            // Construir URL final com parâmetros
+            redirectUrl = `${redirectUrl}?${urlParams.toString()}`;
+            
+            console.log('🚀 Redirecionando para cadastro com contexto do parceiro:', redirectUrl);
+            console.log('📋 Parâmetros preservados:', {
+              partner: partnerUsername,
+              code: partnerCode,
+              redirect: 'agendamento',
+              cpf_sus: cleanNumber
+            });
+          } else {
+            // Para administradores: usar URL pública configurada no banco
+            redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
+            console.log('🚀 Redirecionando para cadastro (administrador):', redirectUrl);
+          }
+          
           window.location.href = redirectUrl;
         }, 2000);
       }
@@ -546,10 +664,12 @@ export const PublicAppointmentBooking: React.FC = () => {
     }
 
     // Validar formato do CPF (11 dígitos) ou SUS (15 dígitos)
-    if (!isValidCpfOrSus(cpfSusInput.trim())) {
-      const documentType = cleanNumber.length === 11 ? 'CPF' : 'SUS';
-      toast.error(`${documentType} inválido. Verifique os dígitos digitados.`);
-      return;
+    const isValid = isValidCpfOrSus(cpfSusInput.trim());
+    
+    // Mesmo se a validação falhar, vamos tentar buscar no banco de dados
+    // Isso permite encontrar pacientes com CPF/SUS de teste (ex: 11111111111)
+    if (!isValid) {
+      console.log(`Documento com formato inválido, mas tentando buscar no banco: ${cleanNumber}`);
     }
 
     try {
@@ -569,7 +689,6 @@ export const PublicAppointmentBooking: React.FC = () => {
 
       if (data) {
         // Paciente encontrado - resetar estados e prosseguir
-        setValidationAttempts(0);
         setShowRegistrationButton(false);
         setDynamicMessage('');
         setPatient(data);
@@ -990,6 +1109,11 @@ export const PublicAppointmentBooking: React.FC = () => {
         appointment_datetime: appointmentDateTime,
         notes: formData.notes || null,
         status: 'scheduled' as const,
+        // Incluir dados do parceiro se disponível
+        ...(partnerUsername && {
+          partner_username: partnerUsername,
+          partner_code: partnerCode
+        }),
         // Incluir dados obstétricos apenas para serviços obstétricos
         ...(isObstetricService(formData.service_name) && obstetricData.dum && {
           dum: convertDateToDBFormat(obstetricData.dum),
@@ -1207,6 +1331,25 @@ export const PublicAppointmentBooking: React.FC = () => {
           </CardHeader>
           
           <CardContent className="p-3 sm:p-4">
+            {/* Seção de informações do parceiro */}
+            {partnerInfo && (
+              <div className="mb-4 p-3 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-purple-500/20 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="h-4 w-4 text-purple-400" />
+                  <span className="text-sm font-medium text-purple-300">Agendamento via Parceiro</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <p className="text-white font-medium">{partnerInfo.full_name || partnerInfo.username}</p>
+                    <p className="text-slate-400 text-sm">Código: {partnerInfo.partner_code}</p>
+                  </div>
+                  <Badge variant="secondary" className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+                    Parceiro
+                  </Badge>
+                </div>
+              </div>
+            )}
+            
             {/* Etapa 1: Entrada CPF/SUS */}
             {currentStep === 'cpf_input' && (
               <div className="space-y-3">
@@ -1277,8 +1420,42 @@ export const PublicAppointmentBooking: React.FC = () => {
                         <div className="flex gap-3">
                           <Button 
                             onClick={() => {
-                              const redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
-                              console.log('🚀 Redirecionando para cadastro via botão:', redirectUrl);
+                              let redirectUrl;
+                              
+                              // Diferenciar entre redirecionamento de administrador vs parceiro
+                              if (partnerUsername || partnerCode) {
+                                // Para parceiros: usar URL relativa local para preservar contexto
+                                redirectUrl = `${window.location.origin}/cadastro-paciente`;
+                                
+                                const urlParams = new URLSearchParams();
+                                
+                                // Adicionar parâmetros do parceiro
+                                if (partnerUsername) {
+                                  urlParams.set('partner', partnerUsername);
+                                }
+                                if (partnerCode) {
+                                  urlParams.set('code', partnerCode);
+                                }
+                                
+                                // Adicionar parâmetro de redirecionamento para agendamento
+                                urlParams.set('redirect', 'agendamento');
+                                
+                                // Preservar CPF/SUS digitado para facilitar o cadastro
+                                if (cpfSusInput) {
+                                  const cleanNumber = cleanCpfOrSus(cpfSusInput);
+                                  urlParams.set('cpf_sus', cleanNumber);
+                                }
+                                
+                                // Construir URL final com parâmetros
+                                redirectUrl = `${redirectUrl}?${urlParams.toString()}`;
+                                
+                                console.log('🚀 Redirecionando para cadastro via botão (parceiro):', redirectUrl);
+                              } else {
+                                // Para administradores: usar URL pública configurada no banco
+                                redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
+                                console.log('🚀 Redirecionando para cadastro via botão (administrador):', redirectUrl);
+                              }
+                              
                               window.location.href = redirectUrl;
                             }}
                             className="flex-1 h-10 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold text-sm tracking-wide transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-green-500/25"

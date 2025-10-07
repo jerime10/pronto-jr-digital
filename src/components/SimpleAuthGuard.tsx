@@ -42,6 +42,8 @@ const SimpleAuthGuard = ({
   if (!requireAuth && user) {
     if (user.isAdmin) {
       return <Navigate to="/configuracoes" replace />;
+    } else if (user.isPartner) {
+      return <Navigate to="/partner/dashboard" replace />;
     } else {
       return <Navigate to="/dashboard" replace />;
     }

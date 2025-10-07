@@ -8,6 +8,8 @@ import { Progress } from '@/components/ui/progress';
 import { Upload, X, FileImage, Eye, User, ImageIcon } from 'lucide-react';
 import { useDocumentAssets } from '@/hooks/useDocumentAssets';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { usePermissions } from '@/hooks/usePermissions';
+import { ActionButtonGuard } from '@/components/PermissionGuard';
 import { ProfessionalSignatureInfo } from '@/types/siteSettingsTypes';
 import { SUPPORTED_ASSET_TYPES, MAX_ASSET_SIZE } from '@/types/documentAssetTypes';
 
@@ -28,6 +30,7 @@ const DocumentAssetsUploader: React.FC = () => {
     attendantLogoData,
   } = useDocumentAssets();
 
+  const { permissions, checkPermission } = usePermissions();
   const logoInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
   const attendantLogoInputRef = useRef<HTMLInputElement>(null);
@@ -322,24 +325,28 @@ const DocumentAssetsUploader: React.FC = () => {
                   Tamanho: {formatFileSize(getFileSizeFromBase64(assets.logoData))}
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    onClick={() => logoInputRef.current?.click()}
-                    variant="outline"
-                    size="sm"
-                    disabled={isUploading || isSaving}
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Substituir
-                  </Button>
-                  <Button
-                    onClick={removeLogo}
-                    variant="destructive"
-                    size="sm"
-                    disabled={isUploading || isSaving}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Remover
-                  </Button>
+                  <ActionButtonGuard permission="configuracoes">
+                    <Button
+                      onClick={() => logoInputRef.current?.click()}
+                      variant="outline"
+                      size="sm"
+                      disabled={isUploading || isSaving}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Substituir
+                    </Button>
+                  </ActionButtonGuard>
+                  <ActionButtonGuard permission="configuracoes">
+                    <Button
+                      onClick={removeLogo}
+                      variant="destructive"
+                      size="sm"
+                      disabled={isUploading || isSaving}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Remover
+                    </Button>
+                  </ActionButtonGuard>
                 </div>
               </div>
             ) : (
@@ -469,36 +476,42 @@ const DocumentAssetsUploader: React.FC = () => {
                         disabled={isUploading || isSaving}
                       />
                     </div>
-                    <Button
-                      onClick={handleSaveProfessionalInfo}
-                      size="sm"
-                      className="w-full"
-                      disabled={isUploading || isSaving || !professionalInfo.name.trim() || !professionalInfo.title.trim() || !professionalInfo.registry.trim()}
-                    >
-                      Salvar Informações
-                    </Button>
+                    <ActionButtonGuard permission="configuracoes">
+                      <Button
+                        onClick={handleSaveProfessionalInfo}
+                        size="sm"
+                        className="w-full"
+                        disabled={isUploading || isSaving || !professionalInfo.name.trim() || !professionalInfo.title.trim() || !professionalInfo.registry.trim()}
+                      >
+                        Salvar Informações
+                      </Button>
+                    </ActionButtonGuard>
                   </div>
                 </div>
 
                 <div className="flex gap-2 pt-2 border-t">
-                  <Button
-                    onClick={() => signatureInputRef.current?.click()}
-                    variant="outline"
-                    size="sm"
-                    disabled={isUploading || isSaving}
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Substituir Assinatura
-                  </Button>
-                  <Button
-                    onClick={handleRemoveSignature}
-                    variant="destructive"
-                    size="sm"
-                    disabled={isUploading || isSaving}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Remover Tudo
-                  </Button>
+                  <ActionButtonGuard permission="configuracoes">
+                    <Button
+                      onClick={() => signatureInputRef.current?.click()}
+                      variant="outline"
+                      size="sm"
+                      disabled={isUploading || isSaving}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Substituir Assinatura
+                    </Button>
+                  </ActionButtonGuard>
+                  <ActionButtonGuard permission="configuracoes">
+                    <Button
+                      onClick={handleRemoveSignature}
+                      variant="destructive"
+                      size="sm"
+                      disabled={isUploading || isSaving}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Remover Tudo
+                    </Button>
+                  </ActionButtonGuard>
                 </div>
               </div>
             ) : (
@@ -591,24 +604,28 @@ const DocumentAssetsUploader: React.FC = () => {
                   Tamanho: {formatFileSize(getFileSizeFromBase64(attendantLogoData))}
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    onClick={() => attendantLogoInputRef.current?.click()}
-                    variant="outline"
-                    size="sm"
-                    disabled={isUploading || isSaving}
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Substituir
-                  </Button>
-                  <Button
-                    onClick={removeAttendantLogo}
-                    variant="destructive"
-                    size="sm"
-                    disabled={isUploading || isSaving}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Remover
-                  </Button>
+                  <ActionButtonGuard permission="configuracoes">
+                    <Button
+                      onClick={() => attendantLogoInputRef.current?.click()}
+                      variant="outline"
+                      size="sm"
+                      disabled={isUploading || isSaving}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Substituir
+                    </Button>
+                  </ActionButtonGuard>
+                  <ActionButtonGuard permission="configuracoes">
+                    <Button
+                      onClick={removeAttendantLogo}
+                      variant="destructive"
+                      size="sm"
+                      disabled={isUploading || isSaving}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Remover
+                    </Button>
+                  </ActionButtonGuard>
                 </div>
               </div>
             ) : (

@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Trash2, Edit, Plus, MessageSquare } from 'lucide-react';
+import { usePermissions } from '@/hooks/usePermissions';
+import { ActionButtonGuard } from '@/components/PermissionGuard';
 import { useWhatsAppTemplates } from '@/hooks/useWhatsAppTemplates';
 import { WhatsAppTemplate } from '@/types/whatsappTemplate';
 import { whatsappTemplateService } from '@/services/whatsappTemplateService';
@@ -16,6 +18,7 @@ import { whatsappTemplateService } from '@/services/whatsappTemplateService';
 // Gerenciador de Templates WhatsApp - Interface completa para criação e edição
 const WhatsAppTemplateManager = () => {
   const { templates, activeTemplate, createTemplate, updateTemplate, deleteTemplate, setActiveTemplate, isLoading } = useWhatsAppTemplates();
+  const { permissions, checkPermission } = usePermissions();
   const [editingTemplate, setEditingTemplate] = useState<WhatsAppTemplate | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -297,24 +300,28 @@ const WhatsAppTemplateManager = () => {
                       </div>
                     </div>
                     <div className="flex gap-2 ml-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(template)}
-                        className="flex items-center gap-1"
-                      >
-                        <Edit className="h-4 w-4" />
-                        Editar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(template.id)}
-                        className="text-red-600 hover:text-red-700 flex items-center gap-1"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Excluir
-                      </Button>
+                      <ActionButtonGuard permission="configuracoes">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(template)}
+                          className="flex items-center gap-1"
+                        >
+                          <Edit className="h-4 w-4" />
+                          Editar
+                        </Button>
+                      </ActionButtonGuard>
+                      <ActionButtonGuard permission="configuracoes">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(template.id)}
+                          className="text-red-600 hover:text-red-700 flex items-center gap-1"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Excluir
+                        </Button>
+                      </ActionButtonGuard>
                     </div>
                   </div>
                 ))}

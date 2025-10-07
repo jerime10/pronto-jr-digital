@@ -16,9 +16,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Patient } from '@/types/database';
 import { toast } from 'sonner';
 import { usePatients } from '@/hooks/useEnhancedQuery';
+import { usePermissions } from '@/hooks/usePermissions';
+import { ActionButtonGuard } from '@/components/PermissionGuard';
 
 const ListaPacientes = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const { permissions, checkPermission } = usePermissions();
   
   const { data: patients, isLoading, error, refetch } = usePatients();
   
@@ -61,12 +64,14 @@ const ListaPacientes = () => {
           <p className="text-gray-500 mt-1">Gestão de cadastros de pacientes</p>
         </div>
         
-        <Button asChild>
-          <Link to="/pacientes/novo" className="inline-flex items-center">
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Paciente
-          </Link>
-        </Button>
+        <ActionButtonGuard permission="pacientes_criar">
+          <Button asChild>
+            <Link to="/pacientes/novo" className="inline-flex items-center">
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Paciente
+            </Link>
+          </Button>
+        </ActionButtonGuard>
       </div>
       
       <div className="relative w-full max-w-md">
@@ -103,20 +108,24 @@ const ListaPacientes = () => {
                   <TableCell>{patient.phone}</TableCell>
                   <TableCell className="hidden md:table-cell">{patient.address}</TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button variant="ghost" size="icon" asChild>
-                      <Link to={`/pacientes/${patient.id}`}>
-                        <Edit className="h-4 w-4" />
-                        <span className="sr-only">Editar</span>
-                      </Link>
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => handleDeletePatient(patient.id)}
-                    >
-                      <Trash className="h-4 w-4" />
-                      <span className="sr-only">Excluir</span>
-                    </Button>
+                    <ActionButtonGuard permission="pacientes_editar">
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link to={`/pacientes/${patient.id}`}>
+                          <Edit className="h-4 w-4" />
+                          <span className="sr-only">Editar</span>
+                        </Link>
+                      </Button>
+                    </ActionButtonGuard>
+                    <ActionButtonGuard permission="pacientes_excluir">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => handleDeletePatient(patient.id)}
+                      >
+                        <Trash className="h-4 w-4" />
+                        <span className="sr-only">Excluir</span>
+                      </Button>
+                    </ActionButtonGuard>
                   </TableCell>
                 </TableRow>
               ))

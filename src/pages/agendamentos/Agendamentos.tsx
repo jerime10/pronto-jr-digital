@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PermissionGuard, ActionButtonGuard } from '@/components/PermissionGuard';
 
 import { Calendar, Clock, Search, MoreVertical, Plus, Phone, Trash2, CheckCircle, XCircle, Archive, Loader2, User, MapPin, Baby } from 'lucide-react';
 import { format, addDays } from 'date-fns';
@@ -130,6 +132,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
             
             <div className="flex-1">
               <h3 className="font-semibold text-gray-900">{appointment.patient_name}</h3>
+              <p className="text-sm text-blue-600 font-medium mt-1">{appointment.service_name}</p>
               <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
                 <div className="flex items-center">
                   <Calendar className="w-4 h-4 mr-1" />
@@ -150,7 +153,17 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
             </div>
           </div>
           
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-4">
+            {/* Exibir informações do responsável pelo agendamento */}
+            {appointment.partner_username ? (
+              <span className="text-xs text-purple-800 font-semibold bg-yellow-100 px-2.5 py-0.5 rounded-full">
+                via {appointment.partner_code || appointment.partner_username}
+              </span>
+            ) : appointment.attendant_name && !appointment.partner_username ? (
+              <span className="text-xs text-purple-800 font-semibold bg-yellow-100 px-2.5 py-0.5 rounded-full">
+                via ADM
+              </span>
+            ) : null}
             {getStatusBadge(appointment.status as AppointmentStatus)}
             
             <DropdownMenu>
@@ -183,6 +196,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
 
 const Agendamentos: React.FC = () => {
   const navigate = useNavigate();
+  const { permissions, isPartner, checkPermission } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus | 'todos'>('todos');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -402,13 +416,15 @@ const Agendamentos: React.FC = () => {
           <p className="text-muted-foreground">Gerencie os agendamentos da clínica</p>
         </div>
         
-        <Button 
-          className="bg-blue-600 hover:bg-blue-700"
-          onClick={() => window.open('/public/agendamento', '_blank')}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Agendamento
-        </Button>
+        <ActionButtonGuard permission="agendamentos_criar">
+          <Button 
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={() => window.open('/public/agendamento', '_blank')}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Agendamento
+          </Button>
+        </ActionButtonGuard>
       </div>
 
       <Card>

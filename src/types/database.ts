@@ -193,6 +193,8 @@ export type Appointment = {
   notes: string | null;
   status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
   dum: string | null; // Data da Última Menstruação para serviços obstétricos
+  partner_username: string | null; // Username do parceiro que gerou o agendamento
+  partner_code: string | null; // Código do parceiro que gerou o agendamento
   created_at: string;
   updated_at: string;
 };
@@ -321,6 +323,56 @@ export type ScheduleAssignmentsFormData = {
   schedule_info: string;
   attendant_id: string;
   attendant_name: string;
+};
+
+// ============================================
+// TIPOS PARA SISTEMA DE USUÁRIOS E PARCERIAS
+// ============================================
+
+export type UserType = 'admin' | 'partner';
+
+export type UserPermissions = {
+  agendamento?: boolean;
+  links?: boolean;
+  usuarios?: boolean;
+  relatorios?: boolean;
+  configuracoes?: boolean;
+};
+
+export type Usuario = {
+  id: string;
+  username: string;
+  password: string;
+  user_type: UserType;
+  permissions: UserPermissions;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  commission_percentage: number;
+  partner_code: string | null;
+  is_active: boolean | null;
+  last_login: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type UsuarioFormData = {
+  username: string;
+  password?: string;
+  user_type: UserType;
+  permissions: UserPermissions;
+  full_name?: string;
+  email?: string;
+  phone?: string;
+  commission_percentage?: number;
+  is_active?: boolean;
+};
+
+export type PartnerLink = {
+  username: string;
+  partner_code: string;
+  booking_url: string;
+  commission_percentage: number;
 };
 
 export type SiteSettings = {

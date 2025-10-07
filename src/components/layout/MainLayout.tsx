@@ -1,10 +1,12 @@
 import React, { ReactNode } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { Home, Users, FileText, Clipboard, Calendar, Settings, Menu, X, LogOut, User, CalendarDays, UserCheck, Clock, Wrench, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, Users, FileText, Clipboard, Calendar, Settings, Menu, X, LogOut, User, CalendarDays, UserCheck, Clock, Wrench, DollarSign, ChevronLeft, ChevronRight, UsersRound } from 'lucide-react';
 import Logo from '../Logo';
 import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MenuItemGuard } from '@/components/PermissionGuard';
+import { usePermissions } from '@/hooks/usePermissions';
 interface SidebarLinkProps {
   to: string;
   icon: React.ElementType;
@@ -35,7 +37,7 @@ const MainLayout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const { user, logout } = useSimpleAuth();
-  const isAdmin = user?.isAdmin || false;
+  const { isAdmin, isPartner } = usePermissions();
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -77,23 +79,60 @@ const MainLayout: React.FC = () => {
           </div>
           
           <div className={`flex-1 py-6 ${isSidebarCollapsed ? 'px-1' : 'px-3'} space-y-1 overflow-y-auto bg-[#c669b0]/[0.81] transition-all duration-300`}>
-            <SidebarLink to="/dashboard" icon={Home} label="Dashboard" isActive={isActive('/dashboard')} isCollapsed={isSidebarCollapsed} />
-            <SidebarLink to="/pacientes" icon={Users} label="Pacientes" isActive={isActive('/pacientes')} isCollapsed={isSidebarCollapsed} />
-            <SidebarLink to="/prescricoes" icon={FileText} label="Prescrições" isActive={isActive('/prescricoes')} isCollapsed={isSidebarCollapsed} />
-            <SidebarLink to="/exames" icon={Clipboard} label="Exames" isActive={isActive('/exames')} isCollapsed={isSidebarCollapsed} />
-            <SidebarLink to="/atendimento/novo" icon={Calendar} label="Atendimento" isActive={isActive('/atendimento/novo')} isCollapsed={isSidebarCollapsed} />
-            <SidebarLink to="/historico" icon={FileText} label="Histórico Atendimentos" isActive={isActive('/historico')} isCollapsed={isSidebarCollapsed} />
+            <MenuItemGuard permission="dashboard">
+              <SidebarLink to="/dashboard" icon={Home} label="Dashboard" isActive={isActive('/dashboard')} isCollapsed={isSidebarCollapsed} />
+            </MenuItemGuard>
+            
+            <MenuItemGuard permission="pacientes">
+              <SidebarLink to="/pacientes" icon={Users} label="Pacientes" isActive={isActive('/pacientes')} isCollapsed={isSidebarCollapsed} />
+            </MenuItemGuard>
+            
+            <MenuItemGuard permission="prescricoes">
+              <SidebarLink to="/prescricoes" icon={FileText} label="Prescrições" isActive={isActive('/prescricoes')} isCollapsed={isSidebarCollapsed} />
+            </MenuItemGuard>
+            
+            <MenuItemGuard permission="exames">
+              <SidebarLink to="/exames" icon={Clipboard} label="Exames" isActive={isActive('/exames')} isCollapsed={isSidebarCollapsed} />
+            </MenuItemGuard>
+            
+            <MenuItemGuard permission="atendimento">
+              <SidebarLink to="/atendimento/novo" icon={Calendar} label="Atendimento" isActive={isActive('/atendimento/novo')} isCollapsed={isSidebarCollapsed} />
+            </MenuItemGuard>
+            
+            <MenuItemGuard permission="historico_atendimentos">
+              <SidebarLink to="/historico" icon={FileText} label="Histórico Atendimentos" isActive={isActive('/historico')} isCollapsed={isSidebarCollapsed} />
+            </MenuItemGuard>
             
             {/* Sistema de Agendamento */}
-            <SidebarLink to="/agendamentos" icon={CalendarDays} label="Agendamentos" isActive={isActive('/agendamentos')} isCollapsed={isSidebarCollapsed} />
-            <SidebarLink to="/atendentes" icon={UserCheck} label="Atendentes" isActive={isActive('/atendentes')} isCollapsed={isSidebarCollapsed} />
-            <SidebarLink to="/horarios" icon={Clock} label="Horários" isActive={isActive('/horarios')} isCollapsed={isSidebarCollapsed} />
-            <SidebarLink to="/servicos" icon={Wrench} label="Serviços" isActive={isActive('/servicos')} isCollapsed={isSidebarCollapsed} />
-            <SidebarLink to="/financeiro" icon={DollarSign} label="Financeiro" isActive={isActive('/financeiro')} isCollapsed={isSidebarCollapsed} />
+            <MenuItemGuard permission="agendamentos">
+              <SidebarLink to="/agendamentos" icon={CalendarDays} label="Agendamentos" isActive={isActive('/agendamentos')} isCollapsed={isSidebarCollapsed} />
+            </MenuItemGuard>
+            
+            <MenuItemGuard permission="atendentes">
+              <SidebarLink to="/atendentes" icon={UserCheck} label="Atendentes" isActive={isActive('/atendentes')} isCollapsed={isSidebarCollapsed} />
+            </MenuItemGuard>
+            
+            <MenuItemGuard permission="horarios">
+              <SidebarLink to="/horarios" icon={Clock} label="Horários" isActive={isActive('/horarios')} isCollapsed={isSidebarCollapsed} />
+            </MenuItemGuard>
+            
+            <MenuItemGuard permission="servicos">
+              <SidebarLink to="/servicos" icon={Wrench} label="Serviços" isActive={isActive('/servicos')} isCollapsed={isSidebarCollapsed} />
+            </MenuItemGuard>
+            
+            <MenuItemGuard permission="financeiro">
+              <SidebarLink to="/financeiro" icon={DollarSign} label="Financeiro" isActive={isActive('/financeiro')} isCollapsed={isSidebarCollapsed} />
+            </MenuItemGuard>
           </div>
           
           <div className={`${isSidebarCollapsed ? 'p-2' : 'p-4'} border-t border-sidebar-border bg-rose-400 transition-all duration-300`}>
-            {isAdmin && <SidebarLink to="/configuracoes" icon={Settings} label="Configurações" isActive={isActive('/configuracoes')} isCollapsed={isSidebarCollapsed} />}
+            <MenuItemGuard permission="configuracoes">
+              <SidebarLink to="/configuracoes" icon={Settings} label="Configurações" isActive={isActive('/configuracoes')} isCollapsed={isSidebarCollapsed} />
+            </MenuItemGuard>
+            
+            <MenuItemGuard permission="usuarios">
+              <SidebarLink to="/admin/usuarios" icon={UsersRound} label="Gerenciar Usuários" isActive={isActive('/admin/usuarios')} isCollapsed={isSidebarCollapsed} />
+            </MenuItemGuard>
           </div>
         </div>
       </aside>

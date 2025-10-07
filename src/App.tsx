@@ -1,6 +1,5 @@
-import { Suspense } from 'react';
+import React, { Suspense } from 'react';
 import {
-  BrowserRouter as Router,
   Route,
   Routes,
 } from 'react-router-dom';
@@ -11,8 +10,6 @@ import MainLayout from './components/layout/MainLayout';
 import ConfiguracoesAdmin from './pages/admin/ConfiguracoesAdmin';
 import ProcessarComIA from './pages/admin/ProcessarComIA';
 import { Toaster } from 'sonner';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from './lib/queryClient';
 import NotFound from './pages/NotFound';
 import ListaPacientes from './pages/pacientes/ListaPacientes';
 import FormularioPaciente from './pages/pacientes/FormularioPaciente';
@@ -32,6 +29,8 @@ import Servicos from './pages/servicos/Servicos';
 import NovoServico from './pages/servicos/NovoServico';
 import EditarServico from './pages/servicos/EditarServico';
 import Financeiro from './pages/financeiro/Financeiro';
+import UserManagement from './components/admin/UserManagement';
+import PartnerDashboard from './components/partner/PartnerDashboard';
 
 function LoadingFallback() {
   return (
@@ -47,170 +46,185 @@ function LoadingFallback() {
 function App() {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <SimpleAuthProvider>
-            <Toaster position="top-right" />
-            <Routes>
-              {/* Public Routes */}
-              <Route 
-                path="/login" 
-                element={
-                  <SimpleAuthGuard requireAuth={false}>
-                    <SimpleLogin />
-                  </SimpleAuthGuard>
-                } 
-              />
-              
-              {/* Diagnostic Route - Accessible without auth for troubleshooting */}
-              <Route path="/diagnostic" element={<DiagnosticPage />} />
-              
-              {/* Public Patient Registration - Accessible without auth */}
-              <Route path="/cadastro-paciente" element={<PublicPatientRegistration />} />
-              
-              {/* Public Appointment Booking - Accessible without auth */}
-              <Route path="/public/agendamento" element={<PublicAppointmentBooking />} />
-              
-              {/* Index redirect */}
-              <Route path="/" element={
-                <SimpleAuthGuard requireAuth={false}>
-                  <SimpleLogin />
-                </SimpleAuthGuard>
-              } />
-              
-              {/* Protected Routes - Dashboard */}
-              <Route path="/dashboard" element={
-                <SimpleAuthGuard requireAuth={true}>
-                  <MainLayout />
-                </SimpleAuthGuard>
-              }>
-                <Route index element={<Dashboard />} />
-              </Route>
+      <SimpleAuthProvider>
+        <Toaster position="top-right" />
+        <Routes>
+          {/* Public Routes */}
+          <Route 
+            path="/login" 
+            element={
+              <SimpleAuthGuard requireAuth={false}>
+                <SimpleLogin />
+              </SimpleAuthGuard>
+            } 
+          />
+          
+          {/* Diagnostic Route - Accessible without auth for troubleshooting */}
+          <Route path="/diagnostic" element={<DiagnosticPage />} />
+          
+          {/* Public Patient Registration - Accessible without auth */}
+          <Route path="/cadastro-paciente" element={<PublicPatientRegistration />} />
+          
+          {/* Public Appointment Booking - Accessible without auth */}
+          <Route path="/public/agendamento" element={<PublicAppointmentBooking />} />
+          
+          {/* Index redirect */}
+          <Route path="/" element={
+            <SimpleAuthGuard requireAuth={false}>
+              <SimpleLogin />
+            </SimpleAuthGuard>
+          } />
+          
+          {/* Protected Routes - Dashboard */}
+          <Route path="/dashboard" element={
+            <SimpleAuthGuard requireAuth={true}>
+              <MainLayout />
+            </SimpleAuthGuard>
+          }>
+            <Route index element={<Dashboard />} />
+          </Route>
 
-              {/* Protected Routes - Pacientes */}
-              <Route path="/pacientes" element={
-                <SimpleAuthGuard requireAuth={true}>
-                  <MainLayout />
-                </SimpleAuthGuard>
-              }>
-                <Route index element={<ListaPacientes />} />
-                <Route path="novo" element={<FormularioPaciente />} />
-                <Route path=":id" element={<FormularioPaciente />} />
-              </Route>
-              
-              {/* Protected Routes - Prescrições */}
-              <Route path="/prescricoes" element={
-                <SimpleAuthGuard requireAuth={true}>
-                  <MainLayout />
-                </SimpleAuthGuard>
-              }>
-                <Route index element={<ModelosPrescricao />} />
-              </Route>
-              
-              {/* Protected Routes - Exames */}
-              <Route path="/exames" element={
-                <SimpleAuthGuard requireAuth={true}>
-                  <MainLayout />
-                </SimpleAuthGuard>
-              }>
-                <Route index element={<ModelosExames />} />
-              </Route>
-              
-              {/* Protected Routes - Atendimento */}
-              <Route path="/atendimento" element={
-                <SimpleAuthGuard requireAuth={true}>
-                  <MainLayout />
-                </SimpleAuthGuard>
-              }>
-                <Route path="novo" element={<NovoAtendimento />} />
-              </Route>
-              
-              {/* Protected Routes - Histórico */}
-              <Route path="/historico" element={
-                <SimpleAuthGuard requireAuth={true}>
-                  <MainLayout />
-                </SimpleAuthGuard>
-              }>
-                <Route index element={<HistoricoAtendimentos />} />
-              </Route>
-              
-              {/* Protected Routes - Sistema de Agendamento */}
-              <Route path="/agendamentos" element={
-                <SimpleAuthGuard requireAuth={true}>
-                  <MainLayout />
-                </SimpleAuthGuard>
-              }>
-                <Route index element={<Agendamentos />} />
-              </Route>
-              
-              <Route path="/atendentes" element={
-                <SimpleAuthGuard requireAuth={true}>
-                  <MainLayout />
-                </SimpleAuthGuard>
-              }>
-                <Route index element={<Atendentes />} />
-              </Route>
-              
-               <Route path="/horarios" element={
-                 <SimpleAuthGuard requireAuth={true}>
-                   <MainLayout />
-                 </SimpleAuthGuard>
-               }>
-                 <Route index element={<Horarios />} />
-                 <Route path="novo" element={<NovoHorario />} />
-               </Route>
-              
-              <Route path="/servicos" element={
-                <SimpleAuthGuard requireAuth={true}>
-                  <MainLayout />
-                </SimpleAuthGuard>
-              }>
-                <Route index element={<Servicos />} />
-              </Route>
-              
-              <Route path="/servicos/novo" element={
-                <SimpleAuthGuard requireAuth={true}>
-                  <NovoServico />
-                </SimpleAuthGuard>
-              } />
-              
-              <Route path="/servicos/editar/:id" element={
-                <SimpleAuthGuard requireAuth={true}>
-                  <EditarServico />
-                </SimpleAuthGuard>
-              } />
-              
-              <Route path="/financeiro" element={
-                <SimpleAuthGuard requireAuth={true}>
-                  <MainLayout />
-                </SimpleAuthGuard>
-              }>
-                <Route index element={<Financeiro />} />
-              </Route>
-              
-              {/* Admin Routes */}
-              <Route path="/configuracoes" element={
-                <SimpleAuthGuard requireAuth={true} requireAdmin={true}>
-                  <MainLayout />
-                </SimpleAuthGuard>
-              }>
-                <Route index element={<ConfiguracoesAdmin />} />
-              </Route>
-              
-              <Route path="/admin/pdf-template" element={
-                <SimpleAuthGuard requireAuth={true} requireAdmin={true}>
-                  <MainLayout />
-                </SimpleAuthGuard>
-              }>
-                <Route index element={<ProcessarComIA />} />
-              </Route>
+          {/* Protected Routes - Pacientes */}
+          <Route path="/pacientes" element={
+            <SimpleAuthGuard requireAuth={true}>
+              <MainLayout />
+            </SimpleAuthGuard>
+          }>
+            <Route index element={<ListaPacientes />} />
+            <Route path="novo" element={<FormularioPaciente />} />
+            <Route path=":id" element={<FormularioPaciente />} />
+          </Route>
+          
+          {/* Protected Routes - Prescrições */}
+          <Route path="/prescricoes" element={
+            <SimpleAuthGuard requireAuth={true}>
+              <MainLayout />
+            </SimpleAuthGuard>
+          }>
+            <Route index element={<ModelosPrescricao />} />
+          </Route>
+          
+          {/* Protected Routes - Exames */}
+          <Route path="/exames" element={
+            <SimpleAuthGuard requireAuth={true}>
+              <MainLayout />
+            </SimpleAuthGuard>
+          }>
+            <Route index element={<ModelosExames />} />
+          </Route>
+          
+          {/* Protected Routes - Atendimento */}
+          <Route path="/atendimento" element={
+            <SimpleAuthGuard requireAuth={true}>
+              <MainLayout />
+            </SimpleAuthGuard>
+          }>
+            <Route path="novo" element={<NovoAtendimento />} />
+          </Route>
+          
+          {/* Protected Routes - Histórico */}
+          <Route path="/historico" element={
+            <SimpleAuthGuard requireAuth={true}>
+              <MainLayout />
+            </SimpleAuthGuard>
+          }>
+            <Route index element={<HistoricoAtendimentos />} />
+          </Route>
+          
+          {/* Protected Routes - Agendamentos */}
+          <Route path="/agendamentos" element={
+            <SimpleAuthGuard requireAuth={true}>
+              <MainLayout />
+            </SimpleAuthGuard>
+          }>
+            <Route index element={<Agendamentos />} />
+          </Route>
+          
+          {/* Protected Routes - Atendentes */}
+          <Route path="/atendentes" element={
+            <SimpleAuthGuard requireAuth={true}>
+              <MainLayout />
+            </SimpleAuthGuard>
+          }>
+            <Route index element={<Atendentes />} />
+          </Route>
+          
+          {/* Protected Routes - Horários */}
+          <Route path="/horarios" element={
+            <SimpleAuthGuard requireAuth={true}>
+              <MainLayout />
+            </SimpleAuthGuard>
+          }>
+            <Route index element={<Horarios />} />
+            <Route path="novo" element={<NovoHorario />} />
+          </Route>
+          
+          {/* Protected Routes - Serviços */}
+          <Route path="/servicos" element={
+            <SimpleAuthGuard requireAuth={true}>
+              <MainLayout />
+            </SimpleAuthGuard>
+          }>
+            <Route index element={<Servicos />} />
+          </Route>
+          
+          <Route path="/servicos/novo" element={
+            <SimpleAuthGuard requireAuth={true}>
+              <NovoServico />
+            </SimpleAuthGuard>
+          } />
+          
+          <Route path="/servicos/editar/:id" element={
+            <SimpleAuthGuard requireAuth={true}>
+              <EditarServico />
+            </SimpleAuthGuard>
+          } />
+          
+          {/* Protected Routes - Financeiro */}
+          <Route path="/financeiro" element={
+            <SimpleAuthGuard requireAuth={true}>
+              <MainLayout />
+            </SimpleAuthGuard>
+          }>
+            <Route index element={<Financeiro />} />
+          </Route>
+          
+          {/* Admin Routes */}
+          <Route path="/configuracoes" element={
+            <SimpleAuthGuard requireAuth={true} requireAdmin={true}>
+              <MainLayout />
+            </SimpleAuthGuard>
+          }>
+            <Route index element={<ConfiguracoesAdmin />} />
+          </Route>
+          
+          <Route path="/admin/usuarios" element={
+            <SimpleAuthGuard requireAuth={true} requireAdmin={true}>
+              <MainLayout />
+            </SimpleAuthGuard>
+          }>
+            <Route index element={<UserManagement />} />
+          </Route>
+          
+          <Route path="/admin/pdf-template" element={
+            <SimpleAuthGuard requireAuth={true} requireAdmin={true}>
+              <MainLayout />
+            </SimpleAuthGuard>
+          }>
+            <Route index element={<ProcessarComIA />} />
+          </Route>
+          
+          {/* Partner Routes */}
+          <Route path="/partner/dashboard" element={
+            <SimpleAuthGuard requireAuth={true}>
+              <PartnerDashboard />
+            </SimpleAuthGuard>
+          } />
               
               {/* 404 Page */}
-              <Route path="*" element={<NotFound />} />
+          <Route path="*" element={<NotFound />} />
             </Routes>
           </SimpleAuthProvider>
-        </Router>
-      </QueryClientProvider>
     </Suspense>
   );
 }

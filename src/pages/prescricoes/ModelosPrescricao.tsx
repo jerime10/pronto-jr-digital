@@ -25,6 +25,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { PrescriptionModel } from '@/types/database';
 import { usePrescriptionModels } from '@/hooks/useEnhancedQuery';
+import { usePermissions } from '@/hooks/usePermissions';
+import { ActionButtonGuard } from '@/components/PermissionGuard';
 
 const ModelosPrescricao = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,6 +34,7 @@ const ModelosPrescricao = () => {
   const [currentModel, setCurrentModel] = useState<Partial<PrescriptionModel>>({ id: '', name: '', description: '' });
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { permissions, checkPermission } = usePermissions();
   
   const { data: models = [], isLoading: isLoadingModels, error, refetch } = usePrescriptionModels();
   
@@ -132,10 +135,12 @@ const ModelosPrescricao = () => {
           <p className="text-gray-500 mt-1">Gerencie templates para prescrições médicas</p>
         </div>
         
-        <Button onClick={handleOpenNew}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Modelo
-        </Button>
+        <ActionButtonGuard permission="prescricoes_criar">
+          <Button onClick={handleOpenNew}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Modelo
+          </Button>
+        </ActionButtonGuard>
       </div>
       
       <div className="relative w-full max-w-md">
@@ -168,14 +173,18 @@ const ModelosPrescricao = () => {
                     </div>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(model)}>
-                      <Edit className="h-4 w-4" />
-                      <span className="sr-only">Editar</span>
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(model.id)}>
-                      <Trash className="h-4 w-4" />
-                      <span className="sr-only">Excluir</span>
-                    </Button>
+                    <ActionButtonGuard permission="prescricoes_editar">
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(model)}>
+                        <Edit className="h-4 w-4" />
+                        <span className="sr-only">Editar</span>
+                      </Button>
+                    </ActionButtonGuard>
+                    <ActionButtonGuard permission="prescricoes_excluir">
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(model.id)}>
+                        <Trash className="h-4 w-4" />
+                        <span className="sr-only">Excluir</span>
+                      </Button>
+                    </ActionButtonGuard>
                   </TableCell>
                 </TableRow>
               ))

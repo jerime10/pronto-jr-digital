@@ -31,6 +31,8 @@ export interface AppointmentData {
   dum?: string | null; // Data da Última Menstruação para serviços obstétricos
   patient_id?: string | null; // Nova coluna adicionada
   end_time?: string | null; // Nova coluna adicionada
+  partner_username?: string | null; // Nome do usuário parceiro
+  partner_code?: string | null; // Código do parceiro
   created_at: string;
   updated_at: string;
   patient?: PatientData | null; // Dados completos do paciente via join

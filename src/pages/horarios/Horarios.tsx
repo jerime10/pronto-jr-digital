@@ -16,6 +16,8 @@ import { useActiveAttendants } from '@/hooks/useAttendants';
 import { toast } from 'sonner';
 import AvailableTimesGrid from '@/components/schedule/AvailableTimesGrid';
 import { scheduleAssignmentsService } from '@/services/scheduleAssignmentsService';
+import { usePermissions } from '@/hooks/usePermissions';
+import { ActionButtonGuard } from '@/components/PermissionGuard';
 
 interface EditScheduleData {
   id: string;
@@ -202,6 +204,7 @@ const toggleDayInArray = (days: number[], day: number): number[] => {
 };
 
 const Horarios: React.FC = () => {
+  const { permissions, checkPermission } = usePermissions();
   const navigate = useNavigate();
   const { schedules, isLoading, createSchedule, updateSchedule, deleteSchedule, toggleScheduleStatus } = useSchedules();
   const { data: attendants, isLoading: isLoadingAttendants } = useActiveAttendants();
@@ -539,10 +542,12 @@ const Horarios: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Horarios</h1>
         </div>
-        <Button onClick={handleNewSchedule}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Horário
-        </Button>
+        <ActionButtonGuard permission="horarios_criar">
+          <Button onClick={handleNewSchedule}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Horário
+          </Button>
+        </ActionButtonGuard>
       </div>
 
       <Card>
@@ -612,22 +617,26 @@ const Horarios: React.FC = () => {
                         
                         {/* Ações */}
                         <div className="flex items-center space-x-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditSchedule(schedule)}
-                            className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteSchedule(schedule)}
-                            className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <ActionButtonGuard permission="horarios_editar">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditSchedule(schedule)}
+                              className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </ActionButtonGuard>
+                          <ActionButtonGuard permission="horarios_excluir">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteSchedule(schedule)}
+                              className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </ActionButtonGuard>
                         </div>
                       </div>
                     ))}
@@ -726,23 +735,25 @@ const Horarios: React.FC = () => {
 
                     {/* Botão Atribuir Horários */}
                     <div className="flex justify-end pt-4">
-                      <Button 
-                        onClick={handleAssignSchedules}
-                        disabled={selectedTimesForAssignment.length === 0 || isAssigning}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        {isAssigning ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Atribuindo...
-                          </>
-                        ) : (
-                          <>
-                            <Clock className="h-4 w-4 mr-2" />
-                            Atribuir Horários ({selectedTimesForAssignment.length})
-                          </>
-                        )}
-                      </Button>
+                      <ActionButtonGuard permission="horarios_editar">
+                        <Button 
+                          onClick={handleAssignSchedules}
+                          disabled={selectedTimesForAssignment.length === 0 || isAssigning}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          {isAssigning ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Atribuindo...
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="h-4 w-4 mr-2" />
+                              Atribuir Horários ({selectedTimesForAssignment.length})
+                            </>
+                          )}
+                        </Button>
+                      </ActionButtonGuard>
                     </div>
                   </div>
                 )}

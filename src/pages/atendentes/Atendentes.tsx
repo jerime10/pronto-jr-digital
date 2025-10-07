@@ -23,6 +23,8 @@ import {
 } from '@/services/attendantService';
 import { supabase } from '@/integrations/supabase/client';
 import ImageUploader from '@/components/ui/ImageUploader';
+import { usePermissions } from '@/hooks/usePermissions';
+import { ActionButtonGuard } from '@/components/PermissionGuard';
 
 
 
@@ -346,6 +348,7 @@ const AttendantForm: React.FC<AttendantFormProps> = ({ attendant, onClose }) => 
 };
 
 const Atendentes: React.FC = () => {
+  const { permissions, checkPermission } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [editingAttendant, setEditingAttendant] = useState<Attendant | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -439,10 +442,12 @@ const Atendentes: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Atendentes</h1>
           <p className="text-muted-foreground">Gerencie os atendentes da clínica</p>
         </div>
-        <Button onClick={handleNewAttendant} className="flex items-center space-x-2">
-          <Plus className="h-4 w-4" />
-          <span>Novo Atendente</span>
-        </Button>
+        <ActionButtonGuard permission="atendentes_criar">
+          <Button onClick={handleNewAttendant} className="flex items-center space-x-2">
+            <Plus className="h-4 w-4" />
+            <span>Novo Atendente</span>
+          </Button>
+        </ActionButtonGuard>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -519,10 +524,12 @@ const Atendentes: React.FC = () => {
                   }
                 </p>
                 {!searchTerm && statusFilter === 'all' && (
-                  <Button onClick={handleNewAttendant} className="bg-blue-600 hover:bg-blue-700">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar Primeiro Atendente
-                  </Button>
+                  <ActionButtonGuard permission="atendentes_criar">
+                    <Button onClick={handleNewAttendant} className="bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Primeiro Atendente
+                    </Button>
+                  </ActionButtonGuard>
                 )}
               </div>
             ) : (
@@ -566,21 +573,27 @@ const Atendentes: React.FC = () => {
                     </div>
                     
                     <div className="col-span-1 flex space-x-1">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditAttendant(attendant)} title="Editar atendente">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleToggleStatus(attendant)}
-                        title={attendant.is_active ? 'Desativar' : 'Ativar'}
-                        className={attendant.is_active ? 'text-orange-600 hover:text-orange-700' : 'text-green-600 hover:text-green-700'}
-                      >
-                        {attendant.is_active ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteAttendant(attendant)} className="text-red-600 hover:text-red-700" title="Excluir atendente">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <ActionButtonGuard permission="atendentes_editar">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditAttendant(attendant)} title="Editar atendente">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </ActionButtonGuard>
+                      <ActionButtonGuard permission="atendentes_editar">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleToggleStatus(attendant)}
+                          title={attendant.is_active ? 'Desativar' : 'Ativar'}
+                          className={attendant.is_active ? 'text-orange-600 hover:text-orange-700' : 'text-green-600 hover:text-green-700'}
+                        >
+                          {attendant.is_active ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                        </Button>
+                      </ActionButtonGuard>
+                      <ActionButtonGuard permission="atendentes_excluir">
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteAttendant(attendant)} className="text-red-600 hover:text-red-700" title="Excluir atendente">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </ActionButtonGuard>
                     </div>
                   </div>
                 ))}

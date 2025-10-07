@@ -6,6 +6,8 @@ export type SimpleUser = {
   id: string;
   username: string;
   isAdmin: boolean;
+  userType: 'admin' | 'partner';
+  isPartner: boolean;
 };
 
 type SimpleAuthContextType = {
@@ -78,11 +80,17 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       const userData = data[0];
       
+      // Determinar tipo de usuário baseado nos dados do banco
+      const isAdmin = userData.user_type === 'admin' || userData.username === 'admin';
+      const isPartner = userData.user_type === 'partner';
+      
       // Criar objeto de usuário simples
       const simpleUser: SimpleUser = {
         id: userData.id,
         username: userData.username,
-        isAdmin: userData.username === 'admin' // Admin é determinado pelo username
+        isAdmin,
+        userType: isAdmin ? 'admin' : 'partner',
+        isPartner
       };
 
       // Armazenar no estado e localStorage

@@ -12,8 +12,11 @@ import { useQuery } from '@tanstack/react-query';
 import { serviceService } from '@/services/serviceService';
 import { serviceAssignmentService, ServiceAssignment } from '@/services/serviceAssignmentService';
 import { toast } from 'sonner';
+import { usePermissions } from '@/hooks/usePermissions';
+import { ActionButtonGuard } from '@/components/PermissionGuard';
 
 const Servicos: React.FC = () => {
+  const { permissions, checkPermission } = usePermissions();
   const navigate = useNavigate();
   const [selectedAttendant, setSelectedAttendant] = useState<string>('');
   const [activeTab, setActiveTab] = useState<string>('gerenciar');
@@ -145,13 +148,15 @@ const Servicos: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Serviços</h1>
         </div>
-        <Button 
-          onClick={() => navigate('/servicos/novo')}
-          className="flex items-center space-x-2"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Novo Serviço</span>
-        </Button>
+        <ActionButtonGuard permission="servicos_criar">
+          <Button 
+            onClick={() => navigate('/servicos/novo')}
+            className="flex items-center space-x-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Novo Serviço</span>
+          </Button>
+        </ActionButtonGuard>
       </div>
 
       <Card>
@@ -214,20 +219,24 @@ const Servicos: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => navigate(`/servicos/editar/${service.id}`)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleDeleteService(service.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
+                          <ActionButtonGuard permission="servicos_editar">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => navigate(`/servicos/editar/${service.id}`)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </ActionButtonGuard>
+                          <ActionButtonGuard permission="servicos_excluir">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDeleteService(service.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </ActionButtonGuard>
                         </div>
                       </TableCell>
                     </TableRow>

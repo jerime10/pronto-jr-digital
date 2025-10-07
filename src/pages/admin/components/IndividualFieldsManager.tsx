@@ -4,6 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Pencil, Trash2, Search } from 'lucide-react';
+import { usePermissions } from '@/hooks/usePermissions';
+import { ActionButtonGuard } from '@/components/PermissionGuard';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +37,8 @@ export const IndividualFieldsManager = () => {
     isUpdating,
     isDeleting,
   } = useIndividualFieldTemplates();
+
+  const { permissions, checkPermission } = usePermissions();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -176,22 +180,26 @@ export const IndividualFieldsManager = () => {
                               </p>
                             </div>
                             <div className="flex gap-2 shrink-0">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEdit(template)}
-                                disabled={isUpdating}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDelete(template)}
-                                disabled={isDeleting}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
+                              <ActionButtonGuard permission="configuracoes">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEdit(template)}
+                                  disabled={isUpdating}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </ActionButtonGuard>
+                              <ActionButtonGuard permission="configuracoes">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDelete(template)}
+                                  disabled={isDeleting}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </ActionButtonGuard>
                             </div>
                           </div>
                         </div>
