@@ -88,7 +88,8 @@ async function mapDatabaseToTransactionWithOrigin(dbTransaction: DatabaseTransac
             origin = appointment.partner_username;
           }
         } else {
-          origin = 'Agendamento';
+          // Quando não há partner_username, significa que o agendamento foi feito via link do administrador
+          origin = 'ADM';
         }
       }
     } catch (error) {
@@ -330,7 +331,8 @@ export const transactionsService = {
           origin = appointment.partner_username;
         }
       } else {
-        origin = 'Agendamento';
+        // Quando não há partner_username, significa que o agendamento foi feito via link do administrador
+        origin = 'ADM';
       }
 
       // Criar nova transação

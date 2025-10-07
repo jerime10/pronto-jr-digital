@@ -173,6 +173,38 @@ const Financeiro: React.FC = () => {
     setDescriptionFilter('todas_descricoes');
   };
 
+  // Função para calcular valores dinâmicos baseados nos filtros
+  const getFilteredFinancialSummary = () => {
+    const filteredTransactions = getFilteredTransactions();
+    
+    const totalEntradas = filteredTransactions
+      .filter(t => t.type === 'Entrada')
+      .reduce((sum, t) => sum + t.value, 0);
+    
+    const totalSaidas = filteredTransactions
+      .filter(t => t.type === 'Saída')
+      .reduce((sum, t) => sum + t.value, 0);
+    
+    const saldoLiquido = totalEntradas - totalSaidas;
+    
+    const entradasPendentes = filteredTransactions
+      .filter(t => t.type === 'Entrada' && t.status === 'Pendente')
+      .reduce((sum, t) => sum + t.value, 0);
+    
+    const saidasPendentes = filteredTransactions
+      .filter(t => t.type === 'Saída' && t.status === 'Pendente')
+      .reduce((sum, t) => sum + t.value, 0);
+
+    return {
+      totalEntradas,
+      totalSaidas,
+      saldoLiquido,
+      entradasPendentes,
+      saidasPendentes,
+      totalTransacoes: filteredTransactions.length
+    };
+  };
+
   // Calcular métricas financeiras baseadas nas transações
   useEffect(() => {
     // Obter transações filtradas
@@ -590,6 +622,70 @@ const Financeiro: React.FC = () => {
                     Limpar Filtros
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Resumo Financeiro Dinâmico */}
+            <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+              <CardContent className="pt-6">
+                {(() => {
+                  const summary = getFilteredFinancialSummary();
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {/* Total de Entradas */}
+                      <div className="bg-white rounded-lg p-4 border border-green-200 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-green-700">Total Entradas</p>
+                            <p className="text-2xl font-bold text-green-600">
+                              {formatCurrency(summary.totalEntradas)}
+                            </p>
+                            {summary.entradasPendentes > 0 && (
+                              <p className="text-xs text-green-500 mt-1">
+                                Pendente: {formatCurrency(summary.entradasPendentes)}
+                              </p>
+                            )}
+                          </div>
+                          <TrendingUp className="h-8 w-8 text-green-500" />
+                        </div>
+                      </div>
+
+                      {/* Total de Saídas */}
+                      <div className="bg-white rounded-lg p-4 border border-red-200 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-red-700">Total Saídas</p>
+                            <p className="text-2xl font-bold text-red-600">
+                              {formatCurrency(summary.totalSaidas)}
+                            </p>
+                            {summary.saidasPendentes > 0 && (
+                              <p className="text-xs text-red-500 mt-1">
+                                Pendente: {formatCurrency(summary.saidasPendentes)}
+                              </p>
+                            )}
+                          </div>
+                          <TrendingDown className="h-8 w-8 text-red-500" />
+                        </div>
+                      </div>
+
+                      {/* Saldo Líquido */}
+                      <div className="bg-white rounded-lg p-4 border border-blue-200 shadow-sm sm:col-span-2 lg:col-span-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-blue-700">Saldo Líquido</p>
+                            <p className={`text-2xl font-bold ${summary.saldoLiquido >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {formatCurrency(summary.saldoLiquido)}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {summary.totalTransacoes} transação{summary.totalTransacoes !== 1 ? 'ões' : ''}
+                            </p>
+                          </div>
+                          <DollarSign className={`h-8 w-8 ${summary.saldoLiquido >= 0 ? 'text-green-500' : 'text-red-500'}`} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
 

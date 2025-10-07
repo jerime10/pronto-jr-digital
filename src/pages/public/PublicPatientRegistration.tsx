@@ -14,7 +14,7 @@ import { formatPhoneNumber, isValidPhoneNumber, cleanPhoneNumber } from '@/utils
 import { formatCpfOrSus, isValidCpfOrSus, cleanCpfOrSus, validateSevenDigitInput } from '@/utils/cpfSusUtils';
 import { UserService } from '@/services/userService';
 import { Usuario } from '@/types/database';
-import '../../styles/animations.css';
+
 
 interface PatientFormData {
   name: string;
@@ -371,7 +371,7 @@ export const PublicPatientRegistration: React.FC = () => {
           if (urlParams.partner) redirectParams.set('partner', urlParams.partner);
           if (urlParams.code) redirectParams.set('code', urlParams.code);
           
-          const redirectUrl = `/public/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
+          const redirectUrl = `/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
           window.location.href = redirectUrl;
         } else if (publicLinks.exit_url) {
           // Redirecionamento padrão
@@ -481,7 +481,7 @@ export const PublicPatientRegistration: React.FC = () => {
           if (urlParams.partner) redirectParams.set('partner', urlParams.partner);
           if (urlParams.code) redirectParams.set('code', urlParams.code);
           
-          const redirectUrl = `/public/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
+          const redirectUrl = `/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
           window.location.href = redirectUrl;
         } else if (publicLinks.exit_url) {
           // Redirecionamento padrão
@@ -528,7 +528,7 @@ export const PublicPatientRegistration: React.FC = () => {
         if (urlParams.code) redirectParams.set('code', urlParams.code);
       }
       
-      const redirectUrl = `/public/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
+      const redirectUrl = `/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
       
       console.log('🎯 Redirecionando para agendamento interno:', redirectUrl);
       console.log('📋 Parâmetros preservados:', Object.fromEntries(redirectParams));

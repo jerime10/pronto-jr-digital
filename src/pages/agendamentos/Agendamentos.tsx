@@ -419,7 +419,7 @@ const Agendamentos: React.FC = () => {
         <ActionButtonGuard permission="agendamentos_criar">
           <Button 
             className="bg-blue-600 hover:bg-blue-700"
-            onClick={() => window.open('/public/agendamento', '_blank')}
+            onClick={() => window.open('/agendamento', '_blank')}
           >
             <Plus className="h-4 w-4 mr-2" />
             Novo Agendamento

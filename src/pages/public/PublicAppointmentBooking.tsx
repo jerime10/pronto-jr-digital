@@ -21,7 +21,7 @@ import { debugLogger, startTimer, endTimer } from '@/utils/debugLogger';
 import { useDocumentAssets } from '@/hooks/useDocumentAssets';
 import { UserService } from '@/services/userService';
 import { Usuario } from '@/types/database';
-import '../../styles/animations.css';
+
 
 interface Patient {
   id: string;
