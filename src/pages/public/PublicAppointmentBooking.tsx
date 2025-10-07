@@ -562,17 +562,14 @@ export const PublicAppointmentBooking: React.FC = () => {
         
         toast.error('Paciente não encontrado. É necessário realizar o cadastro primeiro.');
         
-        // Redirecionar para cadastro público preservando contexto do parceiro
+        // Redirecionar para cadastro público preservando contexto e usando arquitetura unificada
         setTimeout(() => {
-          let redirectUrl;
+          // NOVA IMPLEMENTAÇÃO: Usar sempre URL interna para manter consistência e funcionalidade
+          let redirectUrl = `${window.location.origin}/cadastro-paciente`;
+          const urlParams = new URLSearchParams();
           
-          // Diferenciar entre redirecionamento de administrador vs parceiro
+          // Se é contexto de parceiro, preservar informações do parceiro
           if (partnerUsername || partnerCode) {
-            // Para parceiros: usar URL relativa local para preservar contexto
-            redirectUrl = `${window.location.origin}/cadastro-paciente`;
-            
-            const urlParams = new URLSearchParams();
-            
             // Adicionar parâmetros do parceiro
             if (partnerUsername) {
               urlParams.set('partner', partnerUsername);
@@ -581,29 +578,29 @@ export const PublicAppointmentBooking: React.FC = () => {
               urlParams.set('code', partnerCode);
             }
             
-            // Adicionar parâmetro de redirecionamento para agendamento
-            urlParams.set('redirect', 'agendamento');
-            
-            // Preservar CPF/SUS digitado para facilitar o cadastro
-            if (cleanNumber) {
-              urlParams.set('cpf_sus', cleanNumber);
-            }
-            
-            // Construir URL final com parâmetros
-            redirectUrl = `${redirectUrl}?${urlParams.toString()}`;
-            
-            console.log('🚀 Redirecionando para cadastro com contexto do parceiro:', redirectUrl);
-            console.log('📋 Parâmetros preservados:', {
+            console.log('🤝 Contexto de parceiro detectado:', {
               partner: partnerUsername,
               code: partnerCode,
-              redirect: 'agendamento',
-              cpf_sus: cleanNumber
+              partnerInfo: partnerInfo?.full_name || partnerInfo?.username
             });
-          } else {
-            // Para administradores: usar URL pública configurada no banco
-            redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
-            console.log('🚀 Redirecionando para cadastro (administrador):', redirectUrl);
           }
+          
+          // Sempre adicionar parâmetro de redirecionamento para agendamento
+          urlParams.set('redirect', 'agendamento');
+          
+          // Preservar CPF/SUS digitado para facilitar o cadastro
+          if (cleanNumber) {
+            urlParams.set('cpf_sus', cleanNumber);
+          }
+          
+          // Construir URL final com parâmetros
+          if (urlParams.toString()) {
+            redirectUrl = `${redirectUrl}?${urlParams.toString()}`;
+          }
+          
+          console.log('🚀 Redirecionando para cadastro interno (arquitetura unificada):', redirectUrl);
+          console.log('📋 Parâmetros preservados:', Object.fromEntries(urlParams));
+          console.log('✅ Mantendo fluxo contínuo dentro do sistema');
           
           window.location.href = redirectUrl;
         }, 2000);

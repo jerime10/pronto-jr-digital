@@ -215,28 +215,66 @@ const PublicRegistrationLinksConfig: React.FC = () => {
             </p>
           </div>
           
-          <div className="bg-blue-100/50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-700 font-medium mb-2">Link padrão do sistema:</p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Input
-                value={`${window.location.origin}/cadastro-paciente`}
-                readOnly
-                className="bg-white border-blue-300 text-blue-800 font-mono text-sm flex-1 shadow-sm"
-              />
-              <Button
-                variant="outline"
-                onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/cadastro-paciente`);
-                  toast({
-                    title: "Copiado!",
-                    description: "Link copiado para a área de transferência.",
-                    variant: "default"
-                  });
-                }}
-                className="border-blue-300 text-blue-700 hover:bg-blue-200 px-6"
-              >
-                Copiar
-              </Button>
+          <div className="bg-blue-100/50 border border-blue-200 rounded-lg p-4 space-y-3">
+            <p className="text-sm text-blue-700 font-medium mb-2">🔗 Links gerados automaticamente pelo sistema:</p>
+            
+            {/* Link de Cadastro */}
+            <div className="space-y-2">
+              <p className="text-xs text-blue-600 font-medium">Link de Cadastro Público:</p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  value={`${window.location.origin}/cadastro-paciente`}
+                  readOnly
+                  className="bg-white border-blue-300 text-blue-800 font-mono text-xs flex-1 shadow-sm"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/cadastro-paciente`);
+                    toast({
+                      title: "Copiado!",
+                      description: "Link de cadastro copiado para a área de transferência.",
+                      variant: "default"
+                    });
+                  }}
+                  className="border-blue-300 text-blue-700 hover:bg-blue-200 px-4 text-xs"
+                >
+                  Copiar
+                </Button>
+              </div>
+            </div>
+
+            {/* Link de Agendamento */}
+            <div className="space-y-2">
+              <p className="text-xs text-blue-600 font-medium">Link de Agendamento Público:</p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  value={`${window.location.origin}/agendamento`}
+                  readOnly
+                  className="bg-white border-blue-300 text-blue-800 font-mono text-xs flex-1 shadow-sm"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/agendamento`);
+                    toast({
+                      title: "Copiado!",
+                      description: "Link de agendamento copiado para a área de transferência.",
+                      variant: "default"
+                    });
+                  }}
+                  className="border-blue-300 text-blue-700 hover:bg-blue-200 px-4 text-xs"
+                >
+                  Copiar
+                </Button>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded p-2 mt-3">
+              <p className="text-xs text-blue-600">
+                ℹ️ <strong>Nota:</strong> Estes são os links corretos gerados pelo sistema. 
+                O redirecionamento automático agora usa sempre URLs internas para manter o contexto.
+              </p>
             </div>
           </div>
         </CardContent>
@@ -284,6 +322,31 @@ const PublicRegistrationLinksConfig: React.FC = () => {
               <p className="text-sm text-green-700">
                 Link para onde o usuário será redirecionado ao clicar em "Agendamento"
               </p>
+            </div>
+            
+            <div className="bg-green-100/50 border border-green-200 rounded-lg p-3">
+              <p className="text-xs text-green-600 font-medium mb-2">🔗 Link correto do sistema:</p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  value={`${window.location.origin}/agendamento`}
+                  readOnly
+                  className="bg-white border-green-300 text-green-800 font-mono text-xs flex-1 shadow-sm"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/agendamento`);
+                    toast({
+                      title: "Copiado!",
+                      description: "Link de agendamento copiado para a área de transferência.",
+                      variant: "default"
+                    });
+                  }}
+                  className="border-green-300 text-green-700 hover:bg-green-200 px-4 text-xs"
+                >
+                  Copiar
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

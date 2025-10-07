@@ -68,6 +68,9 @@ function App() {
           {/* Public Appointment Booking - Accessible without auth */}
           <Route path="/public/agendamento" element={<PublicAppointmentBooking />} />
           
+          {/* Alias for public appointment booking */}
+          <Route path="/agendamento" element={<PublicAppointmentBooking />} />
+          
           {/* Index redirect */}
           <Route path="/" element={
             <SimpleAuthGuard requireAuth={false}>
