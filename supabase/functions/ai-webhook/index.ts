@@ -508,9 +508,10 @@ serve(async (req) => {
       );
     } catch (error) {
       console.error("Erro ao encaminhar para o n8n:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       return new Response(
         JSON.stringify({ 
-          error: `Falha ao processar com N8N: ${error.message}`,
+          error: `Falha ao processar com N8N: ${errorMessage}`,
           success: false
         }),
         { 
@@ -524,10 +525,11 @@ serve(async (req) => {
     }
   } catch (error) {
     console.error("Erro na função AI webhook:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: errorMessage,
         success: false
       }),
       { 

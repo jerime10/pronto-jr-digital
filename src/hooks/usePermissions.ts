@@ -142,7 +142,7 @@ export const usePermissions = () => {
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutos
-    cacheTime: 10 * 60 * 1000, // 10 minutos
+    gcTime: 10 * 60 * 1000, // 10 minutos (cache time no React Query v5)
   });
 
   // Função para verificar permissão específica

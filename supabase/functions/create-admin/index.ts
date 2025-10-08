@@ -140,10 +140,11 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error in create-admin function:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return new Response(
       JSON.stringify({
         success: false,
-        message: error.message || 'An unknown error occurred',
+        message: errorMessage,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -153,7 +154,7 @@ serve(async (req) => {
   }
 });
 
-async function applyRLSPolicies(supabase) {
+async function applyRLSPolicies(supabase: any) {
   try {
     // Enable RLS on all tables
     const tables = [

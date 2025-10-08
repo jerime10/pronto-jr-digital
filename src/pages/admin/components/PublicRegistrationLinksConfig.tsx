@@ -44,7 +44,8 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           console.error('Falha ao aplicar migração');
           setLinks({
             scheduling_url: 'https://www.google.com/',
-            exit_url: 'https://www.google.com/'
+            exit_url: 'https://www.google.com/',
+            public_registration_url: `${window.location.origin}/cadastro-paciente`
           });
           return;
         }
