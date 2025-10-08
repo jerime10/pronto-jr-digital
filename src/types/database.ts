@@ -343,8 +343,8 @@ export type Usuario = {
   id: string;
   username: string;
   password: string;
-  user_type: UserType;
-  permissions: UserPermissions;
+  user_type: string;
+  permissions: Record<string, boolean> | any; // Changed to accept Json type from Supabase
   full_name: string | null;
   email: string | null;
   phone: string | null;
@@ -359,8 +359,8 @@ export type Usuario = {
 export type UsuarioFormData = {
   username: string;
   password?: string;
-  user_type: UserType;
-  permissions: UserPermissions;
+  user_type: string;
+  permissions: Record<string, boolean> | any; // Changed to accept Json type
   full_name?: string;
   email?: string;
   phone?: string;

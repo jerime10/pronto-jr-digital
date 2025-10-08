@@ -38,7 +38,7 @@ export const IndividualFieldsManager = () => {
     isDeleting,
   } = useIndividualFieldTemplates();
 
-  const { permissions, checkPermission } = usePermissions();
+  const { isAdmin } = usePermissions();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);

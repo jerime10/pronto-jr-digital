@@ -16,7 +16,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { ActionButtonGuard } from '@/components/PermissionGuard';
 
 const Servicos: React.FC = () => {
-  const { permissions, checkPermission } = usePermissions();
+  const { permissions, isAdmin, hasPermission } = usePermissions();
   const navigate = useNavigate();
   const [selectedAttendant, setSelectedAttendant] = useState<string>('');
   const [activeTab, setActiveTab] = useState<string>('gerenciar');

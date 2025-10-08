@@ -30,7 +30,7 @@ const DocumentAssetsUploader: React.FC = () => {
     attendantLogoData,
   } = useDocumentAssets();
 
-  const { permissions, checkPermission } = usePermissions();
+  const { isAdmin } = usePermissions();
   const logoInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
   const attendantLogoInputRef = useRef<HTMLInputElement>(null);

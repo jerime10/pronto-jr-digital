@@ -204,7 +204,7 @@ const toggleDayInArray = (days: number[], day: number): number[] => {
 };
 
 const Horarios: React.FC = () => {
-  const { permissions, checkPermission } = usePermissions();
+  const { permissions, isAdmin, hasPermission } = usePermissions();
   const navigate = useNavigate();
   const { schedules, isLoading, createSchedule, updateSchedule, deleteSchedule, toggleScheduleStatus } = useSchedules();
   const { data: attendants, isLoading: isLoadingAttendants } = useActiveAttendants();

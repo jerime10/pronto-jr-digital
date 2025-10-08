@@ -18,7 +18,7 @@ import { whatsappTemplateService } from '@/services/whatsappTemplateService';
 // Gerenciador de Templates WhatsApp - Interface completa para criação e edição
 const WhatsAppTemplateManager = () => {
   const { templates, activeTemplate, createTemplate, updateTemplate, deleteTemplate, setActiveTemplate, isLoading } = useWhatsAppTemplates();
-  const { permissions, checkPermission } = usePermissions();
+  const { isAdmin } = usePermissions();
   const [editingTemplate, setEditingTemplate] = useState<WhatsAppTemplate | null>(null);
   const [formData, setFormData] = useState({
     name: '',

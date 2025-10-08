@@ -156,7 +156,7 @@ export class UserService {
    */
   static async getPartnerBookingLink(username: string): Promise<string> {
     const { data, error } = await supabase
-      .rpc('get_partner_booking_link', { partner_username: username });
+      .rpc('get_partner_booking_link', { username_input: username });
 
     if (error) {
       console.error('Erro ao gerar link do parceiro:', error);

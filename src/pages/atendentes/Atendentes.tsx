@@ -348,7 +348,7 @@ const AttendantForm: React.FC<AttendantFormProps> = ({ attendant, onClose }) => 
 };
 
 const Atendentes: React.FC = () => {
-  const { permissions, checkPermission } = usePermissions();
+  const { permissions, isAdmin, hasPermission } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [editingAttendant, setEditingAttendant] = useState<Attendant | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);

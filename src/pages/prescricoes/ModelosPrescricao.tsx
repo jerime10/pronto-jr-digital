@@ -34,7 +34,7 @@ const ModelosPrescricao = () => {
   const [currentModel, setCurrentModel] = useState<Partial<PrescriptionModel>>({ id: '', name: '', description: '' });
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { permissions, checkPermission } = usePermissions();
+  const { permissions, isAdmin, hasPermission } = usePermissions();
   
   const { data: models = [], isLoading: isLoadingModels, error, refetch } = usePrescriptionModels();
   

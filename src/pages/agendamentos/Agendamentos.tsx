@@ -196,7 +196,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
 
 const Agendamentos: React.FC = () => {
   const navigate = useNavigate();
-  const { permissions, isPartner, checkPermission } = usePermissions();
+  const { permissions, isPartner, isAdmin, hasPermission } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus | 'todos'>('todos');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);

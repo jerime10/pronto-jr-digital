@@ -28,6 +28,8 @@ export type Database = {
           gestational_age: string | null
           id: string
           notes: string | null
+          partner_code: string | null
+          partner_username: string | null
           patient_id: string | null
           patient_name: string | null
           patient_phone: string | null
@@ -51,6 +53,8 @@ export type Database = {
           gestational_age?: string | null
           id?: string
           notes?: string | null
+          partner_code?: string | null
+          partner_username?: string | null
           patient_id?: string | null
           patient_name?: string | null
           patient_phone?: string | null
@@ -74,6 +78,8 @@ export type Database = {
           gestational_age?: string | null
           id?: string
           notes?: string | null
+          partner_code?: string | null
+          partner_username?: string | null
           patient_id?: string | null
           patient_name?: string | null
           patient_phone?: string | null
@@ -320,6 +326,7 @@ export type Database = {
           attendant_id: string | null
           created_at: string | null
           custom_prescription: string | null
+          dum: string | null
           evolution: string | null
           exam_observations: string | null
           exam_requests: Json | null
@@ -342,6 +349,7 @@ export type Database = {
           attendant_id?: string | null
           created_at?: string | null
           custom_prescription?: string | null
+          dum?: string | null
           evolution?: string | null
           exam_observations?: string | null
           exam_requests?: Json | null
@@ -364,6 +372,7 @@ export type Database = {
           attendant_id?: string | null
           created_at?: string | null
           custom_prescription?: string | null
+          dum?: string | null
           evolution?: string | null
           exam_observations?: string | null
           exam_requests?: Json | null
@@ -550,6 +559,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "professionals_custom_user_id_fkey"
+            columns: ["custom_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_permissions_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "professionals_custom_user_id_fkey"
             columns: ["custom_user_id"]
@@ -746,6 +762,7 @@ export type Database = {
           pdf_patient_info_template: string | null
           pdf_prescription_template: string | null
           primary_color: string | null
+          public_registration_url: string | null
           setting_key: string | null
           setting_value: string | null
           signature_data: string | null
@@ -754,6 +771,8 @@ export type Database = {
           signature_professional_title: string | null
           updated_at: string | null
           updated_by: string | null
+          whatsapp_reminder_webhook_url: string | null
+          whatsapp_webhook_url: string | null
         }
         Insert: {
           accent_color?: string | null
@@ -774,6 +793,7 @@ export type Database = {
           pdf_patient_info_template?: string | null
           pdf_prescription_template?: string | null
           primary_color?: string | null
+          public_registration_url?: string | null
           setting_key?: string | null
           setting_value?: string | null
           signature_data?: string | null
@@ -782,6 +802,8 @@ export type Database = {
           signature_professional_title?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          whatsapp_reminder_webhook_url?: string | null
+          whatsapp_webhook_url?: string | null
         }
         Update: {
           accent_color?: string | null
@@ -802,6 +824,7 @@ export type Database = {
           pdf_patient_info_template?: string | null
           pdf_prescription_template?: string | null
           primary_color?: string | null
+          public_registration_url?: string | null
           setting_key?: string | null
           setting_value?: string | null
           signature_data?: string | null
@@ -810,6 +833,8 @@ export type Database = {
           signature_professional_title?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          whatsapp_reminder_webhook_url?: string | null
+          whatsapp_webhook_url?: string | null
         }
         Relationships: []
       }
@@ -820,9 +845,11 @@ export type Database = {
           created_at: string | null
           description: string
           id: string
+          origin: string | null
           payment_method: string | null
           status: string | null
           transaction_date: string
+          type: string | null
           updated_at: string | null
         }
         Insert: {
@@ -831,9 +858,11 @@ export type Database = {
           created_at?: string | null
           description: string
           id?: string
+          origin?: string | null
           payment_method?: string | null
           status?: string | null
           transaction_date?: string
+          type?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -842,9 +871,11 @@ export type Database = {
           created_at?: string | null
           description?: string
           id?: string
+          origin?: string | null
           payment_method?: string | null
           status?: string | null
           transaction_date?: string
+          type?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -859,27 +890,51 @@ export type Database = {
       }
       usuarios: {
         Row: {
+          commission_percentage: number | null
           created_at: string | null
+          email: string | null
+          full_name: string | null
           id: string
           is_active: boolean | null
+          last_login: string | null
+          partner_code: string | null
           password: string
+          permissions: Json | null
+          phone: string | null
           updated_at: string | null
+          user_type: string | null
           username: string
         }
         Insert: {
+          commission_percentage?: number | null
           created_at?: string | null
+          email?: string | null
+          full_name?: string | null
           id?: string
           is_active?: boolean | null
+          last_login?: string | null
+          partner_code?: string | null
           password: string
+          permissions?: Json | null
+          phone?: string | null
           updated_at?: string | null
+          user_type?: string | null
           username: string
         }
         Update: {
+          commission_percentage?: number | null
           created_at?: string | null
+          email?: string | null
+          full_name?: string | null
           id?: string
           is_active?: boolean | null
+          last_login?: string | null
+          partner_code?: string | null
           password?: string
+          permissions?: Json | null
+          phone?: string | null
           updated_at?: string | null
+          user_type?: string | null
           username?: string
         }
         Relationships: []
@@ -919,9 +974,79 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_permissions_view: {
+        Row: {
+          can_access_agendamentos: boolean | null
+          can_access_atendimento: boolean | null
+          can_access_configuracoes: boolean | null
+          can_access_dashboard: boolean | null
+          can_access_exames: boolean | null
+          can_access_financeiro: boolean | null
+          can_access_pacientes: boolean | null
+          can_access_partner_dashboard: boolean | null
+          can_access_partner_links: boolean | null
+          can_access_prescricoes: boolean | null
+          can_access_usuarios: boolean | null
+          full_name: string | null
+          id: string | null
+          is_active: boolean | null
+          partner_code: string | null
+          permissions: Json | null
+          user_type: string | null
+          username: string | null
+        }
+        Insert: {
+          can_access_agendamentos?: never
+          can_access_atendimento?: never
+          can_access_configuracoes?: never
+          can_access_dashboard?: never
+          can_access_exames?: never
+          can_access_financeiro?: never
+          can_access_pacientes?: never
+          can_access_partner_dashboard?: never
+          can_access_partner_links?: never
+          can_access_prescricoes?: never
+          can_access_usuarios?: never
+          full_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          partner_code?: string | null
+          permissions?: Json | null
+          user_type?: string | null
+          username?: string | null
+        }
+        Update: {
+          can_access_agendamentos?: never
+          can_access_atendimento?: never
+          can_access_configuracoes?: never
+          can_access_dashboard?: never
+          can_access_exames?: never
+          can_access_financeiro?: never
+          can_access_pacientes?: never
+          can_access_partner_dashboard?: never
+          can_access_partner_links?: never
+          can_access_prescricoes?: never
+          can_access_usuarios?: never
+          full_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          partner_code?: string | null
+          permissions?: Json | null
+          user_type?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      check_partner_permission: {
+        Args: {
+          permission_key: string
+          resource_id?: string
+          user_id_input: string
+        }
+        Returns: boolean
+      }
       cleanup_expired_sessions: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -934,6 +1059,10 @@ export type Database = {
           table_name: string
         }
         Returns: undefined
+      }
+      generate_partner_code: {
+        Args: { username_input: string }
+        Returns: string
       }
       get_current_user_id: {
         Args: Record<PropertyKey, never>
@@ -948,6 +1077,10 @@ export type Database = {
           result_template: string
           updated_at: string
         }[]
+      }
+      get_partner_booking_link: {
+        Args: { username_input: string }
+        Returns: string
       }
       get_patients_for_search: {
         Args: { search_term?: string }
@@ -964,6 +1097,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_user_permissions: {
+        Args: { user_id_input: string }
+        Returns: Json
+      }
       hash_password: {
         Args: { password: string }
         Returns: string
@@ -975,6 +1112,14 @@ export type Database = {
       pg_enable_row_level_security: {
         Args: { table_name: string }
         Returns: undefined
+      }
+      update_user_permissions: {
+        Args: { new_permissions: Json; user_id_input: string }
+        Returns: boolean
+      }
+      user_has_permission: {
+        Args: { permission_key: string; user_id_input: string }
+        Returns: boolean
       }
       validate_session: {
         Args: { session_token: string }
@@ -988,8 +1133,15 @@ export type Database = {
       validate_simple_user: {
         Args: { input_password: string; input_username: string }
         Returns: {
+          commission_percentage: number
+          email: string
+          full_name: string
           id: string
           is_active: boolean
+          partner_code: string
+          permissions: Json
+          phone: string
+          user_type: string
           username: string
         }[]
       }

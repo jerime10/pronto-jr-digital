@@ -68,6 +68,12 @@ export interface UserPermissions {
   horarios_excluir: boolean;
   horarios_visualizar: boolean;
   
+  // Permissões granulares - Serviços (novo)
+  servicos_criar: boolean;
+  servicos_editar: boolean;
+  servicos_excluir: boolean;
+  servicos_visualizar: boolean;
+  
   // Permissões granulares - Financeiro
   financeiro_visualizar: boolean;
   financeiro_editar: boolean;
@@ -128,6 +134,10 @@ const defaultPermissions: UserPermissions = {
   horarios_editar: false,
   horarios_excluir: false,
   horarios_visualizar: false,
+  servicos_criar: false,
+  servicos_editar: false,
+  servicos_excluir: false,
+  servicos_visualizar: false,
   financeiro_visualizar: false,
   financeiro_editar: false,
   partner_dashboard: false,
@@ -167,11 +177,11 @@ export const usePermissions = () => {
       }
 
       // Combinar permissões do banco com defaults e informações de contexto
-      const userPermissions = userData.permissions || {};
+      const userPermissions = userData.permissions as Record<string, boolean> || {};
       return {
         ...defaultPermissions,
         ...userPermissions,
-        user_type: userData.user_type || 'user',
+        user_type: userData.user_type as 'admin' | 'partner' | 'user',
         is_admin: userData.user_type === 'admin',
         is_partner: userData.user_type === 'partner'
       } as UserPermissions;

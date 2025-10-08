@@ -21,7 +21,7 @@ import { ActionButtonGuard } from '@/components/PermissionGuard';
 
 const ListaPacientes = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { permissions, checkPermission } = usePermissions();
+  const { permissions, isAdmin, hasPermission } = usePermissions();
   
   const { data: patients, isLoading, error, refetch } = usePatients();
   

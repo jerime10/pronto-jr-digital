@@ -66,7 +66,7 @@ interface Payment {
 }
 
 const Financeiro: React.FC = () => {
-  const { permissions, checkPermission } = usePermissions();
+  const { permissions, isAdmin, hasPermission } = usePermissions();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [viewType, setViewType] = useState<'Mensal' | 'Anual'>('Mensal');
   const [metrics, setMetrics] = useState<FinancialMetrics>({
@@ -315,11 +315,8 @@ const Financeiro: React.FC = () => {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Financeiro</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Gerencie suas receitas, despesas e transferências</p>
         </div>
-        <ActionButtonGuard 
-          requiredPermission="financial_management"
-          fallback={null}
-        >
-          <Button 
+        <ActionButtonGuard permission="financeiro_editar">
+          <Button
             variant="outline" 
             size="sm" 
             onClick={() => syncTransactions()}
