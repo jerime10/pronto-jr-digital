@@ -105,11 +105,12 @@ export const PublicPatientRegistration: React.FC = () => {
           const partnerData = await UserService.getUserByUsername(partner);
           
           if (partnerData && partnerData.user_type === 'partner' && partnerData.is_active) {
-            setPartnerInfo(partnerData);
-            setPartnerCode(partnerData.partner_code || '');
-            console.log('✅ Parceiro válido encontrado:', partnerData.full_name || partnerData.username);
+            const partner = partnerData as any;
+            setPartnerInfo(partner);
+            setPartnerCode(partner.partner_code || '');
+            console.log('✅ Parceiro válido encontrado:', partner.full_name || partner.username);
             
-            toast.success(`Cadastro via parceiro: ${partnerData.full_name || partnerData.username}`);
+            toast.success(`Cadastro via parceiro: ${partner.full_name || partner.username}`);
           } else {
             console.log('⚠️ Parceiro inválido ou inativo');
             setIsPartnerContext(false);
@@ -130,11 +131,12 @@ export const PublicPatientRegistration: React.FC = () => {
             .single();
             
           if (!error && partnerData) {
-            setPartnerInfo(partnerData);
-            setPartnerUsername(partnerData.username);
-            console.log('✅ Parceiro encontrado pelo código:', partnerData.full_name || partnerData.username);
+            const partner = partnerData as any;
+            setPartnerInfo(partner);
+            setPartnerUsername(partner.username);
+            console.log('✅ Parceiro encontrado pelo código:', partner.full_name || partner.username);
             
-            toast.success(`Cadastro via parceiro: ${partnerData.full_name || partnerData.username}`);
+            toast.success(`Cadastro via parceiro: ${partner.full_name || partner.username}`);
           } else {
             console.log('⚠️ Código de parceiro inválido');
             setIsPartnerContext(false);

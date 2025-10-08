@@ -69,10 +69,11 @@ const PublicRegistrationLinksConfig: React.FC = () => {
       }
 
       if (data) {
+        const siteData = data as any;
         setLinks({
-          scheduling_url: data.n8n_webhook_url || 'https://www.google.com/',
-          exit_url: data.medical_record_webhook_url || 'https://www.google.com/',
-          public_registration_url: data.public_registration_url || `${window.location.origin}/cadastro-paciente`
+          scheduling_url: siteData.n8n_webhook_url || 'https://www.google.com/',
+          exit_url: siteData.medical_record_webhook_url || 'https://www.google.com/',
+          public_registration_url: siteData.public_registration_url || `${window.location.origin}/cadastro-paciente`
         });
       } else {
         // Se não houver dados, usar URLs padrão

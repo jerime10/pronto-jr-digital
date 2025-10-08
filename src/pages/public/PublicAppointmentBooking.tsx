@@ -143,11 +143,12 @@ export const PublicAppointmentBooking: React.FC = () => {
         const partner = await UserService.getUserByUsername(partnerParam);
         
         if (partner && partner.user_type === 'partner' && partner.is_active) {
-          setPartnerInfo(partner);
-          setPartnerCode(partner.partner_code || '');
-          console.log('✅ Parceiro válido encontrado:', partner.full_name || partner.username);
+          const partnerData = partner as any;
+          setPartnerInfo(partnerData);
+          setPartnerCode(partnerData.partner_code || '');
+          console.log('✅ Parceiro válido encontrado:', partnerData.full_name || partnerData.username);
           
-          toast.success(`Agendamento via parceiro: ${partner.full_name || partner.username}`);
+          toast.success(`Agendamento via parceiro: ${partnerData.full_name || partnerData.username}`);
         } else {
           console.log('⚠️ Parceiro inválido ou inativo');
           setPartnerUsername('');
@@ -167,11 +168,12 @@ export const PublicAppointmentBooking: React.FC = () => {
           .single();
           
         if (!error && partners) {
-          setPartnerInfo(partners);
-          setPartnerUsername(partners.username);
-          console.log('✅ Parceiro encontrado pelo código:', partners.full_name || partners.username);
+          const partnerData = partners as any;
+          setPartnerInfo(partnerData);
+          setPartnerUsername(partnerData.username);
+          console.log('✅ Parceiro encontrado pelo código:', partnerData.full_name || partnerData.username);
           
-          toast.success(`Agendamento via parceiro: ${partners.full_name || partners.username}`);
+          toast.success(`Agendamento via parceiro: ${partnerData.full_name || partnerData.username}`);
         } else {
           console.log('⚠️ Código de parceiro inválido');
           setPartnerCode('');
@@ -326,11 +328,12 @@ export const PublicAppointmentBooking: React.FC = () => {
 
       if (data) {
         console.log('📊 Dados carregados do site_settings:', data);
-        console.log('🔗 public_registration_url encontrado:', data.public_registration_url);
+        console.log('🔗 public_registration_url encontrado:', (data as any).public_registration_url);
         
+        const siteData = data as any;
         const newLinks = {
-          exit_url: data.medical_record_webhook_url || 'https://preview--cjrs-landing-craft.lovable.app',
-          public_registration_url: data.public_registration_url || `${window.location.origin}/cadastro-paciente`
+          exit_url: siteData.medical_record_webhook_url || 'https://preview--cjrs-landing-craft.lovable.app',
+          public_registration_url: siteData.public_registration_url || `${window.location.origin}/cadastro-paciente`
         };
         
         console.log('✅ Links configurados:', newLinks);

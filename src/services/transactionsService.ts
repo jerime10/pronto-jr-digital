@@ -83,7 +83,8 @@ async function mapDatabaseToTransactionWithOrigin(dbTransaction: DatabaseTransac
             .single();
           
           if (!partnerError && partner) {
-            origin = partner.full_name || appointment.partner_username;
+            const partnerData = partner as any;
+            origin = partnerData.full_name || appointment.partner_username;
           } else {
             origin = appointment.partner_username;
           }

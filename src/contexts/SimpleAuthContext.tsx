@@ -78,7 +78,7 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return { success: false, error: 'Usuário ou senha inválidos' };
       }
 
-      const userData = data[0];
+      const userData = data[0] as any;
       
       // Determinar tipo de usuário baseado nos dados do banco
       const isAdmin = userData.user_type === 'admin' || userData.username === 'admin';
