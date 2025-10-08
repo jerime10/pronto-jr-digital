@@ -27,6 +27,12 @@ export interface SiteSettings {
 
   // Medical record webhook settings
   medicalRecordWebhookUrl: string;
+  
+  // Public registration URL (new)
+  public_registration_url?: string | null;
+  
+  // WhatsApp reminder webhook URL (new)
+  whatsapp_reminder_webhook_url?: string | null;
 }
 
 // Theme settings input (used when updating theme)

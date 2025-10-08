@@ -55,6 +55,7 @@ export const useLocalStoragePersistence = ({
           alergias: parsedData.allergies || '',
           evolucao: parsedData.evolution || '',
           modeloPrescricao: parsedData.prescription_model_id || '',
+          modelosPrescricaoSelecionados: parsedData.modelosPrescricaoSelecionados || [],
           prescricaoPersonalizada: parsedData.custom_prescription || '',
           examesSelecionados: Array.isArray(parsedData.exam_requests) 
             ? parsedData.exam_requests.map(item => String(item))

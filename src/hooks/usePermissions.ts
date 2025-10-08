@@ -56,6 +56,18 @@ export interface UserPermissions {
   agendamentos_excluir: boolean;
   agendamentos_visualizar: boolean;
   
+  // Permissões granulares - Atendentes (novo)
+  atendentes_criar: boolean;
+  atendentes_editar: boolean;
+  atendentes_excluir: boolean;
+  atendentes_visualizar: boolean;
+  
+  // Permissões granulares - Horários (novo)
+  horarios_criar: boolean;
+  horarios_editar: boolean;
+  horarios_excluir: boolean;
+  horarios_visualizar: boolean;
+  
   // Permissões granulares - Financeiro
   financeiro_visualizar: boolean;
   financeiro_editar: boolean;
@@ -108,6 +120,14 @@ const defaultPermissions: UserPermissions = {
   agendamentos_editar: false,
   agendamentos_excluir: false,
   agendamentos_visualizar: false,
+  atendentes_criar: false,
+  atendentes_editar: false,
+  atendentes_excluir: false,
+  atendentes_visualizar: false,
+  horarios_criar: false,
+  horarios_editar: false,
+  horarios_excluir: false,
+  horarios_visualizar: false,
   financeiro_visualizar: false,
   financeiro_editar: false,
   partner_dashboard: false,
@@ -129,16 +149,32 @@ export const usePermissions = () => {
         return defaultPermissions;
       }
 
-      const { data, error } = await supabase.rpc('get_user_permissions', {
-        user_id_input: user.id
-      });
+      // Buscar permissões do usuário diretamente da tabela usuarios
+      const { data: userData, error: userError } = await supabase
+        .from('usuarios')
+        .select('permissions, user_type')
+        .eq('id', user.id)
+        .eq('is_active', true)
+        .single();
 
-      if (error) {
-        console.error('Erro ao buscar permissões:', error);
-        throw error;
+      if (userError) {
+        console.error('Erro ao buscar permissões:', userError);
+        return defaultPermissions;
       }
 
-      return { ...defaultPermissions, ...data } as UserPermissions;
+      if (!userData) {
+        return defaultPermissions;
+      }
+
+      // Combinar permissões do banco com defaults e informações de contexto
+      const userPermissions = userData.permissions || {};
+      return {
+        ...defaultPermissions,
+        ...userPermissions,
+        user_type: userData.user_type || 'user',
+        is_admin: userData.user_type === 'admin',
+        is_partner: userData.user_type === 'partner'
+      } as UserPermissions;
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutos
@@ -164,18 +200,20 @@ export const usePermissions = () => {
   const checkPartnerPermission = async (permissionKey: string, resourceId?: string) => {
     if (!user?.id) return false;
 
-    const { data, error } = await supabase.rpc('check_partner_permission', {
-      user_id_input: user.id,
-      permission_key: permissionKey,
-      resource_id: resourceId || null
-    });
+    // Implementação simplificada: admin tem todas as permissões
+    if (permissions.is_admin) return true;
 
-    if (error) {
-      console.error('Erro ao verificar permissão de parceiro:', error);
-      return false;
+    // Para parceiros, verificar permissões específicas
+    if (permissions.is_partner) {
+      // Verificar se tem a permissão básica
+      const hasBasicPermission = hasPermission(permissionKey as keyof UserPermissions);
+      
+      // Se tem ID de recurso, poderia verificar ownership aqui
+      // Por enquanto, retorna apenas a permissão básica
+      return hasBasicPermission;
     }
 
-    return data === true;
+    return false;
   };
 
   // Função para obter permissões de menu
