@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PermissionGuard, ActionButtonGuard } from '@/components/PermissionGuard';
 
-import { Calendar, Clock, Search, MoreVertical, Plus, Phone, Trash2, CheckCircle, XCircle, Archive, Loader2, User, MapPin, Baby } from 'lucide-react';
+import { Calendar, Clock, Search, MoreVertical, Plus, Phone, Trash2, CheckCircle, XCircle, Archive, Loader2, User, MapPin, Baby, MessageCircle, Send } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAppointments } from '@/hooks/useAppointments';
@@ -19,6 +19,7 @@ import { findPatientByName } from '@/services/patientService';
 import { toast } from 'sonner';
 import { formatPregnancyDisplay } from '@/utils/pregnancyUtils';
 import { isObstetricService } from '@/utils/obstetricUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 // Tipos de status de agendamento
 type AppointmentStatus = 'aguardando_atendimento' | 'atendimento_iniciado' | 'atendimento_finalizado' | 'agendamento_cancelado' | 'scheduled' | 'completed' | 'canceled' | 'archived';
@@ -86,9 +87,10 @@ const getActionOptions = (status: AppointmentStatus) => {
 interface AppointmentCardProps {
   appointment: AppointmentData;
   onAction: (appointmentId: string, action: string) => void;
+  onSendReminder: (appointmentId: string) => void;
 }
 
-const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction }) => {
+const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction, onSendReminder }) => {
   
   const getInitials = (name: string | null | undefined) => {
     // Verificação de segurança para evitar erro com valores null/undefined
@@ -173,6 +175,13 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => onSendReminder(appointment.id)}
+                  className="text-green-600 hover:text-green-700"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Enviar Lembrete WhatsApp
+                </DropdownMenuItem>
                 {actionOptions.map((option) => {
                   const Icon = option.icon;
                   return (
@@ -200,6 +209,8 @@ const Agendamentos: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus | 'todos'>('todos');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [sendingReminder, setSendingReminder] = useState(false);
+  const [sendingBatch, setSendingBatch] = useState(false);
   
   // Mapear status da interface para status do banco para o hook
   const getDbStatusForHook = (status: AppointmentStatus | 'todos') => {
@@ -389,6 +400,108 @@ const Agendamentos: React.FC = () => {
   const getTabCount = (status?: string) => {
     return filterAppointmentsByStatus(status).length;
   };
+
+  // Função para enviar lembrete WhatsApp individual
+  const handleSendReminder = async (appointmentId: string) => {
+    try {
+      setSendingReminder(true);
+      
+      const appointment = appointments.find(app => app.id === appointmentId);
+      if (!appointment) {
+        throw new Error('Agendamento não encontrado');
+      }
+
+      if (!appointment.patient_phone) {
+        toast.error('Paciente não possui telefone cadastrado');
+        return;
+      }
+
+      const payload = {
+        appointment_id: appointment.id,
+        patient_name: appointment.patient_name || 'Paciente',
+        patient_phone: appointment.patient_phone,
+        appointment_date: appointment.appointment_date || '',
+        appointment_time: appointment.appointment_time || '',
+        service_name: appointment.service_name || 'Consulta',
+        attendant_name: appointment.attendant_name || 'Profissional',
+        reminder_type: '15s'
+      };
+
+      const { data, error } = await supabase.functions.invoke('whatsapp-reminder', {
+        body: payload
+      });
+
+      if (error) throw error;
+
+      toast.success('Lembrete WhatsApp enviado com sucesso!');
+    } catch (error: any) {
+      console.error('Erro ao enviar lembrete:', error);
+      toast.error(`Erro ao enviar lembrete: ${error.message}`);
+    } finally {
+      setSendingReminder(false);
+    }
+  };
+
+  // Função para enviar lembretes em lote
+  const handleSendBatchReminders = async () => {
+    try {
+      setSendingBatch(true);
+      
+      const appointmentsToSend = filterAppointmentsByStatus(selectedStatus);
+      
+      if (appointmentsToSend.length === 0) {
+        toast.error('Nenhum agendamento para enviar lembretes');
+        return;
+      }
+
+      let sentCount = 0;
+      let failedCount = 0;
+
+      for (const appointment of appointmentsToSend) {
+        if (!appointment.patient_phone) {
+          failedCount++;
+          continue;
+        }
+
+        try {
+          const payload = {
+            appointment_id: appointment.id,
+            patient_name: appointment.patient_name || 'Paciente',
+            patient_phone: appointment.patient_phone,
+            appointment_date: appointment.appointment_date || '',
+            appointment_time: appointment.appointment_time || '',
+            service_name: appointment.service_name || 'Consulta',
+            attendant_name: appointment.attendant_name || 'Profissional',
+            reminder_type: '15s'
+          };
+
+          await supabase.functions.invoke('whatsapp-reminder', {
+            body: payload
+          });
+
+          sentCount++;
+        } catch (error) {
+          console.error(`Erro ao enviar lembrete para ${appointment.patient_name}:`, error);
+          failedCount++;
+        }
+
+        // Pequeno delay entre envios para não sobrecarregar
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      if (sentCount > 0) {
+        toast.success(`${sentCount} lembrete(s) enviado(s) com sucesso!`);
+      }
+      if (failedCount > 0) {
+        toast.error(`${failedCount} lembrete(s) falharam`);
+      }
+    } catch (error: any) {
+      console.error('Erro ao enviar lembretes em lote:', error);
+      toast.error(`Erro ao enviar lembretes: ${error.message}`);
+    } finally {
+      setSendingBatch(false);
+    }
+  };
   
   if (isLoading) {
     return (
@@ -416,15 +529,31 @@ const Agendamentos: React.FC = () => {
           <p className="text-muted-foreground">Gerencie os agendamentos da clínica</p>
         </div>
         
-        <ActionButtonGuard permission="agendamentos_criar">
+        <div className="flex gap-2">
           <Button 
-            className="bg-blue-600 hover:bg-blue-700"
-            onClick={() => window.open('/agendamento', '_blank')}
+            variant="outline"
+            className="bg-green-50 text-green-700 hover:bg-green-100 border-green-300"
+            onClick={handleSendBatchReminders}
+            disabled={sendingBatch || filterAppointmentsByStatus(selectedStatus).length === 0}
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Agendamento
+            {sendingBatch ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4 mr-2" />
+            )}
+            {sendingBatch ? 'Enviando...' : 'Enviar Lembretes em Lote'}
           </Button>
-        </ActionButtonGuard>
+          
+          <ActionButtonGuard permission="agendamentos_criar">
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => window.open('/agendamento', '_blank')}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Agendamento
+            </Button>
+          </ActionButtonGuard>
+        </div>
       </div>
 
       <Card>
@@ -482,6 +611,7 @@ const Agendamentos: React.FC = () => {
                         key={appointment.id}
                         appointment={appointment}
                         onAction={handleAction}
+                        onSendReminder={handleSendReminder}
                       />
                     ))}
                   </div>

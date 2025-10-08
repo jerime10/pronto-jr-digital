@@ -1113,6 +1113,10 @@ export type Database = {
         Args: { table_name: string }
         Returns: undefined
       }
+      send_whatsapp_reminder: {
+        Args: { p_appointment_id: string; p_reminder_type: string }
+        Returns: boolean
+      }
       update_user_permissions: {
         Args: { new_permissions: Json; user_id_input: string }
         Returns: boolean
