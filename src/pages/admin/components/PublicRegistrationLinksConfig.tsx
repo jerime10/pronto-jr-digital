@@ -13,13 +13,15 @@ interface PublicRegistrationLinks {
   scheduling_url: string;
   exit_url: string;
   public_registration_url: string;
+  whatsapp_reminder_webhook_url: string;
 }
 
 const PublicRegistrationLinksConfig: React.FC = () => {
   const [links, setLinks] = useState<PublicRegistrationLinks>({
     scheduling_url: '',
     exit_url: '',
-    public_registration_url: ''
+    public_registration_url: '',
+    whatsapp_reminder_webhook_url: ''
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -45,7 +47,8 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           setLinks({
             scheduling_url: 'https://www.google.com/',
             exit_url: 'https://www.google.com/',
-            public_registration_url: `${window.location.origin}/cadastro-paciente`
+            public_registration_url: `${window.location.origin}/cadastro-paciente`,
+            whatsapp_reminder_webhook_url: ''
           });
           return;
         }
@@ -63,7 +66,8 @@ const PublicRegistrationLinksConfig: React.FC = () => {
         setLinks({
           scheduling_url: 'https://www.google.com/',
           exit_url: 'https://www.google.com/',
-          public_registration_url: `${window.location.origin}/cadastro-paciente`
+          public_registration_url: `${window.location.origin}/cadastro-paciente`,
+          whatsapp_reminder_webhook_url: ''
         });
         return;
       }
@@ -73,14 +77,16 @@ const PublicRegistrationLinksConfig: React.FC = () => {
         setLinks({
           scheduling_url: siteData.n8n_webhook_url || 'https://www.google.com/',
           exit_url: siteData.medical_record_webhook_url || 'https://www.google.com/',
-          public_registration_url: siteData.public_registration_url || `${window.location.origin}/cadastro-paciente`
+          public_registration_url: siteData.public_registration_url || `${window.location.origin}/cadastro-paciente`,
+          whatsapp_reminder_webhook_url: siteData.whatsapp_reminder_webhook_url || ''
         });
       } else {
         // Se não houver dados, usar URLs padrão
         setLinks({
           scheduling_url: 'https://www.google.com/',
           exit_url: 'https://www.google.com/',
-          public_registration_url: `${window.location.origin}/cadastro-paciente`
+          public_registration_url: `${window.location.origin}/cadastro-paciente`,
+          whatsapp_reminder_webhook_url: ''
         });
       }
     } catch (error) {
@@ -88,7 +94,8 @@ const PublicRegistrationLinksConfig: React.FC = () => {
       setLinks({
         scheduling_url: 'https://www.google.com/',
         exit_url: 'https://www.google.com/',
-        public_registration_url: `${window.location.origin}/cadastro-paciente`
+        public_registration_url: `${window.location.origin}/cadastro-paciente`,
+        whatsapp_reminder_webhook_url: ''
       });
     } finally {
       setLoading(false);
@@ -113,7 +120,8 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           .update({ 
             n8n_webhook_url: links.scheduling_url,
             medical_record_webhook_url: links.exit_url,
-            public_registration_url: links.public_registration_url
+            public_registration_url: links.public_registration_url,
+            whatsapp_reminder_webhook_url: links.whatsapp_reminder_webhook_url
           })
           .eq('id', existing.id);
         
@@ -125,7 +133,8 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           .insert({ 
             n8n_webhook_url: links.scheduling_url,
             medical_record_webhook_url: links.exit_url,
-            public_registration_url: links.public_registration_url
+            public_registration_url: links.public_registration_url,
+            whatsapp_reminder_webhook_url: links.whatsapp_reminder_webhook_url
           });
         
         if (error) throw error;
@@ -398,6 +407,66 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Card de WhatsApp Lembretes */}
+      <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 shadow-lg">
+        <CardHeader className="pb-6">
+          <CardTitle className="flex items-center gap-3 text-purple-800 text-xl">
+            <ExternalLink className="h-6 w-6" />
+            Webhook de Lembretes WhatsApp
+          </CardTitle>
+          <CardDescription className="text-purple-700 text-base">
+            Configure o webhook para enviar lembretes automáticos de agendamento via WhatsApp
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <Label htmlFor="whatsapp_reminder_webhook_url" className="text-purple-800 font-medium">URL do Webhook WhatsApp</Label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                id="whatsapp_reminder_webhook_url"
+                type="url"
+                placeholder="https://exemplo.com/webhook/whatsapp-reminder"
+                value={links.whatsapp_reminder_webhook_url}
+                onChange={(e) => handleInputChange('whatsapp_reminder_webhook_url', e.target.value)}
+                className={`flex-1 ${!isValidUrl(links.whatsapp_reminder_webhook_url) && links.whatsapp_reminder_webhook_url ? 'border-red-500' : 'border-purple-300'} bg-white shadow-sm`}
+                disabled={loading}
+              />
+              {links.whatsapp_reminder_webhook_url && (
+                <Button
+                  variant="outline"
+                  onClick={() => window.open(links.whatsapp_reminder_webhook_url, '_blank')}
+                  disabled={!isValidUrl(links.whatsapp_reminder_webhook_url)}
+                  className="border-purple-300 text-purple-700 hover:bg-purple-200"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            {!isValidUrl(links.whatsapp_reminder_webhook_url) && links.whatsapp_reminder_webhook_url && (
+              <p className="text-sm text-red-600 font-medium">URL inválida</p>
+            )}
+            <p className="text-sm text-purple-700">
+              URL do webhook (n8n, Make, Zapier, etc.) que receberá os dados para envio dos lembretes
+            </p>
+          </div>
+          
+          <div className="bg-purple-100/50 border border-purple-200 rounded-lg p-4 space-y-3">
+            <p className="text-sm text-purple-700 font-medium mb-2">📅 Lembretes Automáticos:</p>
+            <ul className="text-xs text-purple-600 space-y-1.5">
+              <li>• <strong>15 segundos após criação:</strong> Confirmação imediata do agendamento</li>
+              <li>• <strong>2 horas antes:</strong> Lembrete antecipado</li>
+              <li>• <strong>30 minutos antes:</strong> Lembrete final</li>
+            </ul>
+            <div className="bg-purple-50 border border-purple-200 rounded p-2 mt-3">
+              <p className="text-xs text-purple-600">
+                ℹ️ <strong>Nota:</strong> Os lembretes são enviados automaticamente pelo sistema.
+                Configure o webhook para receber os dados e enviar as mensagens.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Alert e Botão de Salvar */}
       <div className="space-y-6">
