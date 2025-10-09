@@ -1060,6 +1060,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      delete_appointment_by_id: {
+        Args: { appointment_id: string }
+        Returns: boolean
+      }
       generate_partner_code: {
         Args: { username_input: string }
         Returns: string
