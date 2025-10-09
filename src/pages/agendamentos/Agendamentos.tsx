@@ -168,6 +168,17 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
             ) : null}
             {getStatusBadge(appointment.status as AppointmentStatus)}
             
+            {/* Botão WhatsApp ao lado do status */}
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => onSendReminder(appointment.id)}
+              className="text-green-600 hover:text-green-700"
+              title="Enviar Lembrete WhatsApp"
+            >
+              <MessageCircle className="w-4 h-4" />
+            </Button>
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm">
@@ -175,13 +186,6 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => onSendReminder(appointment.id)}
-                  className="text-green-600 hover:text-green-700"
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Enviar Lembrete WhatsApp
-                </DropdownMenuItem>
                 {actionOptions.map((option) => {
                   const Icon = option.icon;
                   return (
@@ -340,8 +344,36 @@ const Agendamentos: React.FC = () => {
         toast.error('Erro ao cancelar agendamento');
       }
     } else if (action === 'delete') {
-      // Para excluir, remover permanentemente do banco de dados
+      // Para excluir, primeiro enviar ao N8N e depois remover do banco
       try {
+        const appointment = appointments.find(app => app.id === appointmentId);
+        if (appointment) {
+          // Enviar dados para N8N antes de excluir
+          try {
+            const payload = {
+              appointment_id: appointment.id,
+              patient_name: appointment.patient_name || 'Paciente',
+              patient_phone: appointment.patient_phone,
+              appointment_date: appointment.appointment_date || '',
+              appointment_time: appointment.appointment_time || '',
+              service_name: appointment.service_name || 'Consulta',
+              attendant_name: appointment.attendant_name || 'Profissional',
+              status: 'deleted', // Status de excluído
+              reminder_type: 'deleted'
+            };
+
+            await supabase.functions.invoke('whatsapp-reminder', {
+              body: payload
+            });
+
+            console.log('Dados do agendamento excluído enviados ao N8N');
+          } catch (n8nError) {
+            console.error('Erro ao enviar dados para N8N:', n8nError);
+            // Continua com a exclusão mesmo se o N8N falhar
+          }
+        }
+
+        // Agora excluir o agendamento
         await deleteAppointment(appointmentId);
         toast.success('Agendamento excluído com sucesso');
       } catch (error) {
