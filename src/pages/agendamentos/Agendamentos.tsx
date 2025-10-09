@@ -424,6 +424,7 @@ const Agendamentos: React.FC = () => {
         appointment_time: appointment.appointment_time || '',
         service_name: appointment.service_name || 'Consulta',
         attendant_name: appointment.attendant_name || 'Profissional',
+        status: appointment.status || 'scheduled',
         reminder_type: '15s'
       };
 
@@ -472,6 +473,7 @@ const Agendamentos: React.FC = () => {
             appointment_time: appointment.appointment_time || '',
             service_name: appointment.service_name || 'Consulta',
             attendant_name: appointment.attendant_name || 'Profissional',
+            status: appointment.status || 'scheduled',
             reminder_type: '15s'
           };
 
