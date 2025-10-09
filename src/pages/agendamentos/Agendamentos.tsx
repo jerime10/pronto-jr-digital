@@ -396,45 +396,40 @@ const Agendamentos: React.FC = () => {
         toast.error('Erro ao cancelar agendamento');
       }
     } else if (action === 'delete') {
-      // Para excluir, primeiro enviar ao N8N e depois remover do banco
+      // Para excluir, PRIMEIRO remover do banco e DEPOIS notificar o N8N
       try {
         const appointment = appointments.find(app => app.id === appointmentId);
-        if (appointment) {
-          // Enviar dados para N8N antes de excluir
-          try {
-            const payload = {
-              appointment_id: appointment.id,
-              patient_name: appointment.patient_name || 'Paciente',
-              patient_phone: appointment.patient_phone,
-              appointment_date: appointment.appointment_date || '',
-              appointment_time: appointment.appointment_time || '',
-              service_name: appointment.service_name || 'Consulta',
-              attendant_name: appointment.attendant_name || 'Profissional',
-              status: 'deleted', // Status de excluído
-              reminder_type: 'deleted'
-            };
-
-            await supabase.functions.invoke('whatsapp-reminder', {
-              body: payload
-            });
-
-            console.log('Dados do agendamento excluído enviados ao N8N');
-          } catch (n8nError) {
-            console.error('Erro ao enviar dados para N8N:', n8nError);
-            // Continua com a exclusão mesmo se o N8N falhar
-          }
-        }
-
-        // Excluir o agendamento do banco
-        console.log('🗑️ Excluindo agendamento do banco...');
-        await deleteAppointment(appointmentId);
-        console.log('✅ Agendamento excluído do banco com sucesso');
         
-        // Toast de sucesso só depois da exclusão confirmada
+        // PASSO 1: Excluir do banco PRIMEIRO
+        console.log('🗑️ [PASSO 1] Excluindo agendamento do banco...');
+        await deleteAppointment(appointmentId);
+        console.log('✅ [PASSO 1] Agendamento excluído do banco com sucesso');
+        
+        // PASSO 2: Enviar notificação ao N8N DEPOIS (em background)
+        if (appointment) {
+          const payload = {
+            appointment_id: appointment.id,
+            patient_name: appointment.patient_name || 'Paciente',
+            patient_phone: appointment.patient_phone,
+            appointment_date: appointment.appointment_date || '',
+            appointment_time: appointment.appointment_time || '',
+            service_name: appointment.service_name || 'Consulta',
+            attendant_name: appointment.attendant_name || 'Profissional',
+            status: 'deleted',
+            reminder_type: 'deleted'
+          };
+
+          // Não bloquear o fluxo - enviar em background
+          supabase.functions.invoke('whatsapp-reminder', { body: payload })
+            .then(() => console.log('✅ [PASSO 2] Notificação enviada ao N8N'))
+            .catch((n8nError) => console.error('⚠️ [PASSO 2] Erro ao enviar ao N8N:', n8nError));
+        }
+        
+        // Toast de sucesso
         toast.success('Agendamento excluído com sucesso');
       } catch (error) {
         console.error('❌ Erro ao excluir agendamento:', error);
-        toast.error('Erro ao excluir agendamento');
+        toast.error(`Erro ao excluir: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
       }
     } else {
       // Para outras ações, apenas atualizar o status
