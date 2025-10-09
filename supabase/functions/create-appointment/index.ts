@@ -64,6 +64,51 @@ Deno.serve(async (req) => {
 
     console.log('✅ [Edge Function] Appointment created successfully with ID:', appointmentId)
     
+    // Enviar lembrete WhatsApp de forma assíncrona (background task)
+    const sendReminderTask = async () => {
+      try {
+        // Aguardar 15 segundos antes de enviar
+        await new Promise(resolve => setTimeout(resolve, 15000))
+        
+        console.log('📤 [Background] Sending WhatsApp reminder for appointment:', appointmentId)
+        
+        // Chamar edge function whatsapp-reminder
+        const reminderResponse = await fetch(
+          `${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-reminder`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
+            },
+            body: JSON.stringify({
+              appointment_id: appointmentId,
+              patient_name: appointmentData.patient_name,
+              patient_phone: appointmentData.patient_phone,
+              appointment_date: appointmentData.appointment_date,
+              appointment_time: appointmentData.appointment_time,
+              service_name: appointmentData.service_name,
+              attendant_name: appointmentData.attendant_name,
+              status: appointmentData.status || 'scheduled',
+              reminder_type: '15s'
+            })
+          }
+        )
+        
+        if (reminderResponse.ok) {
+          console.log('✅ [Background] WhatsApp reminder sent successfully')
+        } else {
+          const errorText = await reminderResponse.text()
+          console.error('❌ [Background] Failed to send WhatsApp reminder:', errorText)
+        }
+      } catch (error) {
+        console.error('❌ [Background] Error sending WhatsApp reminder:', error)
+      }
+    }
+    
+    // Executar tarefa em background sem bloquear resposta
+    EdgeRuntime.waitUntil(sendReminderTask())
+    
     return new Response(
       JSON.stringify({ success: true, data: { message: 'Agendamento criado com sucesso' } }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
