@@ -144,27 +144,38 @@ export const appointmentsService = {
   async updateAppointmentStatus(id: string, status: string): Promise<AppointmentData> {
     console.log(`🔄 Atualizando status do agendamento ${id} para ${status}`);
     
-    const { data: appointment, error } = await supabase
+    // Remover .select() e apenas fazer o update direto
+    const { error: updateError } = await supabase
       .from('appointments')
       .update({ 
         status,
         updated_at: new Date().toISOString()
       })
+      .eq('id', id);
+
+    if (updateError) {
+      console.error('❌ Erro ao atualizar status do agendamento:', updateError);
+      throw new Error(`Erro ao atualizar status do agendamento: ${updateError.message}`);
+    }
+
+    // Agora buscar o registro atualizado
+    const { data: appointment, error: selectError } = await supabase
+      .from('appointments')
+      .select('*')
       .eq('id', id)
-      .select()
       .maybeSingle();
 
-    if (error) {
-      console.error('Erro ao atualizar status do agendamento:', error);
-      throw new Error(`Erro ao atualizar status do agendamento: ${error.message}`);
+    if (selectError) {
+      console.error('❌ Erro ao buscar agendamento atualizado:', selectError);
+      throw new Error(`Erro ao buscar agendamento: ${selectError.message}`);
     }
 
     if (!appointment) {
-      console.error(`❌ Agendamento ${id} não encontrado para atualização`);
+      console.error(`❌ Agendamento ${id} não encontrado após atualização`);
       throw new Error(`Agendamento não encontrado: ${id}`);
     }
 
-    console.log(`✅ Status atualizado com sucesso:`, appointment);
+    console.log(`✅ Status atualizado com sucesso para:`, status);
     return appointment;
   },
 
