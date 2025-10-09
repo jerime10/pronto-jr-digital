@@ -195,9 +195,10 @@ export const appointmentsService = {
     
     console.log(`✅ [appointmentsService] Exclusão concluída. Linhas afetadas: ${count}`);
     
+    // Se count === 0, significa que o agendamento já foi deletado (provavelmente pelo webhook N8N)
+    // Tratamos isso como sucesso, pois o objetivo (agendamento não existir mais) foi alcançado
     if (count === 0) {
-      console.warn('⚠️ [appointmentsService] Nenhuma linha foi excluída - ID pode não existir');
-      throw new Error('Agendamento não encontrado');
+      console.warn('⚠️ [appointmentsService] Agendamento já foi excluído anteriormente - tratando como sucesso');
     }
   },
 
