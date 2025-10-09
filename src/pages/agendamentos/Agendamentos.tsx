@@ -348,7 +348,30 @@ const Agendamentos: React.FC = () => {
         }
 
         // Atualizar status do agendamento para finalizado
+        console.log('🔄 Atualizando status para atendimento_finalizado...');
         await handleStatusChange(appointmentId, 'atendimento_finalizado' as AppointmentStatus);
+        console.log('✅ Status atualizado com sucesso');
+        
+        // Enviar notificação ao N8N (sem bloquear a navegação)
+        const payload = {
+          appointment_id: appointment.id,
+          patient_name: appointment.patient_name || 'Paciente',
+          patient_phone: appointment.patient_phone,
+          appointment_date: appointment.appointment_date || '',
+          appointment_time: appointment.appointment_time || '',
+          service_name: appointment.service_name || 'Consulta',
+          attendant_name: appointment.attendant_name || 'Profissional',
+          status: 'atendimento_finalizado',
+          reminder_type: 'attendance_finished'
+        };
+
+        supabase.functions.invoke('whatsapp-reminder', {
+          body: payload
+        }).then(() => {
+          console.log('✅ Notificação de finalização enviada ao N8N');
+        }).catch((n8nError) => {
+          console.error('❌ Erro ao enviar notificação ao N8N:', n8nError);
+        });
         
         // Navegar para novo atendimento com dados reais do paciente
         navigate('/atendimento/novo', {
