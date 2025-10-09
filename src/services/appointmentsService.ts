@@ -181,14 +181,23 @@ export const appointmentsService = {
 
   // Excluir agendamento permanentemente
   async deleteAppointment(id: string): Promise<void> {
-    const { error } = await supabase
+    console.log('🗑️ [appointmentsService] Iniciando exclusão do agendamento:', id);
+    
+    const { error, count } = await supabase
       .from('appointments')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', id);
 
     if (error) {
-      console.error('Erro ao excluir agendamento:', error);
+      console.error('❌ [appointmentsService] Erro ao excluir agendamento:', error);
       throw new Error(`Erro ao excluir agendamento: ${error.message}`);
+    }
+    
+    console.log(`✅ [appointmentsService] Exclusão concluída. Linhas afetadas: ${count}`);
+    
+    if (count === 0) {
+      console.warn('⚠️ [appointmentsService] Nenhuma linha foi excluída - ID pode não existir');
+      throw new Error('Agendamento não encontrado');
     }
   },
 

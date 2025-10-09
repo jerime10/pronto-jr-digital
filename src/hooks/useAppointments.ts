@@ -44,14 +44,20 @@ export function useAppointments(filters?: AppointmentFilters) {
 
   // Excluir agendamento
   const deleteAppointment = useMutation({
-    mutationFn: (id: string) => appointmentsService.deleteAppointment(id),
+    mutationFn: async (id: string) => {
+      console.log('🗑️ [useAppointments] Chamando deleteAppointment para ID:', id);
+      await appointmentsService.deleteAppointment(id);
+      console.log('✅ [useAppointments] Delete retornou com sucesso');
+    },
     onSuccess: () => {
-      toast.success('Agendamento excluído com sucesso!');
+      console.log('🔄 [useAppointments] onSuccess - invalidando queries...');
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['appointment-counts'] });
+      console.log('✅ [useAppointments] Queries invalidadas');
+      toast.success('Agendamento excluído com sucesso!');
     },
     onError: (error: Error) => {
-      console.error('Erro ao excluir agendamento:', error);
+      console.error('❌ [useAppointments] Erro ao excluir agendamento:', error);
       toast.error(`Erro ao excluir agendamento: ${error.message}`);
     },
   });
