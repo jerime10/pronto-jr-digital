@@ -173,51 +173,12 @@ export const appointmentsService = {
     }
   },
 
-  // Criar novo agendamento com validação de conflitos
+  // Criar novo agendamento sem validação de conflitos (deixar o banco lidar)
   async createAppointment(appointmentData: Partial<AppointmentData>): Promise<{ success: boolean; data?: AppointmentData; error?: string }> {
     try {
       console.log('📅 [appointmentsService] Criando agendamento com dados:', JSON.stringify(appointmentData, null, 2));
 
-      // Verificar conflitos de horário
-      const { data: existingAppointments, error: checkError } = await supabase
-        .from('appointments')
-        .select('*')
-        .eq('attendant_id', appointmentData.attendant_id)
-        .eq('appointment_date', appointmentData.appointment_date)
-        .neq('status', 'cancelled')
-        .neq('status', 'no_show');
-
-      if (checkError) {
-        console.error('Erro ao verificar conflitos:', checkError);
-        return { success: false, error: 'Erro ao verificar disponibilidade' };
-      }
-
-      // Verificar se há conflito de horário
-      if (existingAppointments && existingAppointments.length > 0) {
-        const newStart = appointmentData.appointment_time;
-        const newEnd = appointmentData.end_time;
-
-        for (const existing of existingAppointments) {
-          const existingStart = existing.appointment_time;
-          const existingEnd = existing.end_time;
-
-          // Verifica sobreposição de horários
-          if (newStart && newEnd && existingStart && existingEnd) {
-            if (
-              (newStart >= existingStart && newStart < existingEnd) ||
-              (newEnd > existingStart && newEnd <= existingEnd) ||
-              (newStart <= existingStart && newEnd >= existingEnd)
-            ) {
-              return { 
-                success: false, 
-                error: 'Já existe um agendamento neste horário para este atendente' 
-              };
-            }
-          }
-        }
-      }
-
-      // Criar o agendamento
+      // Criar o agendamento diretamente
       const { data: appointment, error: insertError } = await supabase
         .from('appointments')
         .insert({
