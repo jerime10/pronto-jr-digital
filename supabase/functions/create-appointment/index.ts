@@ -19,6 +19,9 @@ Deno.serve(async (req) => {
         auth: {
           persistSession: false,
         },
+        db: {
+          schema: 'public',
+        },
       }
     )
 
@@ -26,8 +29,8 @@ Deno.serve(async (req) => {
     
     console.log('📅 [Edge Function] Creating appointment:', appointmentData)
 
-    // Fazer insert direto sem validações complexas
-    const { data: appointment, error } = await supabaseClient
+    // Fazer insert simples e rápido sem SELECT
+    const { error } = await supabaseClient
       .from('appointments')
       .insert({
         patient_name: appointmentData.patient_name,
@@ -51,8 +54,6 @@ Deno.serve(async (req) => {
         partner_username: appointmentData.partner_username || null,
         partner_code: appointmentData.partner_code || null
       })
-      .select()
-      .single()
 
     if (error) {
       console.error('❌ [Edge Function] Error:', error)
@@ -62,10 +63,10 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log('✅ [Edge Function] Appointment created:', appointment)
+    console.log('✅ [Edge Function] Appointment created successfully')
     
     return new Response(
-      JSON.stringify({ success: true, data: appointment }),
+      JSON.stringify({ success: true, data: { message: 'Agendamento criado com sucesso' } }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
