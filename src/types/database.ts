@@ -225,6 +225,7 @@ export type ScheduleAssignmentFormData = {
 export type AppointmentFormData = {
   patient_name?: string;
   patient_phone?: string;
+  patient_id?: string | null;
   attendant_id: string;
   attendant_name?: string;
   service_id: string;
@@ -234,9 +235,14 @@ export type AppointmentFormData = {
   appointment_date: string; // Data do agendamento
   appointment_time: string; // Hora do agendamento
   appointment_datetime?: string; // Será calculado automaticamente
+  end_time?: string | null; // Horário de término
   notes?: string;
   status?: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
-  dum?: string; // Data da Última Menstruação para serviços obstétricos
+  dum?: string | null; // Data da Última Menstruação para serviços obstétricos
+  gestational_age?: string | null; // Idade gestacional
+  estimated_due_date?: string | null; // Data provável do parto
+  partner_username?: string | null; // Username do parceiro
+  partner_code?: string | null; // Código do parceiro
 };
 
 // ============================================

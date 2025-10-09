@@ -1167,10 +1167,23 @@ export const PublicAppointmentBooking: React.FC = () => {
     try {
       setIsLoading(true);
       
+      // Calcular end_time com base no appointment_time e service_duration
+      const calculateEndTime = (startTime: string, durationMinutes: number): string => {
+        const [hours, minutes] = startTime.split(':').map(Number);
+        const totalMinutes = hours * 60 + minutes + durationMinutes;
+        const endHours = Math.floor(totalMinutes / 60);
+        const endMinutes = totalMinutes % 60;
+        return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00`;
+      };
+
+      const appointmentTime = formData.appointment_datetime.split('T')[1]?.substring(0, 5) || '';
+      const endTime = calculateEndTime(appointmentTime, formData.service_duration);
+      
       // Usar o appointmentService que inclui validação de conflitos
       const result: any = await appointmentService.createAppointment({
         patient_name: formData.client_name,
         patient_phone: cleanPhoneNumber(formData.client_phone),
+        patient_id: patient?.id || null,
         attendant_id: formData.attendant_id,
         attendant_name: formData.attendant_name,
         service_id: formData.service_id,
@@ -1179,9 +1192,17 @@ export const PublicAppointmentBooking: React.FC = () => {
         service_duration: formData.service_duration,
         appointment_date: formData.appointment_date,
         appointment_datetime: formData.appointment_datetime,
-        appointment_time: formData.appointment_datetime.split('T')[1]?.substring(0, 5) || '',
+        appointment_time: appointmentTime,
+        end_time: endTime,
         notes: formData.notes,
-        status: 'scheduled'
+        status: 'scheduled',
+        // Dados obstétricos (se aplicável)
+        dum: obstetricData.dum ? convertDateToDBFormat(obstetricData.dum) : null,
+        gestational_age: obstetricData.gestationalAge || null,
+        estimated_due_date: obstetricData.dpp ? convertDateToDBFormat(obstetricData.dpp) : null,
+        // Dados do parceiro (se aplicável)
+        partner_username: partnerUsername || null,
+        partner_code: partnerCode || null
       });
 
       if (!result.success) {
