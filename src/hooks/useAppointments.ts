@@ -49,11 +49,17 @@ export function useAppointments(filters?: AppointmentFilters) {
       await appointmentsService.deleteAppointment(id);
       console.log('✅ [useAppointments] Delete retornou com sucesso');
     },
-    onSuccess: () => {
-      console.log('🔄 [useAppointments] onSuccess - invalidando queries...');
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['appointment-counts'] });
-      console.log('✅ [useAppointments] Queries invalidadas');
+    onSuccess: async () => {
+      console.log('🔄 [useAppointments] onSuccess - invalidando queries e forçando refetch...');
+      
+      // Invalidar e refazer as queries imediatamente
+      await queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      await queryClient.invalidateQueries({ queryKey: ['appointment-counts'] });
+      
+      // Forçar refetch para garantir que a lista seja atualizada
+      await refetch();
+      
+      console.log('✅ [useAppointments] Queries invalidadas e refetch concluído');
       toast.success('Agendamento excluído com sucesso!');
     },
     onError: (error: Error) => {

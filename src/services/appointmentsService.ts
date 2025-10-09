@@ -183,23 +183,65 @@ export const appointmentsService = {
   async deleteAppointment(id: string): Promise<void> {
     console.log('🗑️ [appointmentsService] Iniciando exclusão do agendamento:', id);
     
+    // PASSO 1: Verificar se o registro existe antes de tentar excluir
+    const { data: existingAppointment, error: checkError } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('id', id)
+      .maybeSingle();
+
+    console.log('🔍 [appointmentsService] Verificação de existência:', {
+      exists: !!existingAppointment,
+      id: existingAppointment?.id,
+      error: checkError
+    });
+
+    if (checkError) {
+      console.error('❌ [appointmentsService] Erro ao verificar existência:', checkError);
+      throw new Error(`Erro ao verificar agendamento: ${checkError.message}`);
+    }
+
+    if (!existingAppointment) {
+      console.warn('⚠️ [appointmentsService] Agendamento não encontrado no banco');
+      throw new Error('Agendamento não encontrado');
+    }
+
+    // PASSO 2: Tentar exclusão
     const { error, count } = await supabase
       .from('appointments')
       .delete({ count: 'exact' })
       .eq('id', id);
 
+    console.log('✅ [appointmentsService] Resultado da exclusão:', { count, error });
+
     if (error) {
-      console.error('❌ [appointmentsService] Erro ao excluir agendamento:', error);
-      throw new Error(`Erro ao excluir agendamento: ${error.message}`);
+      console.error('❌ [appointmentsService] Erro ao excluir:', error);
+      throw new Error(`Erro ao excluir: ${error.message}`);
     }
-    
-    console.log(`✅ [appointmentsService] Exclusão concluída. Linhas afetadas: ${count}`);
-    
-    // Se count === 0, significa que o agendamento já foi deletado (provavelmente pelo webhook N8N)
-    // Tratamos isso como sucesso, pois o objetivo (agendamento não existir mais) foi alcançado
+
     if (count === 0) {
-      console.warn('⚠️ [appointmentsService] Agendamento já foi excluído anteriormente - tratando como sucesso');
+      console.error('❌ [appointmentsService] DELETE não afetou nenhuma linha!');
+      throw new Error('Falha ao excluir: nenhuma linha foi afetada');
     }
+
+    // PASSO 3: Verificar se realmente foi excluído
+    const { data: checkDelete, error: verifyError } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('id', id)
+      .maybeSingle();
+
+    console.log('🔍 [appointmentsService] Verificação pós-exclusão:', {
+      stillExists: !!checkDelete,
+      error: verifyError
+    });
+
+    if (checkDelete) {
+      console.error('❌ [appointmentsService] Registro AINDA EXISTE após DELETE!');
+      throw new Error('Falha na exclusão: registro ainda existe no banco');
+    }
+
+    console.log('✅ [appointmentsService] Exclusão confirmada com sucesso');
   },
 
   // Criar novo agendamento via edge function (mais robusto)
