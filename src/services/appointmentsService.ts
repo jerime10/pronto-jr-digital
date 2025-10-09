@@ -142,6 +142,8 @@ export const appointmentsService = {
 
   // Atualizar status do agendamento
   async updateAppointmentStatus(id: string, status: string): Promise<AppointmentData> {
+    console.log(`🔄 Atualizando status do agendamento ${id} para ${status}`);
+    
     const { data: appointment, error } = await supabase
       .from('appointments')
       .update({ 
@@ -150,13 +152,19 @@ export const appointmentsService = {
       })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Erro ao atualizar status do agendamento:', error);
       throw new Error(`Erro ao atualizar status do agendamento: ${error.message}`);
     }
 
+    if (!appointment) {
+      console.error(`❌ Agendamento ${id} não encontrado para atualização`);
+      throw new Error(`Agendamento não encontrado: ${id}`);
+    }
+
+    console.log(`✅ Status atualizado com sucesso:`, appointment);
     return appointment;
   },
 

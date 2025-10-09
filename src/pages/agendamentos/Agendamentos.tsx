@@ -271,30 +271,6 @@ const Agendamentos: React.FC = () => {
           return;
         }
         
-        // Enviar dados para N8N antes de iniciar atendimento
-        try {
-          const payload = {
-            appointment_id: appointment.id,
-            patient_name: appointment.patient_name || 'Paciente',
-            patient_phone: appointment.patient_phone,
-            appointment_date: appointment.appointment_date || '',
-            appointment_time: appointment.appointment_time || '',
-            service_name: appointment.service_name || 'Consulta',
-            attendant_name: appointment.attendant_name || 'Profissional',
-            status: 'atendimento_iniciado', // Status de em atendimento
-            reminder_type: 'attendance_started'
-          };
-
-          await supabase.functions.invoke('whatsapp-reminder', {
-            body: payload
-          });
-
-          console.log('Dados do agendamento em atendimento enviados ao N8N');
-        } catch (n8nError) {
-          console.error('Erro ao enviar dados para N8N:', n8nError);
-          // Continua com a atualização mesmo se o N8N falhar
-        }
-        
         // Se não temos patient_id, vamos criar um UUID válido
         // Isso permite que o fluxo continue funcionando mesmo com dados legados
         const patientId = appointment.patient_id || crypto.randomUUID();
@@ -312,16 +288,45 @@ const Agendamentos: React.FC = () => {
           updated_at: appointment.patient?.updated_at || new Date().toISOString()
         };
         
-        // Atualizar o status para 'confirmed' (que corresponde a atendimento iniciado)
-        await handleStatusChange(appointmentId, 'atendimento_iniciado' as AppointmentStatus);
-        
-        // Navegar para o atendimento passando os dados do paciente
-        navigate('/atendimento/novo', {
-          state: {
-            rawPatientDataFromNavigation: patientDataToSend,
-            appointmentIdFromNavigation: appointmentId
-          }
-        });
+        try {
+          // Primeiro atualizar o status no banco
+          console.log('🔄 Atualizando status para atendimento_iniciado...');
+          await handleStatusChange(appointmentId, 'atendimento_iniciado' as AppointmentStatus);
+          console.log('✅ Status atualizado com sucesso');
+          
+          // Depois enviar notificação ao N8N (sem bloquear a navegação)
+          const payload = {
+            appointment_id: appointment.id,
+            patient_name: appointment.patient_name || 'Paciente',
+            patient_phone: appointment.patient_phone,
+            appointment_date: appointment.appointment_date || '',
+            appointment_time: appointment.appointment_time || '',
+            service_name: appointment.service_name || 'Consulta',
+            attendant_name: appointment.attendant_name || 'Profissional',
+            status: 'atendimento_iniciado',
+            reminder_type: 'attendance_started'
+          };
+
+          supabase.functions.invoke('whatsapp-reminder', {
+            body: payload
+          }).then(() => {
+            console.log('✅ Notificação enviada ao N8N');
+          }).catch((n8nError) => {
+            console.error('❌ Erro ao enviar notificação ao N8N:', n8nError);
+          });
+          
+          // Navegar para o atendimento
+          navigate('/atendimento/novo', {
+            state: {
+              rawPatientDataFromNavigation: patientDataToSend,
+              appointmentIdFromNavigation: appointmentId
+            }
+          });
+        } catch (error) {
+          console.error('❌ Erro ao iniciar atendimento:', error);
+          toast.error('Erro ao iniciar atendimento. Tente novamente.');
+          return;
+        }
         
 
       }
