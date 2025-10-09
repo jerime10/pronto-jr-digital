@@ -841,7 +841,7 @@ export type Database = {
       transactions: {
         Row: {
           amount: number
-          appointment_id: string
+          appointment_id: string | null
           created_at: string | null
           description: string
           id: string
@@ -854,7 +854,7 @@ export type Database = {
         }
         Insert: {
           amount: number
-          appointment_id: string
+          appointment_id?: string | null
           created_at?: string | null
           description: string
           id?: string
@@ -867,7 +867,7 @@ export type Database = {
         }
         Update: {
           amount?: number
-          appointment_id?: string
+          appointment_id?: string | null
           created_at?: string | null
           description?: string
           id?: string
