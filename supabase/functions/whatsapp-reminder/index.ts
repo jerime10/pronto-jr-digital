@@ -15,6 +15,7 @@ interface WhatsAppReminderPayload {
   appointment_time: string;
   service_name: string;
   attendant_name: string;
+  status: string;
   reminder_type: '15s' | '2h' | '30min';
 }
 
@@ -100,7 +101,8 @@ serve(async (req) => {
       appointment_date: payload.appointment_date,
       appointment_time: payload.appointment_time,
       service_name: payload.service_name,
-      attendant_name: payload.attendant_name
+      attendant_name: payload.attendant_name,
+      status: payload.status
     };
 
     console.log('📤 Sending to webhook:', webhookUrl);
