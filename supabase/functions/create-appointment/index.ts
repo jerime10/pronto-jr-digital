@@ -29,30 +29,29 @@ Deno.serve(async (req) => {
     
     console.log('📅 [Edge Function] Creating appointment:', appointmentData)
 
-    // Fazer insert simples e rápido sem SELECT
-    const { error } = await supabaseClient
-      .from('appointments')
-      .insert({
-        patient_name: appointmentData.patient_name,
-        patient_phone: appointmentData.patient_phone,
-        patient_id: appointmentData.patient_id || null,
-        attendant_id: appointmentData.attendant_id,
-        attendant_name: appointmentData.attendant_name,
-        service_id: appointmentData.service_id,
-        service_name: appointmentData.service_name,
-        service_price: appointmentData.service_price,
-        service_duration: appointmentData.service_duration,
-        appointment_date: appointmentData.appointment_date,
-        appointment_time: appointmentData.appointment_time,
-        appointment_datetime: appointmentData.appointment_datetime,
-        end_time: appointmentData.end_time || null,
-        notes: appointmentData.notes || '',
-        status: appointmentData.status || 'scheduled',
-        dum: appointmentData.dum || null,
-        gestational_age: appointmentData.gestational_age || null,
-        estimated_due_date: appointmentData.estimated_due_date || null,
-        partner_username: appointmentData.partner_username || null,
-        partner_code: appointmentData.partner_code || null
+    // Usar função SQL otimizada com timeout aumentado
+    const { data: appointmentId, error } = await supabaseClient
+      .rpc('insert_appointment', {
+        p_patient_name: appointmentData.patient_name,
+        p_patient_phone: appointmentData.patient_phone,
+        p_patient_id: appointmentData.patient_id || null,
+        p_attendant_id: appointmentData.attendant_id,
+        p_attendant_name: appointmentData.attendant_name,
+        p_service_id: appointmentData.service_id,
+        p_service_name: appointmentData.service_name,
+        p_service_price: appointmentData.service_price,
+        p_service_duration: appointmentData.service_duration,
+        p_appointment_date: appointmentData.appointment_date,
+        p_appointment_time: appointmentData.appointment_time,
+        p_appointment_datetime: appointmentData.appointment_datetime,
+        p_end_time: appointmentData.end_time || null,
+        p_notes: appointmentData.notes || '',
+        p_status: appointmentData.status || 'scheduled',
+        p_dum: appointmentData.dum || null,
+        p_gestational_age: appointmentData.gestational_age || null,
+        p_estimated_due_date: appointmentData.estimated_due_date || null,
+        p_partner_username: appointmentData.partner_username || null,
+        p_partner_code: appointmentData.partner_code || null
       })
 
     if (error) {
@@ -63,7 +62,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log('✅ [Edge Function] Appointment created successfully')
+    console.log('✅ [Edge Function] Appointment created successfully with ID:', appointmentId)
     
     return new Response(
       JSON.stringify({ success: true, data: { message: 'Agendamento criado com sucesso' } }),
