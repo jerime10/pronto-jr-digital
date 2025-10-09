@@ -64,7 +64,7 @@ export function useAppointments(filters?: AppointmentFilters) {
     error,
     refetch,
     updateAppointmentStatus: updateAppointmentStatus.mutate,
-    deleteAppointment: deleteAppointment.mutate,
+    deleteAppointment: deleteAppointment.mutateAsync,
     isUpdating: updateAppointmentStatus.isPending,
     isDeleting: deleteAppointment.isPending,
   };
