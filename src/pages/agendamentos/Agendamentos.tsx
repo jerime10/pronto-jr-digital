@@ -425,11 +425,15 @@ const Agendamentos: React.FC = () => {
           }
         }
 
-        // Agora excluir o agendamento
+        // Excluir o agendamento do banco
+        console.log('🗑️ Excluindo agendamento do banco...');
         await deleteAppointment(appointmentId);
+        console.log('✅ Agendamento excluído do banco com sucesso');
+        
+        // Toast de sucesso só depois da exclusão confirmada
         toast.success('Agendamento excluído com sucesso');
       } catch (error) {
-        console.error('Erro ao excluir agendamento:', error);
+        console.error('❌ Erro ao excluir agendamento:', error);
         toast.error('Erro ao excluir agendamento');
       }
     } else {
