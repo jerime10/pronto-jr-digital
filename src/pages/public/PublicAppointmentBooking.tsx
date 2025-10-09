@@ -16,6 +16,7 @@ import { formatCpfOrSus, isValidCpfOrSus, cleanCpfOrSus, validateSevenDigitInput
 import { formatDateForDB } from '@/utils/dateUtils';
 import { isObstetricService, calculateGestationalAge, calculateDPP, formatDateInput, isValidDateFormat, convertDateToDBFormat } from '@/utils/obstetricUtils';
 import { appointmentService } from '@/services/scheduleService';
+import { appointmentsService } from '@/services/appointmentsService';
 import { serviceAssignmentService } from '@/services/serviceAssignmentService';
 import { debugLogger, startTimer, endTimer } from '@/utils/debugLogger';
 import { useDocumentAssets } from '@/hooks/useDocumentAssets';
@@ -1122,8 +1123,15 @@ export const PublicAppointmentBooking: React.FC = () => {
         })
       };
 
-      // Usar o appointmentService que já inclui validação de conflitos
-      const appointment = await appointmentService.createAppointment(appointmentData);
+      // Usar o appointmentsService que já inclui validação de conflitos
+      const result = await appointmentsService.createAppointment(appointmentData);
+      
+      if (!result.success) {
+        toast.error(result.error || 'Erro ao criar agendamento');
+        return;
+      }
+      
+      const appointment = result.data;
 
       if (!appointment) {
         toast.error('Erro ao criar agendamento. Tente novamente.');
@@ -1179,8 +1187,8 @@ export const PublicAppointmentBooking: React.FC = () => {
       const appointmentTime = formData.appointment_datetime.split('T')[1]?.substring(0, 5) || '';
       const endTime = calculateEndTime(appointmentTime, formData.service_duration);
       
-      // Usar o appointmentService que inclui validação de conflitos
-      const result: any = await appointmentService.createAppointment({
+      // Usar o appointmentsService que inclui validação de conflitos
+      const result = await appointmentsService.createAppointment({
         patient_name: formData.client_name,
         patient_phone: cleanPhoneNumber(formData.client_phone),
         patient_id: patient?.id || null,

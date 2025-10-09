@@ -176,7 +176,7 @@ export const appointmentsService = {
   // Criar novo agendamento com validação de conflitos
   async createAppointment(appointmentData: Partial<AppointmentData>): Promise<{ success: boolean; data?: AppointmentData; error?: string }> {
     try {
-      console.log('📅 Criando agendamento:', appointmentData);
+      console.log('📅 [appointmentsService] Criando agendamento com dados:', JSON.stringify(appointmentData, null, 2));
 
       // Verificar conflitos de horário
       const { data: existingAppointments, error: checkError } = await supabase
@@ -246,15 +246,21 @@ export const appointmentsService = {
         .single();
 
       if (insertError) {
-        console.error('Erro ao criar agendamento:', insertError);
-        return { success: false, error: insertError.message };
+        console.error('❌ [appointmentsService] Erro SQL ao inserir:', {
+          code: insertError.code,
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint
+        });
+        return { success: false, error: `Erro ao salvar: ${insertError.message}` };
       }
 
-      console.log('✅ Agendamento criado com sucesso:', appointment);
+      console.log('✅ [appointmentsService] Agendamento criado com sucesso:', appointment);
       return { success: true, data: appointment };
     } catch (error) {
-      console.error('Erro inesperado ao criar agendamento:', error);
-      return { success: false, error: 'Erro inesperado ao criar agendamento' };
+      console.error('❌ [appointmentsService] Erro inesperado:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      return { success: false, error: `Erro inesperado: ${errorMessage}` };
     }
   },
 
