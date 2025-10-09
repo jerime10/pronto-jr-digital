@@ -183,62 +183,59 @@ export const appointmentsService = {
   async deleteAppointment(id: string): Promise<void> {
     console.log('🗑️ [appointmentsService] Iniciando exclusão do agendamento:', id);
     
-    // PASSO 1: Verificar se o registro existe antes de tentar excluir
+    // PASSO 1: Verificar se o registro existe
     const { data: existingAppointment, error: checkError } = await supabase
       .from('appointments')
       .select('id')
       .eq('id', id)
       .maybeSingle();
 
-    console.log('🔍 [appointmentsService] Verificação de existência:', {
+    console.log('🔍 [appointmentsService] Registro existe:', {
       exists: !!existingAppointment,
       id: existingAppointment?.id,
       error: checkError
     });
 
     if (checkError) {
-      console.error('❌ [appointmentsService] Erro ao verificar existência:', checkError);
+      console.error('❌ [appointmentsService] Erro ao verificar:', checkError);
       throw new Error(`Erro ao verificar agendamento: ${checkError.message}`);
     }
 
     if (!existingAppointment) {
-      console.warn('⚠️ [appointmentsService] Agendamento não encontrado no banco');
+      console.warn('⚠️ [appointmentsService] Agendamento não encontrado');
       throw new Error('Agendamento não encontrado');
     }
 
-    // PASSO 2: Tentar exclusão
-    const { error, count } = await supabase
+    // PASSO 2: Tentar exclusão SEM count (problema pode estar aqui)
+    console.log('🗑️ [appointmentsService] Executando DELETE...');
+    const { error: deleteError } = await supabase
       .from('appointments')
-      .delete({ count: 'exact' })
+      .delete()
       .eq('id', id);
 
-    console.log('✅ [appointmentsService] Resultado da exclusão:', { count, error });
-
-    if (error) {
-      console.error('❌ [appointmentsService] Erro ao excluir:', error);
-      throw new Error(`Erro ao excluir: ${error.message}`);
+    if (deleteError) {
+      console.error('❌ [appointmentsService] Erro no DELETE:', deleteError);
+      throw new Error(`Erro ao excluir: ${deleteError.message}`);
     }
 
-    if (count === 0) {
-      console.error('❌ [appointmentsService] DELETE não afetou nenhuma linha!');
-      throw new Error('Falha ao excluir: nenhuma linha foi afetada');
-    }
+    console.log('✅ [appointmentsService] DELETE executado sem erro');
 
     // PASSO 3: Verificar se realmente foi excluído
-    const { data: checkDelete, error: verifyError } = await supabase
+    const { data: afterDelete, error: verifyError } = await supabase
       .from('appointments')
       .select('id')
       .eq('id', id)
       .maybeSingle();
 
-    console.log('🔍 [appointmentsService] Verificação pós-exclusão:', {
-      stillExists: !!checkDelete,
+    console.log('🔍 [appointmentsService] Verificação pós-DELETE:', {
+      stillExists: !!afterDelete,
       error: verifyError
     });
 
-    if (checkDelete) {
-      console.error('❌ [appointmentsService] Registro AINDA EXISTE após DELETE!');
-      throw new Error('Falha na exclusão: registro ainda existe no banco');
+    if (afterDelete) {
+      console.error('❌ [appointmentsService] CRÍTICO: Registro AINDA EXISTE após DELETE!');
+      console.error('❌ [appointmentsService] Isso indica problema com RLS ou permissões');
+      throw new Error('Falha crítica: registro não foi excluído do banco de dados');
     }
 
     console.log('✅ [appointmentsService] Exclusão confirmada com sucesso');
