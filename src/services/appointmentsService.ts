@@ -173,51 +173,28 @@ export const appointmentsService = {
     }
   },
 
-  // Criar novo agendamento sem validação de conflitos (deixar o banco lidar)
+  // Criar novo agendamento via edge function (mais robusto)
   async createAppointment(appointmentData: Partial<AppointmentData>): Promise<{ success: boolean; data?: AppointmentData; error?: string }> {
     try {
-      console.log('📅 [appointmentsService] Criando agendamento com dados:', JSON.stringify(appointmentData, null, 2));
+      console.log('📅 [appointmentsService] Criando agendamento via edge function:', JSON.stringify(appointmentData, null, 2));
 
-      // Criar o agendamento diretamente
-      const { data: appointment, error: insertError } = await supabase
-        .from('appointments')
-        .insert({
-          patient_name: appointmentData.patient_name,
-          patient_phone: appointmentData.patient_phone,
-          patient_id: appointmentData.patient_id || null,
-          attendant_id: appointmentData.attendant_id,
-          attendant_name: appointmentData.attendant_name,
-          service_id: appointmentData.service_id,
-          service_name: appointmentData.service_name,
-          service_price: appointmentData.service_price,
-          service_duration: appointmentData.service_duration,
-          appointment_date: appointmentData.appointment_date,
-          appointment_time: appointmentData.appointment_time,
-          appointment_datetime: appointmentData.appointment_datetime,
-          end_time: appointmentData.end_time || null,
-          notes: appointmentData.notes || '',
-          status: appointmentData.status || 'scheduled',
-          dum: appointmentData.dum || null,
-          gestational_age: appointmentData.gestational_age || null,
-          estimated_due_date: appointmentData.estimated_due_date || null,
-          partner_username: appointmentData.partner_username || null,
-          partner_code: appointmentData.partner_code || null
-        })
-        .select()
-        .single();
+      // Usar edge function para criar o agendamento (melhor timeout e performance)
+      const { data, error } = await supabase.functions.invoke('create-appointment', {
+        body: appointmentData
+      });
 
-      if (insertError) {
-        console.error('❌ [appointmentsService] Erro SQL ao inserir:', {
-          code: insertError.code,
-          message: insertError.message,
-          details: insertError.details,
-          hint: insertError.hint
-        });
-        return { success: false, error: `Erro ao salvar: ${insertError.message}` };
+      if (error) {
+        console.error('❌ [appointmentsService] Erro ao chamar edge function:', error);
+        return { success: false, error: `Erro ao salvar: ${error.message}` };
       }
 
-      console.log('✅ [appointmentsService] Agendamento criado com sucesso:', appointment);
-      return { success: true, data: appointment };
+      if (!data.success) {
+        console.error('❌ [appointmentsService] Edge function retornou erro:', data.error);
+        return { success: false, error: data.error };
+      }
+
+      console.log('✅ [appointmentsService] Agendamento criado com sucesso:', data.data);
+      return { success: true, data: data.data };
     } catch (error) {
       console.error('❌ [appointmentsService] Erro inesperado:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
