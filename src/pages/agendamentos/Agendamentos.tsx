@@ -500,6 +500,9 @@ const Agendamentos: React.FC = () => {
         return;
       }
 
+      // Normaliza o status: se for 'completed', envia como 'atendimento_finalizado'
+      const normalizedStatus = appointment.status === 'completed' ? 'atendimento_finalizado' : (appointment.status || 'scheduled');
+
       const payload = {
         appointment_id: appointment.id,
         patient_name: appointment.patient_name || 'Paciente',
@@ -508,7 +511,7 @@ const Agendamentos: React.FC = () => {
         appointment_time: appointment.appointment_time || '',
         service_name: appointment.service_name || 'Consulta',
         attendant_name: appointment.attendant_name || 'Profissional',
-        status: appointment.status || 'scheduled',
+        status: normalizedStatus,
         reminder_type: '15s'
       };
 
@@ -549,6 +552,9 @@ const Agendamentos: React.FC = () => {
         }
 
         try {
+          // Normaliza o status: se for 'completed', envia como 'atendimento_finalizado'
+          const normalizedStatus = appointment.status === 'completed' ? 'atendimento_finalizado' : (appointment.status || 'scheduled');
+
           const payload = {
             appointment_id: appointment.id,
             patient_name: appointment.patient_name || 'Paciente',
@@ -557,7 +563,7 @@ const Agendamentos: React.FC = () => {
             appointment_time: appointment.appointment_time || '',
             service_name: appointment.service_name || 'Consulta',
             attendant_name: appointment.attendant_name || 'Profissional',
-            status: appointment.status || 'scheduled',
+            status: normalizedStatus,
             reminder_type: '15s'
           };
 
