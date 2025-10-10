@@ -148,7 +148,7 @@ const Servicos: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Serviços</h1>
         </div>
-        <ActionButtonGuard permission="servicos_criar">
+        {(hasPermission('servicos_criar') || isAdmin) && (
           <Button 
             onClick={() => navigate('/servicos/novo')}
             className="flex items-center space-x-2"
@@ -156,7 +156,7 @@ const Servicos: React.FC = () => {
             <Plus className="h-4 w-4" />
             <span>Novo Serviço</span>
           </Button>
-        </ActionButtonGuard>
+        )}
       </div>
 
       <Card>
@@ -219,7 +219,7 @@ const Servicos: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <ActionButtonGuard permission="servicos_editar">
+                          {(hasPermission('servicos_editar') || isAdmin) && (
                             <Button 
                               variant="ghost" 
                               size="sm"
@@ -227,8 +227,8 @@ const Servicos: React.FC = () => {
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                          </ActionButtonGuard>
-                          <ActionButtonGuard permission="servicos_excluir">
+                          )}
+                          {(hasPermission('servicos_excluir') || isAdmin) && (
                             <Button 
                               variant="ghost" 
                               size="sm"
@@ -236,7 +236,7 @@ const Servicos: React.FC = () => {
                             >
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
-                          </ActionButtonGuard>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

@@ -542,12 +542,12 @@ const Horarios: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Horarios</h1>
         </div>
-        <ActionButtonGuard permission="horarios_criar">
+        {(hasPermission('horarios_criar') || isAdmin) && (
           <Button onClick={handleNewSchedule}>
             <Plus className="h-4 w-4 mr-2" />
             Novo Horário
           </Button>
-        </ActionButtonGuard>
+        )}
       </div>
 
       <Card>
@@ -617,7 +617,7 @@ const Horarios: React.FC = () => {
                         
                         {/* Ações */}
                         <div className="flex items-center space-x-1">
-                          <ActionButtonGuard permission="horarios_editar">
+                          {(hasPermission('horarios_editar') || isAdmin) && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -626,8 +626,8 @@ const Horarios: React.FC = () => {
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                          </ActionButtonGuard>
-                          <ActionButtonGuard permission="horarios_excluir">
+                          )}
+                          {(hasPermission('horarios_excluir') || isAdmin) && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -636,7 +636,7 @@ const Horarios: React.FC = () => {
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                          </ActionButtonGuard>
+                          )}
                         </div>
                       </div>
                     ))}

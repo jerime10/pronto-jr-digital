@@ -442,12 +442,12 @@ const Atendentes: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Atendentes</h1>
           <p className="text-muted-foreground">Gerencie os atendentes da clínica</p>
         </div>
-        <ActionButtonGuard permission="atendentes_criar">
+        {(hasPermission('atendentes_criar') || isAdmin) && (
           <Button onClick={handleNewAttendant} className="flex items-center space-x-2">
             <Plus className="h-4 w-4" />
             <span>Novo Atendente</span>
           </Button>
-        </ActionButtonGuard>
+        )}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -523,13 +523,11 @@ const Atendentes: React.FC = () => {
                     : 'Comece adicionando o primeiro atendente ao sistema.'
                   }
                 </p>
-                {!searchTerm && statusFilter === 'all' && (
-                  <ActionButtonGuard permission="atendentes_criar">
-                    <Button onClick={handleNewAttendant} className="bg-blue-600 hover:bg-blue-700">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Adicionar Primeiro Atendente
-                    </Button>
-                  </ActionButtonGuard>
+                {!searchTerm && statusFilter === 'all' && (hasPermission('atendentes_criar') || isAdmin) && (
+                  <Button onClick={handleNewAttendant} className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Primeiro Atendente
+                  </Button>
                 )}
               </div>
             ) : (
@@ -573,12 +571,12 @@ const Atendentes: React.FC = () => {
                     </div>
                     
                     <div className="col-span-1 flex space-x-1">
-                      <ActionButtonGuard permission="atendentes_editar">
+                      {(hasPermission('atendentes_editar') || isAdmin) && (
                         <Button variant="ghost" size="sm" onClick={() => handleEditAttendant(attendant)} title="Editar atendente">
                           <Edit className="h-4 w-4" />
                         </Button>
-                      </ActionButtonGuard>
-                      <ActionButtonGuard permission="atendentes_editar">
+                      )}
+                      {(hasPermission('atendentes_editar') || isAdmin) && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -588,12 +586,12 @@ const Atendentes: React.FC = () => {
                         >
                           {attendant.is_active ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                         </Button>
-                      </ActionButtonGuard>
-                      <ActionButtonGuard permission="atendentes_excluir">
+                      )}
+                      {(hasPermission('atendentes_excluir') || isAdmin) && (
                         <Button variant="ghost" size="sm" onClick={() => handleDeleteAttendant(attendant)} className="text-red-600 hover:text-red-700" title="Excluir atendente">
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      </ActionButtonGuard>
+                      )}
                     </div>
                   </div>
                 ))}
