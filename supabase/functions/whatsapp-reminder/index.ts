@@ -58,19 +58,26 @@ serve(async (req) => {
     const webhookUrl = settings.whatsapp_reminder_webhook_url;
     console.log('📍 Webhook URL:', webhookUrl);
 
-    // Buscar dados do usuário que criou o agendamento (parceiro ou admin com partner_code='ADM')
+    // Buscar dados do usuário que criou o agendamento (parceiro ou admin)
     let creatorName = null;
     let creatorPhone = null;
     let creatorType = 'Sistema';
     
-    // Agora SEMPRE usa partner_username (admin também é tratado como parceiro com username='ADM')
     if (payload.partner_username) {
-      const { data: userData, error: userError } = await supabase
+      // Se partner_username é 'ADM', buscar por user_type = 'admin'
+      // Caso contrário, buscar por username normal
+      let query = supabase
         .from('usuarios')
         .select('full_name, phone, user_type, partner_code')
-        .eq('username', payload.partner_username)
-        .eq('is_active', true)
-        .maybeSingle();
+        .eq('is_active', true);
+      
+      if (payload.partner_username === 'ADM') {
+        query = query.eq('user_type', 'admin');
+      } else {
+        query = query.eq('username', payload.partner_username);
+      }
+      
+      const { data: userData, error: userError } = await query.maybeSingle();
       
       if (!userError && userData) {
         creatorName = userData.full_name;
