@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useNavigate } from 'react-router-dom';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PermissionGuard, ActionButtonGuard } from '@/components/PermissionGuard';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 import { Calendar, Clock, Search, MoreVertical, Plus, Phone, Trash2, CheckCircle, XCircle, Archive, Loader2, User, MapPin, Baby, MessageCircle, Send } from 'lucide-react';
 import { format, addDays } from 'date-fns';
@@ -91,11 +92,11 @@ interface AppointmentCardProps {
 }
 
 const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction, onSendReminder }) => {
+  const isMobile = useIsMobile();
   
   const getInitials = (name: string | null | undefined) => {
-    // Verificação de segurança para evitar erro com valores null/undefined
     if (!name || typeof name !== 'string') {
-      return 'PA'; // Fallback para "Paciente"
+      return 'PA';
     }
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
@@ -121,6 +122,100 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
   const { date, time, dayOfWeek } = formatDateTime(appointment.appointment_datetime);
   const actionOptions = getActionOptions(appointment.status as AppointmentStatus);
 
+  if (isMobile) {
+    return (
+      <Card className="hover:shadow-md transition-shadow">
+        <CardContent className="p-4">
+          {/* Header com Avatar e Status */}
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10 flex-shrink-0">
+                <AvatarFallback className="bg-blue-100 text-blue-600 text-sm">
+                  {getInitials(appointment.patient_name)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-gray-900 text-sm truncate">{appointment.patient_name}</h3>
+                <p className="text-xs text-blue-600 font-medium truncate">{appointment.service_name}</p>
+              </div>
+            </div>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {actionOptions.map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <DropdownMenuItem
+                      key={option.action}
+                      onClick={() => onAction(appointment.id, option.action)}
+                    >
+                      <Icon className="w-4 h-4 mr-2" />
+                      {option.label}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Data e Hora */}
+          <div className="space-y-1.5 mb-3">
+            <div className="flex items-center text-xs text-gray-600">
+              <Calendar className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+              <span className="truncate">{date} - {dayOfWeek}</span>
+            </div>
+            <div className="flex items-center text-xs text-gray-600">
+              <Clock className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+              <span>{time}</span>
+            </div>
+          </div>
+
+          {/* Info Obstétrica */}
+          {appointment.dum && isObstetricService(appointment.service_name) && (
+            <div className="flex items-center text-xs text-pink-600 mb-3 bg-pink-50 px-2 py-1.5 rounded-md">
+              <Baby className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+              <span className="font-medium truncate">{formatPregnancyDisplay(appointment.dum)}</span>
+            </div>
+          )}
+
+          {/* Footer com Badges e Ações */}
+          <div className="flex items-center justify-between gap-2 pt-2 border-t">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {appointment.partner_username ? (
+                <span className="text-[10px] text-purple-800 font-semibold bg-yellow-100 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                  via {appointment.partner_code || appointment.partner_username}
+                </span>
+              ) : appointment.attendant_name && !appointment.partner_username ? (
+                <span className="text-[10px] text-purple-800 font-semibold bg-yellow-100 px-1.5 py-0.5 rounded-full">
+                  via ADM
+                </span>
+              ) : null}
+              <div className="text-[10px]">
+                {getStatusBadge(appointment.status as AppointmentStatus)}
+              </div>
+            </div>
+            
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => onSendReminder(appointment.id)}
+              className="text-green-600 hover:text-green-700 h-8 w-8 p-0 flex-shrink-0"
+              title="WhatsApp"
+            >
+              <MessageCircle className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Desktop Layout
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-6">
@@ -145,7 +240,6 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
                   <span>{time}</span>
                 </div>
               </div>
-              {/* Exibir informações obstétricas se disponíveis */}
               {appointment.dum && isObstetricService(appointment.service_name) && (
                 <div className="flex items-center text-sm text-pink-600 mt-2 bg-pink-50 px-2 py-1 rounded-md">
                   <Baby className="w-4 h-4 mr-1" />
@@ -156,7 +250,6 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
           </div>
           
           <div className="flex items-center space-x-4">
-            {/* Exibir informações do responsável pelo agendamento */}
             {appointment.partner_username ? (
               <span className="text-xs text-purple-800 font-semibold bg-yellow-100 px-2.5 py-0.5 rounded-full">
                 via {appointment.partner_code || appointment.partner_username}
@@ -168,7 +261,6 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
             ) : null}
             {getStatusBadge(appointment.status as AppointmentStatus)}
             
-            {/* Botão WhatsApp ao lado do status */}
             <Button 
               variant="ghost" 
               size="sm"
@@ -209,6 +301,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
 
 const Agendamentos: React.FC = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { permissions, isPartner, isAdmin, hasPermission } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus | 'todos'>('todos');
@@ -613,17 +706,23 @@ const Agendamentos: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+      {/* Header */}
+      <div className={isMobile ? "space-y-3" : "flex items-center justify-between"}>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Agendamentos</h1>
-          <p className="text-muted-foreground">Gerencie os agendamentos da clínica</p>
+          <h1 className={isMobile ? "text-xl font-bold text-gray-900" : "text-2xl font-bold text-gray-900"}>
+            Agendamentos
+          </h1>
+          <p className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>
+            Gerencie os agendamentos da clínica
+          </p>
         </div>
         
-        <div className="flex gap-2">
+        <div className={isMobile ? "flex gap-2 overflow-x-auto pb-2" : "flex gap-2"}>
           <Button 
             variant="outline"
-            className="bg-green-50 text-green-700 hover:bg-green-100 border-green-300"
+            size={isMobile ? "sm" : "default"}
+            className="bg-green-50 text-green-700 hover:bg-green-100 border-green-300 whitespace-nowrap"
             onClick={handleSendBatchReminders}
             disabled={sendingBatch || filterAppointmentsByStatus(selectedStatus).length === 0}
           >
@@ -632,71 +731,84 @@ const Agendamentos: React.FC = () => {
             ) : (
               <Send className="h-4 w-4 mr-2" />
             )}
-            {sendingBatch ? 'Enviando...' : 'Enviar Lembretes em Lote'}
+            {isMobile ? 'Lote' : (sendingBatch ? 'Enviando...' : 'Enviar Lembretes em Lote')}
           </Button>
           
           <ActionButtonGuard permission="agendamentos_criar">
             <Button 
-              className="bg-blue-600 hover:bg-blue-700"
+              size={isMobile ? "sm" : "default"}
+              className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
               onClick={() => window.open('/agendamento', '_blank')}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Novo Agendamento
+              {isMobile ? 'Novo' : 'Novo Agendamento'}
             </Button>
           </ActionButtonGuard>
         </div>
       </div>
 
       <Card>
-        <CardHeader className="pb-4">
+        <CardHeader className={isMobile ? "pb-3 px-4 pt-4" : "pb-4"}>
           <div className="flex items-center space-x-4">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Buscar agendamentos..."
+                placeholder="Buscar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
+                className={isMobile ? "pl-9 h-9 text-sm" : "pl-9"}
               />
             </div>
           </div>
         </CardHeader>
         
-        <CardContent>
+        <CardContent className={isMobile ? "px-2" : ""}>
           <Tabs value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as AppointmentStatus | 'todos')} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="todos">
-                Todos ({getStatusCount('todos')})
+            <TabsList className={isMobile ? "w-full flex overflow-x-auto scrollbar-hide h-auto p-1" : "grid w-full grid-cols-4"}>
+              <TabsTrigger 
+                value="todos"
+                className={isMobile ? "flex-shrink-0 text-xs px-3 whitespace-nowrap" : ""}
+              >
+                {isMobile ? `Todos (${getStatusCount('todos')})` : `Todos (${getStatusCount('todos')})`}
               </TabsTrigger>
-              <TabsTrigger value="aguardando_atendimento">
-                Aguardando ({getStatusCount('aguardando_atendimento')})
+              <TabsTrigger 
+                value="aguardando_atendimento"
+                className={isMobile ? "flex-shrink-0 text-xs px-3 whitespace-nowrap" : ""}
+              >
+                {isMobile ? `Aguard. (${getStatusCount('aguardando_atendimento')})` : `Aguardando (${getStatusCount('aguardando_atendimento')})`}
               </TabsTrigger>
-              <TabsTrigger value="atendimento_iniciado">
-                Em Atendimento ({getStatusCount('atendimento_iniciado')})
+              <TabsTrigger 
+                value="atendimento_iniciado"
+                className={isMobile ? "flex-shrink-0 text-xs px-3 whitespace-nowrap" : ""}
+              >
+                {isMobile ? `Atend. (${getStatusCount('atendimento_iniciado')})` : `Em Atendimento (${getStatusCount('atendimento_iniciado')})`}
               </TabsTrigger>
-              <TabsTrigger value="atendimento_finalizado">
-                Finalizados ({getStatusCount('atendimento_finalizado')})
+              <TabsTrigger 
+                value="atendimento_finalizado"
+                className={isMobile ? "flex-shrink-0 text-xs px-3 whitespace-nowrap" : ""}
+              >
+                {isMobile ? `Final. (${getStatusCount('atendimento_finalizado')})` : `Finalizados (${getStatusCount('atendimento_finalizado')})`}
               </TabsTrigger>
             </TabsList>
             
             {['todos', 'aguardando_atendimento', 'atendimento_iniciado', 'atendimento_finalizado'].map((status) => (
-              <TabsContent key={status} value={status} className="mt-6">
+              <TabsContent key={status} value={status} className={isMobile ? "mt-3 px-2" : "mt-6"}>
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                    <span className="ml-2">Carregando agendamentos...</span>
+                  <div className={isMobile ? "flex items-center justify-center py-6" : "flex items-center justify-center py-8"}>
+                    <Loader2 className={isMobile ? "w-5 h-5 animate-spin" : "w-6 h-6 animate-spin"} />
+                    <span className={isMobile ? "ml-2 text-sm" : "ml-2"}>Carregando...</span>
                   </div>
                 ) : error ? (
-                  <div className="text-center py-8 text-red-600">
-                    Erro ao carregar agendamentos: {error instanceof Error ? error.message : String(error)}
+                  <div className={isMobile ? "text-center py-6 text-red-600 text-sm" : "text-center py-8 text-red-600"}>
+                    Erro ao carregar agendamentos
                   </div>
                 ) : appointments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-500">Nenhum agendamento encontrado</p>
+                  <div className={isMobile ? "text-center py-6" : "text-center py-8"}>
+                    <Calendar className={isMobile ? "w-10 h-10 mx-auto text-gray-400 mb-3" : "w-12 h-12 mx-auto text-gray-400 mb-4"} />
+                    <p className={isMobile ? "text-gray-500 text-sm" : "text-gray-500"}>Nenhum agendamento encontrado</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className={isMobile ? "space-y-3" : "space-y-4"}>
                     {appointments.map((appointment) => (
                       <AppointmentCard
                         key={appointment.id}
