@@ -22,6 +22,7 @@ export type Database = {
           attendant_id: string
           attendant_name: string | null
           created_at: string | null
+          created_by_user_id: string | null
           dum: string | null
           end_time: string | null
           estimated_due_date: string | null
@@ -47,6 +48,7 @@ export type Database = {
           attendant_id: string
           attendant_name?: string | null
           created_at?: string | null
+          created_by_user_id?: string | null
           dum?: string | null
           end_time?: string | null
           estimated_due_date?: string | null
@@ -72,6 +74,7 @@ export type Database = {
           attendant_id?: string
           attendant_name?: string | null
           created_at?: string | null
+          created_by_user_id?: string | null
           dum?: string | null
           end_time?: string | null
           estimated_due_date?: string | null
@@ -1110,28 +1113,52 @@ export type Database = {
         Returns: string
       }
       insert_appointment: {
-        Args: {
-          p_appointment_date: string
-          p_appointment_datetime: string
-          p_appointment_time: string
-          p_attendant_id: string
-          p_attendant_name: string
-          p_dum: string
-          p_end_time: string
-          p_estimated_due_date: string
-          p_gestational_age: string
-          p_notes: string
-          p_partner_code: string
-          p_partner_username: string
-          p_patient_id: string
-          p_patient_name: string
-          p_patient_phone: string
-          p_service_duration: number
-          p_service_id: string
-          p_service_name: string
-          p_service_price: number
-          p_status: string
-        }
+        Args:
+          | {
+              p_appointment_date: string
+              p_appointment_datetime: string
+              p_appointment_time: string
+              p_attendant_id: string
+              p_attendant_name: string
+              p_created_by_user_id?: string
+              p_dum: string
+              p_end_time: string
+              p_estimated_due_date: string
+              p_gestational_age: string
+              p_notes: string
+              p_partner_code: string
+              p_partner_username: string
+              p_patient_id: string
+              p_patient_name: string
+              p_patient_phone: string
+              p_service_duration: number
+              p_service_id: string
+              p_service_name: string
+              p_service_price: number
+              p_status: string
+            }
+          | {
+              p_appointment_date: string
+              p_appointment_datetime: string
+              p_appointment_time: string
+              p_attendant_id: string
+              p_attendant_name: string
+              p_dum: string
+              p_end_time: string
+              p_estimated_due_date: string
+              p_gestational_age: string
+              p_notes: string
+              p_partner_code: string
+              p_partner_username: string
+              p_patient_id: string
+              p_patient_name: string
+              p_patient_phone: string
+              p_service_duration: number
+              p_service_id: string
+              p_service_name: string
+              p_service_price: number
+              p_status: string
+            }
         Returns: string
       }
       is_current_user_admin: {

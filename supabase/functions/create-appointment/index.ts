@@ -51,7 +51,8 @@ Deno.serve(async (req) => {
         p_gestational_age: appointmentData.gestational_age || null,
         p_estimated_due_date: appointmentData.estimated_due_date || null,
         p_partner_username: appointmentData.partner_username || null,
-        p_partner_code: appointmentData.partner_code || null
+        p_partner_code: appointmentData.partner_code || null,
+        p_created_by_user_id: appointmentData.created_by_user_id || null
       })
 
     if (error) {
