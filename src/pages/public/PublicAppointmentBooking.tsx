@@ -142,18 +142,21 @@ export const PublicAppointmentBooking: React.FC = () => {
         console.log('🔍 Parceiro detectado na URL:', partnerParam);
         setPartnerUsername(partnerParam);
         
-        // Buscar informações do parceiro
+        // Buscar informações do parceiro (incluindo admin com partner_code='ADM')
         const partner = await UserService.getUserByUsername(partnerParam);
         
-        if (partner && partner.user_type === 'partner' && partner.is_active) {
+        // Aceitar tanto parceiros quanto administradores (que agora têm partner_code='ADM')
+        if (partner && (partner.user_type === 'partner' || partner.user_type === 'admin') && partner.is_active) {
           const partnerData = partner as any;
           setPartnerInfo(partnerData);
           setPartnerCode(partnerData.partner_code || '');
-          console.log('✅ Parceiro válido encontrado:', partnerData.full_name || partnerData.username);
+          console.log('✅ Usuário válido encontrado:', partnerData.full_name || partnerData.username, 'Tipo:', partner.user_type);
           
-          toast.success(`Agendamento via parceiro: ${partnerData.full_name || partnerData.username}`);
+          const userName = partnerData.full_name || partnerData.username;
+          const userLabel = partner.user_type === 'admin' ? 'administrador' : 'parceiro';
+          toast.success(`Agendamento via ${userLabel}: ${userName}`);
         } else {
-          console.log('⚠️ Parceiro inválido ou inativo');
+          console.log('⚠️ Usuário inválido ou inativo');
           setPartnerUsername('');
           setPartnerCode('');
         }
@@ -161,12 +164,12 @@ export const PublicAppointmentBooking: React.FC = () => {
         console.log('🔍 Código de parceiro detectado na URL:', codeParam);
         setPartnerCode(codeParam);
         
-        // Buscar parceiro pelo código
+        // Buscar usuário pelo código (parceiro ou admin)
         const { data: partners, error } = await supabase
           .from('usuarios')
           .select('*')
           .eq('partner_code', codeParam)
-          .eq('user_type', 'partner')
+          .in('user_type', ['partner', 'admin'])
           .eq('is_active', true)
           .single();
           
@@ -174,11 +177,13 @@ export const PublicAppointmentBooking: React.FC = () => {
           const partnerData = partners as any;
           setPartnerInfo(partnerData);
           setPartnerUsername(partnerData.username);
-          console.log('✅ Parceiro encontrado pelo código:', partnerData.full_name || partnerData.username);
+          console.log('✅ Usuário encontrado pelo código:', partnerData.full_name || partnerData.username);
           
-          toast.success(`Agendamento via parceiro: ${partnerData.full_name || partnerData.username}`);
+          const userName = partnerData.full_name || partnerData.username;
+          const userLabel = partnerData.user_type === 'admin' ? 'administrador' : 'parceiro';
+          toast.success(`Agendamento via ${userLabel}: ${userName}`);
         } else {
-          console.log('⚠️ Código de parceiro inválido');
+          console.log('⚠️ Código inválido');
           setPartnerCode('');
         }
       }
@@ -1113,15 +1118,9 @@ export const PublicAppointmentBooking: React.FC = () => {
         appointment_datetime: appointmentDateTime,
         notes: formData.notes || null,
         status: 'scheduled' as const,
-        // Incluir ID do usuário logado se disponível (admin)
-        ...(user && !partnerUsername && {
-          created_by_user_id: user.id
-        }),
-        // Incluir dados do parceiro se disponível
-        ...(partnerUsername && {
-          partner_username: partnerUsername,
-          partner_code: partnerCode
-        }),
+        // SEMPRE incluir dados do parceiro/admin (agora admin também é tratado como parceiro com code='ADM')
+        partner_username: partnerUsername || 'ADM',
+        partner_code: partnerCode || 'ADM',
         // Incluir dados obstétricos apenas para serviços obstétricos
         ...(isObstetricService(formData.service_name) && obstetricData.dum && {
           dum: convertDateToDBFormat(obstetricData.dum),
@@ -1215,11 +1214,9 @@ export const PublicAppointmentBooking: React.FC = () => {
         dum: obstetricData.dum ? convertDateToDBFormat(obstetricData.dum) : null,
         gestational_age: obstetricData.gestationalAge || null,
         estimated_due_date: obstetricData.dpp ? convertDateToDBFormat(obstetricData.dpp) : null,
-        // Dados do parceiro (se aplicável)
-        partner_username: partnerUsername || null,
-        partner_code: partnerCode || null,
-        // Dados do criador (admin ou parceiro logado)
-        ...(user && !partnerUsername && { created_by_user_id: user.id })
+        // SEMPRE incluir dados do parceiro/admin (agora admin também é tratado como parceiro com code='ADM')
+        partner_username: partnerUsername || 'ADM',
+        partner_code: partnerCode || 'ADM'
       });
 
       if (!result.success) {

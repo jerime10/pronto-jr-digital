@@ -58,37 +58,32 @@ serve(async (req) => {
     const webhookUrl = settings.whatsapp_reminder_webhook_url;
     console.log('📍 Webhook URL:', webhookUrl);
 
-    // Buscar dados do usuário que criou o agendamento (parceiro ou admin)
+    // Buscar dados do usuário que criou o agendamento (parceiro ou admin com partner_code='ADM')
     let creatorName = null;
     let creatorPhone = null;
+    let creatorType = 'Sistema';
     
+    // Agora SEMPRE usa partner_username (admin também é tratado como parceiro com username='ADM')
     if (payload.partner_username) {
-      // Buscar dados do parceiro
-      const { data: partnerData, error: partnerError } = await supabase
-        .from('usuarios')
-        .select('full_name, phone')
-        .eq('username', payload.partner_username)
-        .eq('is_active', true)
-        .maybeSingle();
-      
-      if (!partnerError && partnerData) {
-        creatorName = partnerData.full_name;
-        creatorPhone = partnerData.phone;
-        console.log('👤 Dados do parceiro encontrados:', { nome: creatorName, telefone: creatorPhone });
-      }
-    } else if (payload.created_by_user_id) {
-      // Buscar dados do admin/usuário
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
-        .select('full_name, phone')
-        .eq('id', payload.created_by_user_id)
+        .select('full_name, phone, user_type, partner_code')
+        .eq('username', payload.partner_username)
         .eq('is_active', true)
         .maybeSingle();
       
       if (!userError && userData) {
         creatorName = userData.full_name;
         creatorPhone = userData.phone;
-        console.log('👤 Dados do criador encontrados:', { nome: creatorName, telefone: creatorPhone });
+        creatorType = userData.user_type === 'admin' ? 'Administrador' : 'Parceiro';
+        console.log('👤 Dados do criador encontrados:', { 
+          nome: creatorName, 
+          telefone: creatorPhone,
+          tipo: creatorType,
+          partner_code: userData.partner_code
+        });
+      } else {
+        console.log('⚠️ Criador não encontrado para username:', payload.partner_username);
       }
     }
 
@@ -141,7 +136,9 @@ serve(async (req) => {
       status: payload.status,
       creator_name: creatorName,
       creator_phone: creatorPhone,
-      creator_type: payload.partner_username ? 'Parceiro' : 'Administrador'
+      creator_type: creatorType,
+      partner_username: payload.partner_username,
+      partner_code: payload.partner_username // Manter compatibilidade com n8n
     };
 
     console.log('📤 Sending to webhook:', webhookUrl);

@@ -92,8 +92,7 @@ Deno.serve(async (req) => {
               attendant_name: appointmentData.attendant_name,
               status: appointmentData.status || 'scheduled',
               reminder_type: '15s',
-              partner_username: appointmentData.partner_username || null,
-              created_by_user_id: appointmentData.created_by_user_id || null
+              partner_username: appointmentData.partner_username || null
             })
           }
         )

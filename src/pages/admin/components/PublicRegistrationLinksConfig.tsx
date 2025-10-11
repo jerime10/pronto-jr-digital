@@ -281,6 +281,35 @@ const PublicRegistrationLinksConfig: React.FC = () => {
               </div>
             </div>
 
+            {/* Link de Agendamento do Administrador */}
+            <div className="space-y-2">
+              <p className="text-xs text-amber-600 font-medium">🔐 Link de Agendamento do Administrador:</p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  value={`${window.location.origin}/agendamento?partner=ADM&code=ADM`}
+                  readOnly
+                  className="bg-amber-50 border-amber-300 text-amber-900 font-mono text-xs flex-1 shadow-sm"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/agendamento?partner=ADM&code=ADM`);
+                    toast({
+                      title: "Copiado!",
+                      description: "Link de agendamento do administrador copiado.",
+                      variant: "default"
+                    });
+                  }}
+                  className="border-amber-300 text-amber-700 hover:bg-amber-200 px-4 text-xs"
+                >
+                  Copiar
+                </Button>
+              </div>
+              <p className="text-xs text-amber-700">
+                ⚡ Use este link para criar agendamentos como administrador (rastreável no sistema)
+              </p>
+            </div>
+
             <div className="bg-blue-50 border border-blue-200 rounded p-2 mt-3">
               <p className="text-xs text-blue-600">
                 ℹ️ <strong>Nota:</strong> Estes são os links corretos gerados pelo sistema. 
