@@ -397,7 +397,8 @@ const Agendamentos: React.FC = () => {
             service_name: appointment.service_name || 'Consulta',
             attendant_name: appointment.attendant_name || 'Profissional',
             status: 'atendimento_iniciado',
-            reminder_type: 'attendance_started'
+            reminder_type: 'attendance_started',
+            partner_username: appointment.partner_username || null
           };
 
           supabase.functions.invoke('whatsapp-reminder', {
@@ -455,7 +456,8 @@ const Agendamentos: React.FC = () => {
           service_name: appointment.service_name || 'Consulta',
           attendant_name: appointment.attendant_name || 'Profissional',
           status: 'atendimento_finalizado',
-          reminder_type: 'attendance_finished'
+          reminder_type: 'attendance_finished',
+          partner_username: appointment.partner_username || null
         };
 
         supabase.functions.invoke('whatsapp-reminder', {
@@ -509,7 +511,8 @@ const Agendamentos: React.FC = () => {
             service_name: appointment.service_name || 'Consulta',
             attendant_name: appointment.attendant_name || 'Profissional',
             status: 'deleted',
-            reminder_type: 'deleted'
+            reminder_type: 'deleted',
+            partner_username: appointment.partner_username || null
           };
 
           // Não bloquear o fluxo - enviar em background
@@ -604,7 +607,8 @@ const Agendamentos: React.FC = () => {
         service_name: appointment.service_name || 'Consulta',
         attendant_name: appointment.attendant_name || 'Profissional',
         status: normalizedStatus,
-        reminder_type: '15s'
+        reminder_type: '15s',
+        partner_username: appointment.partner_username || null
       };
 
       const { data, error } = await supabase.functions.invoke('whatsapp-reminder', {
@@ -656,7 +660,8 @@ const Agendamentos: React.FC = () => {
             service_name: appointment.service_name || 'Consulta',
             attendant_name: appointment.attendant_name || 'Profissional',
             status: normalizedStatus,
-            reminder_type: '15s'
+            reminder_type: '15s',
+            partner_username: appointment.partner_username || null
           };
 
           await supabase.functions.invoke('whatsapp-reminder', {

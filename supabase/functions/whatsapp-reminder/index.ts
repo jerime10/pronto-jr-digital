@@ -17,6 +17,8 @@ interface WhatsAppReminderPayload {
   attendant_name: string;
   status: string;
   reminder_type: '15s' | '2h' | '30min';
+  partner_username?: string;
+  created_by_user_id?: string;
 }
 
 serve(async (req) => {
@@ -55,6 +57,40 @@ serve(async (req) => {
 
     const webhookUrl = settings.whatsapp_reminder_webhook_url;
     console.log('📍 Webhook URL:', webhookUrl);
+
+    // Buscar dados do usuário que criou o agendamento (parceiro ou admin)
+    let creatorName = null;
+    let creatorPhone = null;
+    
+    if (payload.partner_username) {
+      // Buscar dados do parceiro
+      const { data: partnerData, error: partnerError } = await supabase
+        .from('usuarios')
+        .select('full_name, phone')
+        .eq('username', payload.partner_username)
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      if (!partnerError && partnerData) {
+        creatorName = partnerData.full_name;
+        creatorPhone = partnerData.phone;
+        console.log('👤 Dados do parceiro encontrados:', { nome: creatorName, telefone: creatorPhone });
+      }
+    } else if (payload.created_by_user_id) {
+      // Buscar dados do admin/usuário
+      const { data: userData, error: userError } = await supabase
+        .from('usuarios')
+        .select('full_name, phone')
+        .eq('id', payload.created_by_user_id)
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      if (!userError && userData) {
+        creatorName = userData.full_name;
+        creatorPhone = userData.phone;
+        console.log('👤 Dados do criador encontrados:', { nome: creatorName, telefone: creatorPhone });
+      }
+    }
 
     // Prepare message based on reminder type
     let message = '';
@@ -102,7 +138,10 @@ serve(async (req) => {
       appointment_time: payload.appointment_time,
       service_name: payload.service_name,
       attendant_name: payload.attendant_name,
-      status: payload.status
+      status: payload.status,
+      creator_name: creatorName,
+      creator_phone: creatorPhone,
+      creator_type: payload.partner_username ? 'Parceiro' : 'Administrador'
     };
 
     console.log('📤 Sending to webhook:', webhookUrl);

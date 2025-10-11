@@ -22,6 +22,7 @@ import { debugLogger, startTimer, endTimer } from '@/utils/debugLogger';
 import { useDocumentAssets } from '@/hooks/useDocumentAssets';
 import { UserService } from '@/services/userService';
 import { Usuario } from '@/types/database';
+import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
 
 
 interface Patient {
@@ -62,6 +63,7 @@ interface AppointmentFormData {
 type BookingStep = 'cpf_input' | 'welcome_update' | 'attendant_selection' | 'service_selection' | 'obstetric_data' | 'datetime_selection' | 'confirmation';
 
 export const PublicAppointmentBooking: React.FC = () => {
+  const { user } = useSimpleAuth();
   const [currentStep, setCurrentStep] = useState<BookingStep>('cpf_input');
   const [susNumber, setSusNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -1099,6 +1101,7 @@ export const PublicAppointmentBooking: React.FC = () => {
       const appointmentData = {
         patient_name: patient.name,
         patient_phone: patient.phone,
+        patient_id: patient.id,
         attendant_id: formData.attendant_id,
         attendant_name: formData.attendant_name,
         service_id: formData.service_id,
@@ -1110,6 +1113,10 @@ export const PublicAppointmentBooking: React.FC = () => {
         appointment_datetime: appointmentDateTime,
         notes: formData.notes || null,
         status: 'scheduled' as const,
+        // Incluir ID do usuário logado se disponível (admin)
+        ...(user && !partnerUsername && {
+          created_by_user_id: user.id
+        }),
         // Incluir dados do parceiro se disponível
         ...(partnerUsername && {
           partner_username: partnerUsername,
