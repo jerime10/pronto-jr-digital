@@ -388,18 +388,19 @@ const Agendamentos: React.FC = () => {
           console.log('✅ Status atualizado com sucesso');
           
           // Depois enviar notificação ao N8N (sem bloquear a navegação)
-          const payload = {
-            appointment_id: appointment.id,
-            patient_name: appointment.patient_name || 'Paciente',
-            patient_phone: appointment.patient_phone,
-            appointment_date: appointment.appointment_date || '',
-            appointment_time: appointment.appointment_time || '',
-            service_name: appointment.service_name || 'Consulta',
-            attendant_name: appointment.attendant_name || 'Profissional',
-            status: 'atendimento_iniciado',
-            reminder_type: 'attendance_started',
-            partner_username: appointment.partner_username || null
-          };
+        const payload = {
+          appointment_id: appointment.id,
+          patient_name: appointment.patient_name || 'Paciente',
+          patient_phone: appointment.patient_phone,
+          appointment_date: appointment.appointment_date || '',
+          appointment_time: appointment.appointment_time || '',
+          service_name: appointment.service_name || 'Consulta',
+          attendant_name: appointment.attendant_name || 'Profissional',
+          status: 'atendimento_iniciado',
+          reminder_type: 'attendance_started',
+          partner_username: appointment.partner_username || null,
+          created_by_user_id: appointment.created_by_user_id || null
+        };
 
           supabase.functions.invoke('whatsapp-reminder', {
             body: payload
@@ -457,7 +458,8 @@ const Agendamentos: React.FC = () => {
           attendant_name: appointment.attendant_name || 'Profissional',
           status: 'atendimento_finalizado',
           reminder_type: 'attendance_finished',
-          partner_username: appointment.partner_username || null
+          partner_username: appointment.partner_username || null,
+          created_by_user_id: appointment.created_by_user_id || null
         };
 
         supabase.functions.invoke('whatsapp-reminder', {
@@ -512,7 +514,8 @@ const Agendamentos: React.FC = () => {
             attendant_name: appointment.attendant_name || 'Profissional',
             status: 'deleted',
             reminder_type: 'deleted',
-            partner_username: appointment.partner_username || null
+            partner_username: appointment.partner_username || null,
+            created_by_user_id: appointment.created_by_user_id || null
           };
 
           // Não bloquear o fluxo - enviar em background
@@ -608,7 +611,8 @@ const Agendamentos: React.FC = () => {
         attendant_name: appointment.attendant_name || 'Profissional',
         status: normalizedStatus,
         reminder_type: '15s',
-        partner_username: appointment.partner_username || null
+        partner_username: appointment.partner_username || null,
+        created_by_user_id: appointment.created_by_user_id || null
       };
 
       const { data, error } = await supabase.functions.invoke('whatsapp-reminder', {
@@ -661,7 +665,8 @@ const Agendamentos: React.FC = () => {
             attendant_name: appointment.attendant_name || 'Profissional',
             status: normalizedStatus,
             reminder_type: '15s',
-            partner_username: appointment.partner_username || null
+            partner_username: appointment.partner_username || null,
+            created_by_user_id: appointment.created_by_user_id || null
           };
 
           await supabase.functions.invoke('whatsapp-reminder', {

@@ -35,6 +35,7 @@ export interface AppointmentData {
   end_time?: string | null; // Nova coluna adicionada
   partner_username?: string | null; // Nome do usuário parceiro
   partner_code?: string | null; // Código do parceiro
+  created_by_user_id?: string | null; // ID do usuário que criou (admin ou parceiro)
   created_at: string;
   updated_at: string;
   patient?: PatientData | null; // Dados completos do paciente via join
