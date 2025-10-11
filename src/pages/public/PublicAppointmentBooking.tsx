@@ -1217,7 +1217,9 @@ export const PublicAppointmentBooking: React.FC = () => {
         estimated_due_date: obstetricData.dpp ? convertDateToDBFormat(obstetricData.dpp) : null,
         // Dados do parceiro (se aplicável)
         partner_username: partnerUsername || null,
-        partner_code: partnerCode || null
+        partner_code: partnerCode || null,
+        // Dados do criador (admin ou parceiro logado)
+        ...(user && !partnerUsername && { created_by_user_id: user.id })
       });
 
       if (!result.success) {
