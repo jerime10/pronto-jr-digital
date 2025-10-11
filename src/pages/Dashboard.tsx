@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { DataLoadingMonitor } from '@/components/debug/DataLoadingMonitor';
 
 // Hooks
 import { useDashboardStats } from './Dashboard/hooks/useDashboardStats';
@@ -62,9 +61,6 @@ const Dashboard = () => {
         </div>
       ) : (
         <>
-          {/* Monitor de Debug */}
-          <DataLoadingMonitor />
-          
           {/* Statistics Cards */}
           <StatisticsCards
             patientCount={patientCount || 0}

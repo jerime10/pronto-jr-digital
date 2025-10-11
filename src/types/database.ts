@@ -338,11 +338,26 @@ export type ScheduleAssignmentsFormData = {
 export type UserType = 'admin' | 'partner';
 
 export type UserPermissions = {
-  agendamento?: boolean;
-  links?: boolean;
+  // Permissões principais do menu
+  dashboard?: boolean;
+  pacientes?: boolean;
+  prescricoes?: boolean;
+  exames?: boolean;
+  atendimento?: boolean;
+  historico_atendimentos?: boolean;
+  agendamentos?: boolean;
+  atendentes?: boolean;
+  horarios?: boolean;
+  servicos?: boolean;
+  financeiro?: boolean;
+  
+  // Permissões administrativas
   usuarios?: boolean;
-  relatorios?: boolean;
   configuracoes?: boolean;
+  
+  // Permissões de parceiro
+  links?: boolean;
+  relatorios?: boolean;
 };
 
 export type Usuario = {

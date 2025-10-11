@@ -28,11 +28,21 @@ export const UserManagement: React.FC = () => {
     password: '',
     user_type: 'partner',
     permissions: {
-      agendamento: true,
-      links: true,
+      dashboard: false,
+      pacientes: false,
+      prescricoes: false,
+      exames: false,
+      atendimento: false,
+      historico_atendimentos: false,
+      agendamentos: true,
+      atendentes: false,
+      horarios: false,
+      servicos: false,
+      financeiro: false,
       usuarios: false,
-      relatorios: false,
-      configuracoes: false
+      configuracoes: false,
+      links: true,
+      relatorios: false
     },
     full_name: '',
     email: '',
@@ -117,11 +127,21 @@ export const UserManagement: React.FC = () => {
       password: '',
       user_type: 'partner',
       permissions: {
-        agendamento: true,
-        links: true,
+        dashboard: false,
+        pacientes: false,
+        prescricoes: false,
+        exames: false,
+        atendimento: false,
+        historico_atendimentos: false,
+        agendamentos: true,
+        atendentes: false,
+        horarios: false,
+        servicos: false,
+        financeiro: false,
         usuarios: false,
-        relatorios: false,
-        configuracoes: false
+        configuracoes: false,
+        links: true,
+        relatorios: false
       },
       full_name: '',
       email: '',
@@ -316,56 +336,178 @@ export const UserManagement: React.FC = () => {
                       </div>
                     )}
                     
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="perm_agendamento"
-                          checked={formData.permissions.agendamento}
-                          onCheckedChange={(checked) => updatePermission('agendamento', checked)}
-                          disabled={formData.user_type === 'admin'}
-                        />
-                        <Label htmlFor="perm_agendamento">Agendamentos</Label>
+                    <div className="space-y-6">
+                      {/* Permissões do Menu Principal */}
+                      <div>
+                        <h4 className="text-sm font-semibold mb-3 text-gray-700">Menu Principal</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="perm_dashboard"
+                              checked={formData.permissions.dashboard}
+                              onCheckedChange={(checked) => updatePermission('dashboard', checked)}
+                              disabled={formData.user_type === 'admin'}
+                            />
+                            <Label htmlFor="perm_dashboard">Dashboard</Label>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="perm_pacientes"
+                              checked={formData.permissions.pacientes}
+                              onCheckedChange={(checked) => updatePermission('pacientes', checked)}
+                              disabled={formData.user_type === 'admin'}
+                            />
+                            <Label htmlFor="perm_pacientes">Pacientes</Label>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="perm_prescricoes"
+                              checked={formData.permissions.prescricoes}
+                              onCheckedChange={(checked) => updatePermission('prescricoes', checked)}
+                              disabled={formData.user_type === 'admin'}
+                            />
+                            <Label htmlFor="perm_prescricoes">Prescrições</Label>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="perm_exames"
+                              checked={formData.permissions.exames}
+                              onCheckedChange={(checked) => updatePermission('exames', checked)}
+                              disabled={formData.user_type === 'admin'}
+                            />
+                            <Label htmlFor="perm_exames">Exames</Label>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="perm_atendimento"
+                              checked={formData.permissions.atendimento}
+                              onCheckedChange={(checked) => updatePermission('atendimento', checked)}
+                              disabled={formData.user_type === 'admin'}
+                            />
+                            <Label htmlFor="perm_atendimento">Atendimento</Label>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="perm_historico_atendimentos"
+                              checked={formData.permissions.historico_atendimentos}
+                              onCheckedChange={(checked) => updatePermission('historico_atendimentos', checked)}
+                              disabled={formData.user_type === 'admin'}
+                            />
+                            <Label htmlFor="perm_historico_atendimentos">Histórico Atendimentos</Label>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="perm_agendamentos"
+                              checked={formData.permissions.agendamentos}
+                              onCheckedChange={(checked) => updatePermission('agendamentos', checked)}
+                              disabled={formData.user_type === 'admin'}
+                            />
+                            <Label htmlFor="perm_agendamentos">Agendamentos</Label>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="perm_atendentes"
+                              checked={formData.permissions.atendentes}
+                              onCheckedChange={(checked) => updatePermission('atendentes', checked)}
+                              disabled={formData.user_type === 'admin'}
+                            />
+                            <Label htmlFor="perm_atendentes">Atendentes</Label>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="perm_horarios"
+                              checked={formData.permissions.horarios}
+                              onCheckedChange={(checked) => updatePermission('horarios', checked)}
+                              disabled={formData.user_type === 'admin'}
+                            />
+                            <Label htmlFor="perm_horarios">Horários</Label>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="perm_servicos"
+                              checked={formData.permissions.servicos}
+                              onCheckedChange={(checked) => updatePermission('servicos', checked)}
+                              disabled={formData.user_type === 'admin'}
+                            />
+                            <Label htmlFor="perm_servicos">Serviços</Label>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="perm_financeiro"
+                              checked={formData.permissions.financeiro}
+                              onCheckedChange={(checked) => updatePermission('financeiro', checked)}
+                              disabled={formData.user_type === 'admin'}
+                            />
+                            <Label htmlFor="perm_financeiro">Financeiro</Label>
+                          </div>
+                        </div>
                       </div>
                       
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="perm_links"
-                          checked={formData.permissions.links}
-                          onCheckedChange={(checked) => updatePermission('links', checked)}
-                          disabled={formData.user_type === 'admin'}
-                        />
-                        <Label htmlFor="perm_links">Links de Parceria</Label>
+                      <Separator />
+                      
+                      {/* Permissões Administrativas */}
+                      <div>
+                        <h4 className="text-sm font-semibold mb-3 text-gray-700">Administrativo</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="perm_usuarios"
+                              checked={formData.permissions.usuarios}
+                              onCheckedChange={(checked) => updatePermission('usuarios', checked)}
+                              disabled={formData.user_type === 'admin'}
+                            />
+                            <Label htmlFor="perm_usuarios">Gerenciar Usuários</Label>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="perm_configuracoes"
+                              checked={formData.permissions.configuracoes}
+                              onCheckedChange={(checked) => updatePermission('configuracoes', checked)}
+                              disabled={formData.user_type === 'admin'}
+                            />
+                            <Label htmlFor="perm_configuracoes">Configurações</Label>
+                          </div>
+                        </div>
                       </div>
                       
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="perm_usuarios"
-                          checked={formData.permissions.usuarios}
-                          onCheckedChange={(checked) => updatePermission('usuarios', checked)}
-                          disabled={formData.user_type === 'admin'}
-                        />
-                        <Label htmlFor="perm_usuarios">Gerenciar Usuários</Label>
-                      </div>
+                      <Separator />
                       
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="perm_relatorios"
-                          checked={formData.permissions.relatorios}
-                          onCheckedChange={(checked) => updatePermission('relatorios', checked)}
-                          disabled={formData.user_type === 'admin'}
-                        />
-                        <Label htmlFor="perm_relatorios">Relatórios</Label>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="perm_configuracoes"
-                          checked={formData.permissions.configuracoes}
-                          onCheckedChange={(checked) => updatePermission('configuracoes', checked)}
-                          disabled={formData.user_type === 'admin'}
-                        />
-                        <Label htmlFor="perm_configuracoes">Configurações</Label>
-                      </div>
+                      {/* Permissões de Parceiro */}
+                      {formData.user_type === 'partner' && (
+                        <div>
+                          <h4 className="text-sm font-semibold mb-3 text-gray-700">Parceria</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="flex items-center space-x-2">
+                              <Switch
+                                id="perm_links"
+                                checked={formData.permissions.links}
+                                onCheckedChange={(checked) => updatePermission('links', checked)}
+                              />
+                              <Label htmlFor="perm_links">Links de Parceria</Label>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <Switch
+                                id="perm_relatorios"
+                                checked={formData.permissions.relatorios}
+                                onCheckedChange={(checked) => updatePermission('relatorios', checked)}
+                              />
+                              <Label htmlFor="perm_relatorios">Relatórios</Label>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </TabsContent>
