@@ -14,6 +14,7 @@ interface PublicRegistrationLinks {
   exit_url: string;
   public_registration_url: string;
   whatsapp_reminder_webhook_url: string;
+  pix_key: string;
 }
 
 const PublicRegistrationLinksConfig: React.FC = () => {
@@ -21,7 +22,8 @@ const PublicRegistrationLinksConfig: React.FC = () => {
     scheduling_url: '',
     exit_url: '',
     public_registration_url: '',
-    whatsapp_reminder_webhook_url: ''
+    whatsapp_reminder_webhook_url: '',
+    pix_key: ''
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -48,7 +50,8 @@ const PublicRegistrationLinksConfig: React.FC = () => {
             scheduling_url: 'https://www.google.com/',
             exit_url: 'https://www.google.com/',
             public_registration_url: `${window.location.origin}/cadastro-paciente`,
-            whatsapp_reminder_webhook_url: ''
+            whatsapp_reminder_webhook_url: '',
+            pix_key: ''
           });
           return;
         }
@@ -67,7 +70,8 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           scheduling_url: 'https://www.google.com/',
           exit_url: 'https://www.google.com/',
           public_registration_url: `${window.location.origin}/cadastro-paciente`,
-          whatsapp_reminder_webhook_url: ''
+          whatsapp_reminder_webhook_url: '',
+          pix_key: ''
         });
         return;
       }
@@ -78,7 +82,8 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           scheduling_url: siteData.n8n_webhook_url || 'https://www.google.com/',
           exit_url: siteData.medical_record_webhook_url || 'https://www.google.com/',
           public_registration_url: siteData.public_registration_url || `${window.location.origin}/cadastro-paciente`,
-          whatsapp_reminder_webhook_url: siteData.whatsapp_reminder_webhook_url || ''
+          whatsapp_reminder_webhook_url: siteData.whatsapp_reminder_webhook_url || '',
+          pix_key: siteData.pix_key || ''
         });
       } else {
         // Se não houver dados, usar URLs padrão
@@ -86,7 +91,8 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           scheduling_url: 'https://www.google.com/',
           exit_url: 'https://www.google.com/',
           public_registration_url: `${window.location.origin}/cadastro-paciente`,
-          whatsapp_reminder_webhook_url: ''
+          whatsapp_reminder_webhook_url: '',
+          pix_key: ''
         });
       }
     } catch (error) {
@@ -95,7 +101,8 @@ const PublicRegistrationLinksConfig: React.FC = () => {
         scheduling_url: 'https://www.google.com/',
         exit_url: 'https://www.google.com/',
         public_registration_url: `${window.location.origin}/cadastro-paciente`,
-        whatsapp_reminder_webhook_url: ''
+        whatsapp_reminder_webhook_url: '',
+        pix_key: ''
       });
     } finally {
       setLoading(false);
@@ -121,7 +128,8 @@ const PublicRegistrationLinksConfig: React.FC = () => {
             n8n_webhook_url: links.scheduling_url,
             medical_record_webhook_url: links.exit_url,
             public_registration_url: links.public_registration_url,
-            whatsapp_reminder_webhook_url: links.whatsapp_reminder_webhook_url
+            whatsapp_reminder_webhook_url: links.whatsapp_reminder_webhook_url,
+            pix_key: links.pix_key
           })
           .eq('id', existing.id);
         
@@ -134,7 +142,8 @@ const PublicRegistrationLinksConfig: React.FC = () => {
             n8n_webhook_url: links.scheduling_url,
             medical_record_webhook_url: links.exit_url,
             public_registration_url: links.public_registration_url,
-            whatsapp_reminder_webhook_url: links.whatsapp_reminder_webhook_url
+            whatsapp_reminder_webhook_url: links.whatsapp_reminder_webhook_url,
+            pix_key: links.pix_key
           });
         
         if (error) throw error;
@@ -316,6 +325,63 @@ const PublicRegistrationLinksConfig: React.FC = () => {
                 O redirecionamento automático agora usa sempre URLs internas para manter o contexto.
               </p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Card de Chave PIX - NOVO */}
+      <Card className="border-green-200 bg-gradient-to-br from-green-50 to-green-100 shadow-lg">
+        <CardHeader className="pb-6">
+          <CardTitle className="flex items-center gap-3 text-green-800 text-xl">
+            💰 Chave PIX
+          </CardTitle>
+          <CardDescription className="text-green-700 text-base">
+            Configure a chave PIX para pagamentos dos pacientes
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <Label htmlFor="pix_key" className="text-green-800 font-medium">Chave PIX</Label>
+            <Input
+              id="pix_key"
+              type="text"
+              placeholder="Digite sua chave PIX (CPF, email, telefone ou chave aleatória)"
+              value={links.pix_key}
+              onChange={(e) => handleInputChange('pix_key', e.target.value)}
+              className="border-green-300 bg-white shadow-sm"
+              disabled={loading}
+            />
+            <p className="text-sm text-green-700">
+              Chave PIX que será exibida para os pacientes realizarem pagamentos
+            </p>
+          </div>
+          
+          <div className="bg-green-100/50 border border-green-200 rounded-lg p-4 space-y-3">
+            <p className="text-sm text-green-700 font-medium mb-2">🔗 Link público da Chave PIX:</p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                value={`${window.location.origin}/pix`}
+                readOnly
+                className="bg-white border-green-300 text-green-800 font-mono text-xs flex-1 shadow-sm"
+              />
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/pix`);
+                  toast({
+                    title: "Copiado!",
+                    description: "Link da chave PIX copiado para a área de transferência.",
+                    variant: "default"
+                  });
+                }}
+                className="border-green-300 text-green-700 hover:bg-green-200 px-4 text-xs"
+              >
+                Copiar
+              </Button>
+            </div>
+            <p className="text-xs text-green-700">
+              📱 Compartilhe este link para que os pacientes vejam e copiem sua chave PIX
+            </p>
           </div>
         </CardContent>
       </Card>

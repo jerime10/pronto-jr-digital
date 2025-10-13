@@ -764,6 +764,7 @@ export type Database = {
           pdf_header_template: string | null
           pdf_patient_info_template: string | null
           pdf_prescription_template: string | null
+          pix_key: string | null
           primary_color: string | null
           public_registration_url: string | null
           setting_key: string | null
@@ -795,6 +796,7 @@ export type Database = {
           pdf_header_template?: string | null
           pdf_patient_info_template?: string | null
           pdf_prescription_template?: string | null
+          pix_key?: string | null
           primary_color?: string | null
           public_registration_url?: string | null
           setting_key?: string | null
@@ -826,6 +828,7 @@ export type Database = {
           pdf_header_template?: string | null
           pdf_patient_info_template?: string | null
           pdf_prescription_template?: string | null
+          pix_key?: string | null
           primary_color?: string | null
           public_registration_url?: string | null
           setting_key?: string | null

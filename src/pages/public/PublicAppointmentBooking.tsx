@@ -23,6 +23,7 @@ import { useDocumentAssets } from '@/hooks/useDocumentAssets';
 import { UserService } from '@/services/userService';
 import { Usuario } from '@/types/database';
 import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
+import { usePixKey } from '@/hooks/usePixKey';
 
 
 interface Patient {
@@ -116,6 +117,9 @@ export const PublicAppointmentBooking: React.FC = () => {
 
   // Hook para acessar os assets de documentos
   const { attendantLogoData } = useDocumentAssets();
+  
+  // Hook para acessar a chave PIX
+  const { pixKey } = usePixKey();
 
   useEffect(() => {
     loadInitialData();
@@ -511,7 +515,11 @@ export const PublicAppointmentBooking: React.FC = () => {
   };
 
   const copyPixKey = async () => {
-    const pixKey = 'ca1df7fb-4db4-4db9-b2e9-304849e2f257';
+    if (!pixKey) {
+      toast.error('Chave PIX não configurada. Entre em contato com o administrador.');
+      return;
+    }
+    
     try {
       await navigator.clipboard.writeText(pixKey);
       toast.success('Chave PIX copiada com sucesso!');
@@ -1401,17 +1409,19 @@ export const PublicAppointmentBooking: React.FC = () => {
                     <div className="flex-1">
                       <p className="text-slate-400 text-xs mb-1">Chave PIX:</p>
                       <p className="text-white font-mono text-sm break-all">
-                        ca1df7fb-4db4-4db9-b2e9-304849e2f257
+                        {pixKey || 'Chave PIX não configurada'}
                       </p>
                     </div>
-                    <Button
-                      onClick={copyPixKey}
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 transition-all duration-300 transform hover:scale-105"
-                      aria-label="Copiar chave PIX"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
+                    {pixKey && (
+                      <Button
+                        onClick={copyPixKey}
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 transition-all duration-300 transform hover:scale-105"
+                        aria-label="Copiar chave PIX"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
 

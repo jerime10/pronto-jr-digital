@@ -33,6 +33,9 @@ export interface SiteSettings {
   
   // WhatsApp reminder webhook URL (new)
   whatsapp_reminder_webhook_url?: string | null;
+  
+  // PIX key (new)
+  pixKey?: string | null;
 }
 
 // Theme settings input (used when updating theme)

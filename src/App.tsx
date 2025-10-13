@@ -71,6 +71,14 @@ function App() {
           {/* Alias for public appointment booking */}
           <Route path="/agendamento" element={<PublicAppointmentBooking />} />
           
+          {/* Public PIX Key Page - Accessible without auth */}
+          <Route path="/pix" element={
+            React.createElement(
+              React.lazy(() => import('./pages/public/PixKeyPage')),
+              null
+            )
+          } />
+          
           {/* Index redirect */}
           <Route path="/" element={
             <SimpleAuthGuard requireAuth={false}>

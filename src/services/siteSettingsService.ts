@@ -35,6 +35,7 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
         clinicPhone: '',
         n8nWebhookUrl: '',
         medicalRecordWebhookUrl: '',
+        pixKey: null,
       } as SiteSettings;
     }
     
@@ -54,6 +55,7 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
       clinicPhone: data.clinic_phone || '',
       n8nWebhookUrl: data.n8n_webhook_url || '',
       medicalRecordWebhookUrl: data.medical_record_webhook_url || '',
+      pixKey: data.pix_key || null,
     } as SiteSettings;
   } catch (err) {
     console.error('Error in site settings query:', err);
@@ -73,6 +75,7 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
       clinicPhone: '',
       n8nWebhookUrl: '',
       medicalRecordWebhookUrl: '',
+      pixKey: null,
     } as SiteSettings;
   }
 }
