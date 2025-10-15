@@ -23,7 +23,7 @@ import { isObstetricService } from '@/utils/obstetricUtils';
 import { supabase } from '@/integrations/supabase/client';
 
 // Tipos de status de agendamento
-type AppointmentStatus = 'aguardando_atendimento' | 'atendimento_iniciado' | 'atendimento_finalizado' | 'agendamento_cancelado' | 'scheduled' | 'completed' | 'canceled' | 'archived';
+type AppointmentStatus = 'aguardando_atendimento' | 'atendimento_iniciado' | 'atendimento_finalizado' | 'agendamento_cancelado' | 'scheduled' | 'completed' | 'canceled' | 'cancelled' | 'archived';
 
 // Mapeamento de status para exibição
 const statusLabels: Record<AppointmentStatus, string> = {
@@ -34,6 +34,7 @@ const statusLabels: Record<AppointmentStatus, string> = {
   scheduled: 'Agendado',
   completed: 'Finalizado',
   canceled: 'Cancelado',
+  cancelled: 'Cancelado',
   archived: 'Arquivado'
 };
 
@@ -46,6 +47,7 @@ const statusColors: Record<AppointmentStatus, string> = {
   scheduled: 'bg-yellow-100 text-yellow-800',
   completed: 'bg-green-100 text-green-800',
   canceled: 'bg-red-100 text-red-800',
+  cancelled: 'bg-red-100 text-red-800',
   archived: 'bg-gray-100 text-gray-800'
 };
 const getStatusBadge = (status: AppointmentStatus) => {
@@ -76,6 +78,7 @@ const getActionOptions = (status: AppointmentStatus) => {
       ];
     case 'agendamento_cancelado':
     case 'canceled':
+    case 'cancelled':
     case 'archived':
       return [
         { action: 'delete', label: 'Excluir', icon: Trash2 },
@@ -317,7 +320,9 @@ const Agendamentos: React.FC = () => {
       'aguardando_atendimento': 'scheduled',
       'atendimento_iniciado': 'atendimento_iniciado',
       'atendimento_finalizado': 'completed',
-      'agendamento_cancelado': 'cancelled'
+      'agendamento_cancelado': 'cancelled',
+      'canceled': 'cancelled',
+      'cancelled': 'cancelled'
     };
     
     return statusMapping[status] || status;
@@ -343,7 +348,9 @@ const Agendamentos: React.FC = () => {
         'aguardando_atendimento': 'scheduled',
         'atendimento_iniciado': 'atendimento_iniciado',
         'atendimento_finalizado': 'completed',
-        'agendamento_cancelado': 'cancelled'
+        'agendamento_cancelado': 'cancelled',
+        'canceled': 'cancelled',
+        'cancelled': 'cancelled'
       };
       
       const dbStatus = statusMapping[newStatus] || newStatus;

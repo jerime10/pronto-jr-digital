@@ -16,7 +16,7 @@ interface WhatsAppReminderPayload {
   service_name: string;
   attendant_name: string;
   status: string;
-  reminder_type: '15s' | '2h' | '30min';
+  reminder_type: '15s' | '2h' | '30min' | '24h' | '90min' | 'cancelled' | 'completed' | 'attendance_started';
   partner_username?: string;
   created_by_user_id?: string;
 }
@@ -126,6 +126,56 @@ serve(async (req) => {
           `💼 Serviço: ${payload.service_name}\n` +
           `👨‍⚕️ Profissional: ${payload.attendant_name}\n\n` +
           `Estamos te esperando! 😊`;
+        break;
+      case '24h':
+        message = `⏰ Lembrete de Consulta (24 horas)\n\n` +
+          `Olá ${payload.patient_name}! 👋\n\n` +
+          `Sua consulta está marcada para amanhã:\n\n` +
+          `📅 Data: ${payload.appointment_date}\n` +
+          `🕐 Horário: ${payload.appointment_time}\n` +
+          `💼 Serviço: ${payload.service_name}\n` +
+          `👨‍⚕️ Profissional: ${payload.attendant_name}\n\n` +
+          `Não esqueça! Até breve! 😊`;
+        break;
+      case '90min':
+        message = `⏰ Lembrete de Consulta (90 minutos)\n\n` +
+          `Olá ${payload.patient_name}! 👋\n\n` +
+          `Sua consulta está próxima (em 90 minutos):\n\n` +
+          `📅 Data: ${payload.appointment_date}\n` +
+          `🕐 Horário: ${payload.appointment_time}\n` +
+          `💼 Serviço: ${payload.service_name}\n` +
+          `👨‍⚕️ Profissional: ${payload.attendant_name}\n\n` +
+          `Prepare-se! Até logo! 😊`;
+        break;
+      case 'cancelled':
+        message = `❌ Agendamento Cancelado\n\n` +
+          `Olá ${payload.patient_name}! 👋\n\n` +
+          `Seu agendamento foi cancelado:\n\n` +
+          `📅 Data: ${payload.appointment_date}\n` +
+          `🕐 Horário: ${payload.appointment_time}\n` +
+          `💼 Serviço: ${payload.service_name}\n` +
+          `👨‍⚕️ Profissional: ${payload.attendant_name}\n\n` +
+          `Se deseja reagendar, entre em contato. 📞`;
+        break;
+      case 'completed':
+        message = `✅ Atendimento Finalizado\n\n` +
+          `Olá ${payload.patient_name}! 👋\n\n` +
+          `Seu atendimento foi finalizado:\n\n` +
+          `📅 Data: ${payload.appointment_date}\n` +
+          `🕐 Horário: ${payload.appointment_time}\n` +
+          `💼 Serviço: ${payload.service_name}\n` +
+          `👨‍⚕️ Profissional: ${payload.attendant_name}\n\n` +
+          `Obrigado pela confiança! 😊`;
+        break;
+      case 'attendance_started':
+        message = `🩺 Atendimento Iniciado\n\n` +
+          `Olá ${payload.patient_name}! 👋\n\n` +
+          `Seu atendimento foi iniciado:\n\n` +
+          `📅 Data: ${payload.appointment_date}\n` +
+          `🕐 Horário: ${payload.appointment_time}\n` +
+          `💼 Serviço: ${payload.service_name}\n` +
+          `👨‍⚕️ Profissional: ${payload.attendant_name}\n\n` +
+          `Estamos cuidando de você! 😊`;
         break;
     }
 

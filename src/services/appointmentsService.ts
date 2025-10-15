@@ -145,7 +145,19 @@ export const appointmentsService = {
   async updateAppointmentStatus(id: string, status: string): Promise<AppointmentData> {
     console.log(`🔄 Atualizando status do agendamento ${id} para ${status}`);
     
-    // Remover .select() e apenas fazer o update direto
+    // Primeiro buscar o agendamento completo antes de atualizar
+    const { data: appointmentBefore, error: fetchError } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (fetchError || !appointmentBefore) {
+      console.error('❌ Erro ao buscar agendamento antes de atualizar:', fetchError);
+      throw new Error(`Erro ao buscar agendamento: ${fetchError?.message || 'Agendamento não encontrado'}`);
+    }
+    
+    // Fazer o update
     const { error: updateError } = await supabase
       .from('appointments')
       .update({ 
@@ -159,7 +171,7 @@ export const appointmentsService = {
       throw new Error(`Erro ao atualizar status do agendamento: ${updateError.message}`);
     }
 
-    // Agora buscar o registro atualizado
+    // Buscar o registro atualizado
     const { data: appointment, error: selectError } = await supabase
       .from('appointments')
       .select('*')
@@ -177,6 +189,35 @@ export const appointmentsService = {
     }
 
     console.log(`✅ Status atualizado com sucesso para:`, status);
+
+    // Se o status foi atualizado para 'completed' ou 'cancelled', enviar ao n8n
+    if (status === 'completed' || status === 'cancelled') {
+      console.log(`📤 Enviando notificação ao n8n para status: ${status}`);
+      
+      // Determinar o reminder_type baseado no status
+      const reminderType = status === 'cancelled' ? 'cancelled' : 'completed';
+      
+      // Enviar ao n8n de forma assíncrona (não bloqueia o retorno)
+      supabase.functions.invoke('whatsapp-reminder', {
+        body: {
+          appointment_id: appointment.id,
+          patient_name: appointment.patient_name || 'Paciente',
+          patient_phone: appointment.patient_phone,
+          appointment_date: appointment.appointment_date || '',
+          appointment_time: appointment.appointment_time || '',
+          service_name: appointment.service_name || 'Consulta',
+          attendant_name: appointment.attendant_name || 'Profissional',
+          status: status,
+          reminder_type: reminderType,
+          partner_username: appointment.partner_username || null
+        }
+      }).then(() => {
+        console.log(`✅ Notificação de ${status} enviada ao N8N`);
+      }).catch((error) => {
+        console.error(`❌ Erro ao enviar notificação de ${status} ao N8N:`, error);
+      });
+    }
+    
     return appointment;
   },
 
