@@ -489,9 +489,37 @@ const Agendamentos: React.FC = () => {
         toast.error('Erro ao finalizar atendimento');
       }
     } else if (action === 'agendamento_cancelado') {
-      // Para cancelar, atualizar status para cancelado
+      // Buscar dados do agendamento antes de cancelar
+      const appointment = appointments.find(app => app.id === appointmentId);
+      
       try {
+        // Atualizar status para cancelado
         await handleStatusChange(appointmentId, 'agendamento_cancelado' as AppointmentStatus);
+        
+        // Enviar notificação ao n8n (não bloqueia o fluxo)
+        if (appointment) {
+          const payload = {
+            appointment_id: appointment.id,
+            patient_name: appointment.patient_name || 'Paciente',
+            patient_phone: appointment.patient_phone,
+            appointment_date: appointment.appointment_date || '',
+            appointment_time: appointment.appointment_time || '',
+            service_name: appointment.service_name || 'Consulta',
+            attendant_name: appointment.attendant_name || 'Profissional',
+            status: 'cancelled',
+            reminder_type: 'cancelled',
+            partner_username: appointment.partner_username || null
+          };
+
+          supabase.functions.invoke('whatsapp-reminder', {
+            body: payload
+          }).then(() => {
+            console.log('✅ Notificação de cancelamento enviada ao N8N');
+          }).catch((error) => {
+            console.error('❌ Erro ao enviar notificação de cancelamento ao N8N:', error);
+          });
+        }
+        
         toast.success('Agendamento cancelado com sucesso');
       } catch (error) {
         console.error('Erro ao cancelar agendamento:', error);
