@@ -19,23 +19,25 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Ajustar para o timezone de Brasília (GMT-3)
     const now = new Date();
-    const in24Hours = new Date(now.getTime() + (24 * 60 * 60 * 1000));
-    const in90Minutes = new Date(now.getTime() + (90 * 60 * 1000));
+    const nowBrasilia = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+    const todayBrasilia = nowBrasilia.toISOString().split('T')[0];
 
     console.log('⏰ Timestamps:', {
-      now: now.toISOString(),
-      in24Hours: in24Hours.toISOString(),
-      in90Minutes: in90Minutes.toISOString()
+      nowUTC: now.toISOString(),
+      nowBrasilia: nowBrasilia.toISOString(),
+      todayBrasilia: todayBrasilia
     });
 
-    // Buscar agendamentos com status 'scheduled' (Agendado)
+    // Buscar todos os agendamentos de hoje e futuros com status 'scheduled'
     const { data: appointments, error } = await supabase
       .from('appointments')
       .select('*')
       .eq('status', 'scheduled')
-      .gte('appointment_datetime', now.toISOString())
-      .order('appointment_datetime', { ascending: true });
+      .gte('appointment_date', todayBrasilia)
+      .order('appointment_date', { ascending: true })
+      .order('appointment_time', { ascending: true });
 
     if (error) {
       console.error('❌ Error fetching appointments:', error);
@@ -50,13 +52,25 @@ serve(async (req) => {
     let skipped = 0;
 
     for (const appointment of appointments || []) {
-      const appointmentTime = new Date(appointment.appointment_datetime);
-      const timeDiff = appointmentTime.getTime() - now.getTime();
+      // Construir datetime do agendamento corretamente
+      // appointment_date está em formato YYYY-MM-DD
+      // appointment_time está em formato HH:MM:SS
+      const appointmentDateStr = `${appointment.appointment_date}T${appointment.appointment_time}`;
+      const appointmentTime = new Date(appointmentDateStr);
+      
+      // Ajustar para horário de Brasília (GMT-3)
+      const appointmentTimeBrasilia = new Date(appointmentTime.getTime() - (3 * 60 * 60 * 1000));
+      
+      const timeDiff = appointmentTimeBrasilia.getTime() - now.getTime();
       const hoursUntil = timeDiff / (60 * 60 * 1000);
       const minutesUntil = timeDiff / (60 * 1000);
 
       console.log(`\n📅 Appointment ${appointment.id}:`, {
-        time: appointmentTime.toISOString(),
+        appointmentDate: appointment.appointment_date,
+        appointmentTime: appointment.appointment_time,
+        appointmentDatetime: appointmentDateStr,
+        appointmentTimeBrasilia: appointmentTimeBrasilia.toISOString(),
+        nowUTC: now.toISOString(),
         hoursUntil: hoursUntil.toFixed(2),
         minutesUntil: minutesUntil.toFixed(2)
       });
