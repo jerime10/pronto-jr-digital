@@ -52,24 +52,28 @@ serve(async (req) => {
     let skipped = 0;
 
     for (const appointment of appointments || []) {
-      // Construir datetime do agendamento corretamente
-      // appointment_date está em formato YYYY-MM-DD
-      // appointment_time está em formato HH:MM:SS
-      const appointmentDateStr = `${appointment.appointment_date}T${appointment.appointment_time}`;
-      const appointmentTime = new Date(appointmentDateStr);
+      // appointment_date e appointment_time estão em horário de Brasília (GMT-3)
+      // Precisamos converter para UTC para comparar com now (que está em UTC)
       
-      // Ajustar para horário de Brasília (GMT-3)
-      const appointmentTimeBrasilia = new Date(appointmentTime.getTime() - (3 * 60 * 60 * 1000));
+      // Extrair componentes da data e hora
+      const [year, month, day] = appointment.appointment_date.split('-').map(Number);
+      const [hours, minutes, seconds] = appointment.appointment_time.split(':').map(Number);
       
-      const timeDiff = appointmentTimeBrasilia.getTime() - now.getTime();
+      // Criar Date object no timezone local (servidor está em UTC)
+      // Como os dados estão em Brasília (GMT-3), precisamos converter para UTC
+      // Brasília 08:30 = UTC 11:30 (adiciona 3 horas)
+      const appointmentBrasilia = new Date(year, month - 1, day, hours, minutes, seconds || 0);
+      const appointmentUTC = new Date(appointmentBrasilia.getTime() + (3 * 60 * 60 * 1000));
+      
+      const timeDiff = appointmentUTC.getTime() - now.getTime();
       const hoursUntil = timeDiff / (60 * 60 * 1000);
       const minutesUntil = timeDiff / (60 * 1000);
 
       console.log(`\n📅 Appointment ${appointment.id}:`, {
         appointmentDate: appointment.appointment_date,
         appointmentTime: appointment.appointment_time,
-        appointmentDatetime: appointmentDateStr,
-        appointmentTimeBrasilia: appointmentTimeBrasilia.toISOString(),
+        appointmentBrasilia: appointmentBrasilia.toISOString(),
+        appointmentUTC: appointmentUTC.toISOString(),
         nowUTC: now.toISOString(),
         hoursUntil: hoursUntil.toFixed(2),
         minutesUntil: minutesUntil.toFixed(2)
