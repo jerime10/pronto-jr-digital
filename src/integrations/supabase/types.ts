@@ -813,6 +813,7 @@ export type Database = {
           signature_professional_title: string | null
           updated_at: string | null
           updated_by: string | null
+          whatsapp_recurring_reminder_webhook_url: string | null
           whatsapp_reminder_webhook_url: string | null
           whatsapp_webhook_url: string | null
         }
@@ -845,6 +846,7 @@ export type Database = {
           signature_professional_title?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          whatsapp_recurring_reminder_webhook_url?: string | null
           whatsapp_reminder_webhook_url?: string | null
           whatsapp_webhook_url?: string | null
         }
@@ -877,6 +879,7 @@ export type Database = {
           signature_professional_title?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          whatsapp_recurring_reminder_webhook_url?: string | null
           whatsapp_reminder_webhook_url?: string | null
           whatsapp_webhook_url?: string | null
         }

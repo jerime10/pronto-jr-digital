@@ -14,6 +14,7 @@ interface PublicRegistrationLinks {
   exit_url: string;
   public_registration_url: string;
   whatsapp_reminder_webhook_url: string;
+  whatsapp_recurring_reminder_webhook_url: string;
   pix_key: string;
 }
 
@@ -23,6 +24,7 @@ const PublicRegistrationLinksConfig: React.FC = () => {
     exit_url: '',
     public_registration_url: '',
     whatsapp_reminder_webhook_url: '',
+    whatsapp_recurring_reminder_webhook_url: '',
     pix_key: ''
   });
   const [loading, setLoading] = useState(false);
@@ -46,13 +48,14 @@ const PublicRegistrationLinksConfig: React.FC = () => {
         
         if (!migrationSuccess) {
           console.error('Falha ao aplicar migração');
-          setLinks({
-            scheduling_url: 'https://www.google.com/',
-            exit_url: 'https://www.google.com/',
-            public_registration_url: `${window.location.origin}/cadastro-paciente`,
-            whatsapp_reminder_webhook_url: '',
-            pix_key: ''
-          });
+        setLinks({
+          scheduling_url: 'https://www.google.com/',
+          exit_url: 'https://www.google.com/',
+          public_registration_url: `${window.location.origin}/cadastro-paciente`,
+          whatsapp_reminder_webhook_url: '',
+          whatsapp_recurring_reminder_webhook_url: '',
+          pix_key: ''
+        });
           return;
         }
       }
@@ -71,6 +74,7 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           exit_url: 'https://www.google.com/',
           public_registration_url: `${window.location.origin}/cadastro-paciente`,
           whatsapp_reminder_webhook_url: '',
+          whatsapp_recurring_reminder_webhook_url: '',
           pix_key: ''
         });
         return;
@@ -83,6 +87,7 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           exit_url: siteData.medical_record_webhook_url || 'https://www.google.com/',
           public_registration_url: siteData.public_registration_url || `${window.location.origin}/cadastro-paciente`,
           whatsapp_reminder_webhook_url: siteData.whatsapp_reminder_webhook_url || '',
+          whatsapp_recurring_reminder_webhook_url: siteData.whatsapp_recurring_reminder_webhook_url || '',
           pix_key: siteData.pix_key || ''
         });
       } else {
@@ -92,6 +97,7 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           exit_url: 'https://www.google.com/',
           public_registration_url: `${window.location.origin}/cadastro-paciente`,
           whatsapp_reminder_webhook_url: '',
+          whatsapp_recurring_reminder_webhook_url: '',
           pix_key: ''
         });
       }
@@ -102,6 +108,7 @@ const PublicRegistrationLinksConfig: React.FC = () => {
         exit_url: 'https://www.google.com/',
         public_registration_url: `${window.location.origin}/cadastro-paciente`,
         whatsapp_reminder_webhook_url: '',
+        whatsapp_recurring_reminder_webhook_url: '',
         pix_key: ''
       });
     } finally {
@@ -129,6 +136,7 @@ const PublicRegistrationLinksConfig: React.FC = () => {
             medical_record_webhook_url: links.exit_url,
             public_registration_url: links.public_registration_url,
             whatsapp_reminder_webhook_url: links.whatsapp_reminder_webhook_url,
+            whatsapp_recurring_reminder_webhook_url: links.whatsapp_recurring_reminder_webhook_url,
             pix_key: links.pix_key
           })
           .eq('id', existing.id);
@@ -143,6 +151,7 @@ const PublicRegistrationLinksConfig: React.FC = () => {
             medical_record_webhook_url: links.exit_url,
             public_registration_url: links.public_registration_url,
             whatsapp_reminder_webhook_url: links.whatsapp_reminder_webhook_url,
+            whatsapp_recurring_reminder_webhook_url: links.whatsapp_recurring_reminder_webhook_url,
             pix_key: links.pix_key
           });
         
@@ -503,25 +512,25 @@ const PublicRegistrationLinksConfig: React.FC = () => {
         </Card>
       </div>
 
-      {/* Card de WhatsApp Lembretes */}
+      {/* Card de WhatsApp Lembretes - SIMPLIFICADO */}
       <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 shadow-lg">
         <CardHeader className="pb-6">
           <CardTitle className="flex items-center gap-3 text-purple-800 text-xl">
             <ExternalLink className="h-6 w-6" />
             Webhook de Lembretes WhatsApp
           </CardTitle>
-          <CardDescription className="text-purple-700 text-base">
-            Configure o webhook para enviar lembretes automáticos de agendamento via WhatsApp
-          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* Campo 1: Aviso Agendamento */}
           <div className="space-y-3">
-            <Label htmlFor="whatsapp_reminder_webhook_url" className="text-purple-800 font-medium">URL do Webhook WhatsApp</Label>
+            <Label htmlFor="whatsapp_reminder_webhook_url" className="text-purple-800 font-medium">
+              URL do Webhook WhatsApp Aviso Agendamento
+            </Label>
             <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 id="whatsapp_reminder_webhook_url"
                 type="url"
-                placeholder="https://exemplo.com/webhook/whatsapp-reminder"
+                placeholder="https://seu-webhook.n8n.cloud/webhook/..."
                 value={links.whatsapp_reminder_webhook_url}
                 onChange={(e) => handleInputChange('whatsapp_reminder_webhook_url', e.target.value)}
                 className={`flex-1 ${!isValidUrl(links.whatsapp_reminder_webhook_url) && links.whatsapp_reminder_webhook_url ? 'border-red-500' : 'border-purple-300'} bg-white shadow-sm`}
@@ -541,24 +550,37 @@ const PublicRegistrationLinksConfig: React.FC = () => {
             {!isValidUrl(links.whatsapp_reminder_webhook_url) && links.whatsapp_reminder_webhook_url && (
               <p className="text-sm text-red-600 font-medium">URL inválida</p>
             )}
-            <p className="text-sm text-purple-700">
-              URL do webhook (n8n, Make, Zapier, etc.) que receberá os dados para envio dos lembretes
-            </p>
           </div>
-          
-          <div className="bg-purple-100/50 border border-purple-200 rounded-lg p-4 space-y-3">
-            <p className="text-sm text-purple-700 font-medium mb-2">📅 Lembretes Automáticos:</p>
-            <ul className="text-xs text-purple-600 space-y-1.5">
-              <li>• <strong>15 segundos após criação:</strong> Confirmação imediata do agendamento</li>
-              <li>• <strong>2 horas antes:</strong> Lembrete antecipado</li>
-              <li>• <strong>30 minutos antes:</strong> Lembrete final</li>
-            </ul>
-            <div className="bg-purple-50 border border-purple-200 rounded p-2 mt-3">
-              <p className="text-xs text-purple-600">
-                ℹ️ <strong>Nota:</strong> Os lembretes são enviados automaticamente pelo sistema.
-                Configure o webhook para receber os dados e enviar as mensagens.
-              </p>
+
+          {/* Campo 2: Lembretes Recorrentes */}
+          <div className="space-y-3">
+            <Label htmlFor="whatsapp_recurring_reminder_webhook_url" className="text-purple-800 font-medium">
+              URL do Webhook WhatsApp Lembretes Recorrentes
+            </Label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                id="whatsapp_recurring_reminder_webhook_url"
+                type="url"
+                placeholder="https://seu-webhook.n8n.cloud/webhook/..."
+                value={links.whatsapp_recurring_reminder_webhook_url}
+                onChange={(e) => handleInputChange('whatsapp_recurring_reminder_webhook_url', e.target.value)}
+                className={`flex-1 ${!isValidUrl(links.whatsapp_recurring_reminder_webhook_url) && links.whatsapp_recurring_reminder_webhook_url ? 'border-red-500' : 'border-purple-300'} bg-white shadow-sm`}
+                disabled={loading}
+              />
+              {links.whatsapp_recurring_reminder_webhook_url && (
+                <Button
+                  variant="outline"
+                  onClick={() => window.open(links.whatsapp_recurring_reminder_webhook_url, '_blank')}
+                  disabled={!isValidUrl(links.whatsapp_recurring_reminder_webhook_url)}
+                  className="border-purple-300 text-purple-700 hover:bg-purple-200"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              )}
             </div>
+            {!isValidUrl(links.whatsapp_recurring_reminder_webhook_url) && links.whatsapp_recurring_reminder_webhook_url && (
+              <p className="text-sm text-red-600 font-medium">URL inválida</p>
+            )}
           </div>
         </CardContent>
       </Card>

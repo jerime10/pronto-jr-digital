@@ -34,6 +34,9 @@ export interface SiteSettings {
   // WhatsApp reminder webhook URL (new)
   whatsapp_reminder_webhook_url?: string | null;
   
+  // WhatsApp recurring reminder webhook URL (new)
+  whatsapp_recurring_reminder_webhook_url?: string | null;
+  
   // PIX key (new)
   pixKey?: string | null;
 }

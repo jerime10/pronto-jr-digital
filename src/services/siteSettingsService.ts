@@ -56,6 +56,8 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
       n8nWebhookUrl: data.n8n_webhook_url || '',
       medicalRecordWebhookUrl: data.medical_record_webhook_url || '',
       pixKey: data.pix_key || null,
+      whatsapp_reminder_webhook_url: data.whatsapp_reminder_webhook_url || null,
+      whatsapp_recurring_reminder_webhook_url: data.whatsapp_recurring_reminder_webhook_url || null,
     } as SiteSettings;
   } catch (err) {
     console.error('Error in site settings query:', err);
@@ -76,6 +78,8 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
       n8nWebhookUrl: '',
       medicalRecordWebhookUrl: '',
       pixKey: null,
+      whatsapp_reminder_webhook_url: null,
+      whatsapp_recurring_reminder_webhook_url: null,
     } as SiteSettings;
   }
 }

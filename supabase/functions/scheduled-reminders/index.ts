@@ -30,6 +30,44 @@ serve(async (req) => {
       todayBrasilia: todayBrasilia
     });
 
+    // Buscar webhook URL do n8n para lembretes recorrentes
+    const { data: settings, error: settingsError } = await supabase
+      .from('site_settings')
+      .select('whatsapp_recurring_reminder_webhook_url')
+      .maybeSingle();
+
+    if (settingsError) {
+      console.error('❌ Error fetching webhook settings:', settingsError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Error fetching webhook settings',
+          details: settingsError.message 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      );
+    }
+
+    const webhookUrl = settings?.whatsapp_recurring_reminder_webhook_url;
+
+    if (!webhookUrl) {
+      console.error('❌ No webhook URL configured for recurring reminders');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Webhook URL not configured',
+          message: 'Please configure whatsapp_recurring_reminder_webhook_url in site_settings'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+
+    console.log(`🔗 Using webhook URL: ${webhookUrl}\n`);
+
     // Buscar todos os agendamentos de hoje e futuros com status 'scheduled'
     const { data: appointments, error } = await supabase
       .from('appointments')
@@ -164,40 +202,57 @@ serve(async (req) => {
         continue;
       }
 
-      // Enviar lembrete via whatsapp-reminder
+      // Enviar lembrete diretamente para o webhook n8n
+      console.log(`📤 Sending ${reminderType} reminder for appointment ${appointment.id}...`);
+      
       try {
-        const { data: webhookResponse, error: webhookError } = await supabase.functions.invoke('whatsapp-reminder', {
-          body: {
-            appointment_id: appointment.id,
-            patient_name: appointment.patient_name || 'Paciente',
-            patient_phone: appointment.patient_phone,
-            appointment_date: appointment.appointment_date || '',
-            appointment_time: appointment.appointment_time || '',
-            service_name: appointment.service_name || 'Consulta',
-            attendant_name: appointment.attendant_name || 'Profissional',
-            status: 'scheduled',
-            reminder_type: reminderType,
-            partner_username: appointment.partner_username || null
-          }
+        const payload = {
+          appointment_id: appointment.id,
+          patient_name: appointment.patient_name,
+          patient_phone: appointment.patient_phone,
+          appointment_date: appointment.appointment_date,
+          appointment_time: appointment.appointment_time,
+          service_name: appointment.service_name,
+          attendant_name: appointment.attendant_name,
+          service_price: appointment.service_price,
+          service_duration: appointment.service_duration,
+          reminder_type: reminderType,
+          partner_username: appointment.partner_username,
+          partner_code: appointment.partner_code,
+          status: appointment.status,
+          notes: appointment.notes,
+          dum: appointment.dum,
+          gestational_age: appointment.gestational_age,
+          estimated_due_date: appointment.estimated_due_date
+        };
+
+        const webhookResponse = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
         });
 
-        if (webhookError) {
-          console.error('❌ Webhook error:', webhookError);
+        if (!webhookResponse.ok) {
+          const errorText = await webhookResponse.text();
+          console.error(`❌ Webhook error: ${webhookResponse.status} - ${errorText}`);
           
-          // Registrar falha
+          // Log erro
           await supabase
             .from('appointment_reminders_log')
             .insert({
               appointment_id: appointment.id,
               reminder_type: reminderType,
               status: 'failed',
-              error_message: webhookError.message
+              error_message: `Webhook error: ${webhookResponse.status}`,
+              sent_at: now.toISOString()
             });
-
+          
           continue;
         }
 
-        // Registrar sucesso
+        // Log sucesso
         await supabase
           .from('appointment_reminders_log')
           .insert({
@@ -206,16 +261,16 @@ serve(async (req) => {
             status: 'sent'
           });
 
-        console.log(`✅ Reminder sent: ${reminderType} for appointment ${appointment.id}`);
+        console.log(`✅ Reminder sent: ${reminderType} for appointment ${appointment.id}\n`);
 
         if (reminderType === '24h') sent24h++;
         else if (reminderType === '90min') sent90min++;
         else if (reminderType === '30min') sent30min++;
 
       } catch (error) {
-        console.error('❌ Error sending reminder:', error);
+        console.error(`❌ Error sending webhook request:`, error);
         
-        // Registrar falha
+        // Log erro
         await supabase
           .from('appointment_reminders_log')
           .insert({
