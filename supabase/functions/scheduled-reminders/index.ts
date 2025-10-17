@@ -34,7 +34,9 @@ serve(async (req) => {
     const { data: settings, error: settingsError } = await supabase
       .from('site_settings')
       .select('whatsapp_recurring_reminder_webhook_url')
-      .maybeSingle();
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single();
 
     if (settingsError) {
       console.error('❌ Error fetching webhook settings:', settingsError);
