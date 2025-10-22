@@ -33,102 +33,58 @@ export const shareHistoricoDocumentViaWhatsApp = async (doc: HistoricoDocument, 
     
     let phone = doc.patient?.phone;
     
-    // Se não tem telefone, tentar extrair do nome do arquivo (para arquivos do storage)
+    // Se não tem telefone, tentar extrair do nome do arquivo
     if (!phone || phone.trim() === '') {
-      console.log('Telefone não encontrado no registro, tentando extrair do filename:', doc.filename);
-      
-      // Tentar extrair telefone do nome do arquivo
       const decodedFilename = decodeURIComponent(doc.filename);
-      console.log('Tentando extrair de:', decodedFilename);
-      
-      // Formato: "NOME-TELEFONE-ID.pdf"
       const phoneMatch = decodedFilename.match(/^.+?-(\d{10,11})-[a-f0-9\-]+.*\.pdf$/i);
       if (phoneMatch) {
         phone = phoneMatch[1];
-        console.log('Telefone extraído do filename:', phone);
       }
     }
 
-    // Criar mensagem simplificada para evitar problemas com URLs longas
-    const message = `Olá ${doc.patient.name}!
-
-Seu prontuário médico está disponível em:
-${doc.file_url}
-
-Consultório JRS`;
+    // Mensagem ultra-simplificada para evitar HTTP 429
+    const shortMessage = `Olá! Seu prontuário: ${doc.file_url}`;
     
     if (!phone || phone.trim() === '') {
-      // Copiar para área de transferência como solução principal
-      try {
-        await navigator.clipboard.writeText(message);
-        toast.success(`📋 Mensagem copiada! Cole no WhatsApp do paciente`, {
-          duration: 5000,
-          description: 'A mensagem foi copiada para sua área de transferência'
-        });
-      } catch (clipboardError) {
-        // Fallback: mostrar mensagem para copiar manualmente
-        toast.info(`Copie esta mensagem para o WhatsApp:\n\n${message}`, {
-          duration: 10000
-        });
-      }
+      await navigator.clipboard.writeText(shortMessage);
+      toast.success('📋 Mensagem copiada para área de transferência');
       return;
     }
 
     const cleanPhone = phone.replace(/\D/g, '');
-    console.log('Telefone limpo:', cleanPhone);
     
     if (cleanPhone.length < 10) {
-      toast.error('Número de telefone inválido. Deve ter pelo menos 10 dígitos.');
+      toast.error('Número de telefone inválido');
       return;
     }
 
-    // Garantir que o telefone tenha o formato correto (55 + DDD + número)
-    let formattedPhone = cleanPhone;
-    if (!formattedPhone.startsWith('55')) {
-      formattedPhone = `55${formattedPhone}`;
-    }
-
-    const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+    // Formato: 55 + DDD + número
+    const formattedPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
     
-    console.log('URL WhatsApp:', whatsappUrl);
-
-    // Tentar abrir WhatsApp com tratamento de erro
+    // Criar link direto (mais confiável que window.open)
+    const link = document.createElement('a');
+    link.href = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(shortMessage)}`;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    
+    // Copiar mensagem como backup
     try {
-      const opened = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-      
-      if (!opened) {
-        // Se o popup foi bloqueado, copiar mensagem
-        await navigator.clipboard.writeText(message);
-        toast.warning('⚠️ Popup bloqueado. Mensagem copiada!', {
-          duration: 5000,
-          description: 'Cole a mensagem no WhatsApp manualmente'
-        });
-      } else {
-        toast.success(`✅ WhatsApp aberto para ${doc.patient.name}!`, {
-          duration: 3000,
-          description: 'Se não abrir, a mensagem foi copiada para você'
-        });
-        
-        // Copiar também como backup
-        setTimeout(async () => {
-          try {
-            await navigator.clipboard.writeText(message);
-          } catch (e) {
-            console.log('Não foi possível copiar como backup:', e);
-          }
-        }, 500);
-      }
-    } catch (openError) {
-      console.error('Erro ao abrir WhatsApp, copiando mensagem:', openError);
-      // Fallback: copiar mensagem
-      await navigator.clipboard.writeText(message);
-      toast.info('📋 Mensagem copiada! Cole no WhatsApp', {
-        duration: 5000,
-        description: 'Não foi possível abrir o WhatsApp automaticamente'
-      });
+      await navigator.clipboard.writeText(shortMessage);
+    } catch (e) {
+      console.log('Não foi possível copiar:', e);
     }
+    
+    // Clicar no link
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success(`✅ WhatsApp aberto!`, {
+      duration: 3000,
+      description: 'Mensagem copiada como backup'
+    });
 
-    // Atualizar registro de compartilhamento se for um registro do banco
+    // Atualizar registro
     if (!doc.id.startsWith('storage-')) {
       try {
         const { supabase } = await import('@/integrations/supabase/client');
@@ -140,7 +96,7 @@ Consultório JRS`;
           })
           .eq('medical_record_id', doc.id);
       } catch (updateError) {
-        console.log('Erro ao atualizar registro de compartilhamento (pode ser normal):', updateError);
+        console.log('Erro ao atualizar registro:', updateError);
       }
     }
     
@@ -148,20 +104,16 @@ Consultório JRS`;
       refetch();
     }
   } catch (error) {
-    console.error('Erro ao compartilhar via WhatsApp:', error);
-    
-    // Último fallback: tentar copiar mensagem
+    console.error('Erro ao compartilhar:', error);
     try {
-      const fallbackMessage = `Olá ${doc.patient.name}!\n\nSeu prontuário: ${doc.file_url}\n\nConsultório JRS`;
+      const fallbackMessage = `Seu prontuário: ${doc.file_url}`;
       await navigator.clipboard.writeText(fallbackMessage);
-      toast.error('❌ Erro ao abrir WhatsApp. Mensagem copiada!', {
-        duration: 5000,
-        description: 'Cole manualmente no WhatsApp do paciente'
+      toast.info('📋 Mensagem copiada! Cole no WhatsApp', {
+        duration: 5000
       });
     } catch (clipboardError) {
-      toast.error('Erro ao compartilhar. Tente novamente em alguns segundos.', {
-        duration: 5000,
-        description: 'O WhatsApp pode estar temporariamente indisponível (HTTP 429)'
+      toast.error('Erro ao compartilhar. Tente novamente.', {
+        duration: 5000
       });
     }
   }
