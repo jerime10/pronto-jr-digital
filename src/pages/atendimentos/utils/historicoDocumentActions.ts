@@ -48,29 +48,27 @@ export const shareHistoricoDocumentViaWhatsApp = async (doc: HistoricoDocument, 
         console.log('Telefone extraído do filename:', phone);
       }
     }
-    
-    if (!phone || phone.trim() === '') {
-      // Criar URL com mensagem pré-formatada para copiar
-      const message = `Olá ${doc.patient.name}! 
 
-Segue seu prontuário médico:
+    // Criar mensagem simplificada para evitar problemas com URLs longas
+    const message = `Olá ${doc.patient.name}!
+
+Seu prontuário médico está disponível em:
 ${doc.file_url}
 
-Consultório JRS
-Cuidados Especializados em Enfermagem`;
-
-      // Copiar para área de transferência
+Consultório JRS`;
+    
+    if (!phone || phone.trim() === '') {
+      // Copiar para área de transferência como solução principal
       try {
         await navigator.clipboard.writeText(message);
-        toast.success(`Mensagem copiada! Cole no WhatsApp do paciente ${doc.patient.name}`, {
-          duration: 5000
+        toast.success(`📋 Mensagem copiada! Cole no WhatsApp do paciente`, {
+          duration: 5000,
+          description: 'A mensagem foi copiada para sua área de transferência'
         });
       } catch (clipboardError) {
-        // Fallback: abrir WhatsApp sem número
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, '_blank');
-        toast.success(`WhatsApp aberto. Cole o número do paciente ${doc.patient.name}`, {
-          duration: 5000
+        // Fallback: mostrar mensagem para copiar manualmente
+        toast.info(`Copie esta mensagem para o WhatsApp:\n\n${message}`, {
+          duration: 10000
         });
       }
       return;
@@ -90,17 +88,45 @@ Cuidados Especializados em Enfermagem`;
       formattedPhone = `55${formattedPhone}`;
     }
 
-    const message = `Olá ${doc.patient.name}! 
-
-Segue seu prontuário médico:
-${doc.file_url}
-
-Consultório JRS
-Cuidados Especializados em Enfermagem`;
-
     const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
     
     console.log('URL WhatsApp:', whatsappUrl);
+
+    // Tentar abrir WhatsApp com tratamento de erro
+    try {
+      const opened = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+      
+      if (!opened) {
+        // Se o popup foi bloqueado, copiar mensagem
+        await navigator.clipboard.writeText(message);
+        toast.warning('⚠️ Popup bloqueado. Mensagem copiada!', {
+          duration: 5000,
+          description: 'Cole a mensagem no WhatsApp manualmente'
+        });
+      } else {
+        toast.success(`✅ WhatsApp aberto para ${doc.patient.name}!`, {
+          duration: 3000,
+          description: 'Se não abrir, a mensagem foi copiada para você'
+        });
+        
+        // Copiar também como backup
+        setTimeout(async () => {
+          try {
+            await navigator.clipboard.writeText(message);
+          } catch (e) {
+            console.log('Não foi possível copiar como backup:', e);
+          }
+        }, 500);
+      }
+    } catch (openError) {
+      console.error('Erro ao abrir WhatsApp, copiando mensagem:', openError);
+      // Fallback: copiar mensagem
+      await navigator.clipboard.writeText(message);
+      toast.info('📋 Mensagem copiada! Cole no WhatsApp', {
+        duration: 5000,
+        description: 'Não foi possível abrir o WhatsApp automaticamente'
+      });
+    }
 
     // Atualizar registro de compartilhamento se for um registro do banco
     if (!doc.id.startsWith('storage-')) {
@@ -117,16 +143,27 @@ Cuidados Especializados em Enfermagem`;
         console.log('Erro ao atualizar registro de compartilhamento (pode ser normal):', updateError);
       }
     }
-
-    window.open(whatsappUrl, '_blank');
-    toast.success(`Compartilhamento via WhatsApp iniciado para ${doc.patient.name}!`);
     
     if (refetch) {
       refetch();
     }
   } catch (error) {
     console.error('Erro ao compartilhar via WhatsApp:', error);
-    toast.error('Erro ao compartilhar documento via WhatsApp');
+    
+    // Último fallback: tentar copiar mensagem
+    try {
+      const fallbackMessage = `Olá ${doc.patient.name}!\n\nSeu prontuário: ${doc.file_url}\n\nConsultório JRS`;
+      await navigator.clipboard.writeText(fallbackMessage);
+      toast.error('❌ Erro ao abrir WhatsApp. Mensagem copiada!', {
+        duration: 5000,
+        description: 'Cole manualmente no WhatsApp do paciente'
+      });
+    } catch (clipboardError) {
+      toast.error('Erro ao compartilhar. Tente novamente em alguns segundos.', {
+        duration: 5000,
+        description: 'O WhatsApp pode estar temporariamente indisponível (HTTP 429)'
+      });
+    }
   }
 };
 
