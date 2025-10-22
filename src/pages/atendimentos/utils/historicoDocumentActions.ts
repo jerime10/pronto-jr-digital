@@ -29,11 +29,11 @@ export const downloadHistoricoDocument = (fileUrl: string, filename: string) => 
 
 export const shareHistoricoDocumentViaWhatsApp = async (doc: HistoricoDocument, refetch?: () => void) => {
   try {
-    console.log('Tentando compartilhar via WhatsApp:', doc);
+    console.log('Compartilhando via WhatsApp:', doc);
     
     let phone = doc.patient?.phone;
     
-    // Se não tem telefone, tentar extrair do nome do arquivo
+    // Tentar extrair telefone do nome do arquivo se necessário
     if (!phone || phone.trim() === '') {
       const decodedFilename = decodeURIComponent(doc.filename);
       const phoneMatch = decodedFilename.match(/^.+?-(\d{10,11})-[a-f0-9\-]+.*\.pdf$/i);
@@ -42,46 +42,39 @@ export const shareHistoricoDocumentViaWhatsApp = async (doc: HistoricoDocument, 
       }
     }
 
-    // Mensagem ultra-simplificada para evitar HTTP 429
-    const shortMessage = `Olá! Seu prontuário: ${doc.file_url}`;
+    const message = `Olá! Seu prontuário está disponível: ${doc.file_url}`;
+    
+    // Copiar para área de transferência
+    await navigator.clipboard.writeText(message);
     
     if (!phone || phone.trim() === '') {
-      await navigator.clipboard.writeText(shortMessage);
-      toast.success('📋 Mensagem copiada para área de transferência');
+      toast.success('📋 Mensagem copiada!', {
+        description: 'Cole no WhatsApp para compartilhar',
+        duration: 4000
+      });
       return;
     }
 
     const cleanPhone = phone.replace(/\D/g, '');
     
     if (cleanPhone.length < 10) {
-      toast.error('Número de telefone inválido');
+      toast.success('📋 Mensagem copiada!', {
+        description: 'Telefone inválido. Cole no WhatsApp manualmente',
+        duration: 4000
+      });
       return;
     }
 
-    // Formato: 55 + DDD + número
     const formattedPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+    const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
     
-    // Criar link direto (mais confiável que window.open)
-    const link = document.createElement('a');
-    link.href = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(shortMessage)}`;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    
-    // Copiar mensagem como backup
-    try {
-      await navigator.clipboard.writeText(shortMessage);
-    } catch (e) {
-      console.log('Não foi possível copiar:', e);
-    }
-    
-    // Clicar no link
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast.success(`✅ WhatsApp aberto!`, {
-      duration: 3000,
-      description: 'Mensagem copiada como backup'
+    toast.success('📋 Mensagem copiada!', {
+      description: 'Clique aqui para abrir o WhatsApp',
+      duration: 5000,
+      action: {
+        label: 'Abrir WhatsApp',
+        onClick: () => window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
+      }
     });
 
     // Atualizar registro
@@ -105,17 +98,7 @@ export const shareHistoricoDocumentViaWhatsApp = async (doc: HistoricoDocument, 
     }
   } catch (error) {
     console.error('Erro ao compartilhar:', error);
-    try {
-      const fallbackMessage = `Seu prontuário: ${doc.file_url}`;
-      await navigator.clipboard.writeText(fallbackMessage);
-      toast.info('📋 Mensagem copiada! Cole no WhatsApp', {
-        duration: 5000
-      });
-    } catch (clipboardError) {
-      toast.error('Erro ao compartilhar. Tente novamente.', {
-        duration: 5000
-      });
-    }
+    toast.error('Erro ao copiar mensagem. Tente novamente.');
   }
 };
 
