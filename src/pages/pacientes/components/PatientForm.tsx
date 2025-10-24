@@ -86,7 +86,9 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData
             sus: formattedData.sus,
             date_of_birth: formattedData.date_of_birth,
             age: formattedData.age,
-            address: formattedData.address
+            address: formattedData.address,
+            bairro: formattedData.bairro,
+            gender: formattedData.gender
           })
           .eq('id', patientId);
         
@@ -102,7 +104,9 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData
             sus: formattedData.sus,
             date_of_birth: formattedData.date_of_birth,
             age: formattedData.age,
-            address: formattedData.address
+            address: formattedData.address,
+            bairro: formattedData.bairro,
+            gender: formattedData.gender
           }]);
         
         if (error) throw error;

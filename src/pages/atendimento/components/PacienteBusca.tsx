@@ -58,7 +58,9 @@ const PacienteBusca: React.FC<PacienteBuscaProps> = ({
             </Avatar>
             <div className="flex-1">
               <h3 className="font-semibold text-lg">{pacienteSelecionado.name}</h3>
-              <p className="text-sm text-muted-foreground">SUS: {pacienteSelecionado.sus}</p>
+              <p className="text-sm text-muted-foreground">
+                SUS: {pacienteSelecionado.sus} • {pacienteSelecionado.age ? `${pacienteSelecionado.age} anos` : 'Idade não informada'}
+              </p>
             </div>
             <Button 
               variant="ghost" 
