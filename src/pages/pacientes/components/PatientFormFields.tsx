@@ -157,7 +157,7 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
           <Input
               id="name"
               name="name"
-              value={formData.name}
+              value={formData.name || ''}
               onChange={handleChange}
               placeholder="NOME COMPLETO DO PACIENTE"
               required
@@ -180,7 +180,7 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
           <Input
             id="sus"
             name="sus"
-            value={formData.sus}
+            value={formData.sus || ''}
             onChange={(e) => readOnlyFields.includes('sus') ? null : handleCpfSusChange(e, handleChange)}
             placeholder="CPF (XXX.XXX.XXX-XX) OU SUS (XXX XXXX XXXX XXXX)"
             required
@@ -213,7 +213,7 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
         <Label htmlFor="gender" className="text-slate-200 font-semibold text-sm tracking-wide">
           SEXO
         </Label>
-        <Select value={formData.gender} onValueChange={handleGenderChange} disabled={readOnlyFields.includes('gender')}>
+        <Select value={formData.gender || ''} onValueChange={handleGenderChange} disabled={readOnlyFields.includes('gender')}>
           <SelectTrigger id="gender" className={`border-slate-600/50 text-white focus:border-purple-500 focus:ring-purple-500/20 h-11 sm:h-12 backdrop-blur-sm transition-all duration-300 ${
             readOnlyFields.includes('gender') 
               ? 'bg-slate-600/30 cursor-not-allowed opacity-70' 
@@ -320,7 +320,7 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
           <Input
             id="phone"
             name="phone"
-            value={formData.phone}
+            value={formData.phone || ''}
             onChange={(e) => !readOnlyFields.includes('phone') && handlePhoneChange(e, handleChange)}
             placeholder="(XX)XXXXX-XXXX"
             readOnly={readOnlyFields.includes('phone')}
@@ -357,7 +357,7 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
           <Input
             id="address"
             name="address"
-            value={formData.address}
+            value={formData.address || ''}
             onChange={handleChange}
             placeholder="ENDEREÇO COMPLETO"
             readOnly={readOnlyFields.includes('address')}
@@ -379,7 +379,7 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
           <Input
             id="bairro"
             name="bairro"
-            value={formData.bairro}
+            value={formData.bairro || ''}
             onChange={(e) => !readOnlyFields.includes('bairro') && handleBairroChange(e, handleChange)}
             placeholder="BAIRRO"
             readOnly={readOnlyFields.includes('bairro')}

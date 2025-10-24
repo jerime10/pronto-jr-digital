@@ -33,7 +33,16 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData
   
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
+      setFormData({
+        name: initialData.name || '',
+        sus: initialData.sus || '',
+        gender: initialData.gender || '',
+        date_of_birth: initialData.date_of_birth || null,
+        age: initialData.age || 0,
+        phone: initialData.phone || '',
+        address: initialData.address || '',
+        bairro: initialData.bairro || ''
+      });
     }
   }, [initialData]);
   
