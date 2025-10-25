@@ -151,8 +151,8 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
       <div className="space-y-3">
-        <Label htmlFor="name" className="text-slate-200 font-semibold text-sm tracking-wide">
-          NOME COMPLETO <span className="text-pink-400">*</span>
+        <Label htmlFor="name" className="text-foreground font-semibold text-sm tracking-wide">
+          NOME COMPLETO <span className="text-destructive">*</span>
         </Label>
         <div className="relative">
           <Input
@@ -173,8 +173,8 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
       </div>
       
       <div className="space-y-3">
-        <Label htmlFor="sus" className="text-slate-200 font-semibold text-sm tracking-wide">
-          CPF OU SUS <span className="text-pink-400">*</span>
+        <Label htmlFor="sus" className="text-foreground font-semibold text-sm tracking-wide">
+          CPF OU SUS <span className="text-destructive">*</span>
         </Label>
         <div className="relative">
           <Input
@@ -207,7 +207,7 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
       </div>
       
       <div className="space-y-3">
-        <Label htmlFor="gender" className="text-slate-200 font-semibold text-sm tracking-wide">
+        <Label htmlFor="gender" className="text-foreground font-semibold text-sm tracking-wide">
           SEXO
         </Label>
         <Select value={formData.gender || ''} onValueChange={handleGenderChange} disabled={readOnlyFields.includes('gender')}>
@@ -227,8 +227,8 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
       </div>
       
       <div className="space-y-3">
-        <Label htmlFor="date_of_birth" className="text-slate-200 font-semibold text-sm tracking-wide">
-          DATA DE NASCIMENTO <span className="text-xs text-slate-400 font-normal">(DIGITE APENAS NÚMEROS)</span>
+        <Label htmlFor="date_of_birth" className="text-foreground font-semibold text-sm tracking-wide">
+          DATA DE NASCIMENTO <span className="text-xs text-muted-foreground font-normal">(DIGITE APENAS NÚMEROS)</span>
         </Label>
         <div className="flex flex-col space-y-3">
           <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3">
@@ -292,7 +292,7 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
       </div>
       
       <div className="space-y-3">
-        <Label htmlFor="age" className="text-slate-200 font-semibold text-sm tracking-wide">
+        <Label htmlFor="age" className="text-foreground font-semibold text-sm tracking-wide">
           IDADE
         </Label>
         <div className="relative">
@@ -311,7 +311,7 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
       </div>
       
       <div className="space-y-3">
-        <Label htmlFor="phone" className="text-slate-200 font-semibold text-sm tracking-wide">
+        <Label htmlFor="phone" className="text-foreground font-semibold text-sm tracking-wide">
           TELEFONE
         </Label>
         <div className="relative">
@@ -345,7 +345,7 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
       </div>
       
       <div className="space-y-3 md:col-span-2">
-        <Label htmlFor="address" className="text-slate-200 font-semibold text-sm tracking-wide">
+        <Label htmlFor="address" className="text-foreground font-semibold text-sm tracking-wide">
           ENDEREÇO
         </Label>
         <div className="relative">
@@ -366,7 +366,7 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
       </div>
       
       <div className="space-y-3">
-        <Label htmlFor="bairro" className="text-slate-200 font-semibold text-sm tracking-wide">
+        <Label htmlFor="bairro" className="text-foreground font-semibold text-sm tracking-wide">
           BAIRRO
         </Label>
         <div className="relative">

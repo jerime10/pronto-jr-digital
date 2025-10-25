@@ -72,6 +72,8 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('🔍 [PatientForm] Iniciando salvamento:', formData);
+    
     if (!formData.name || !formData.sus) {
       toast.error("Nome e número SUS são obrigatórios.");
       return;
@@ -86,8 +88,11 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData
         date_of_birth: formatDateForDB(formData.date_of_birth)
       };
       
+      console.log('📝 [PatientForm] Dados formatados:', formattedData);
+      
       if (isEditMode) {
-        const { error } = await supabase
+        console.log('✏️ [PatientForm] Modo edição - ID:', patientId);
+        const { data, error } = await supabase
         .from('patients')
           .update({
             name: formattedData.name,
@@ -99,13 +104,19 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData
             bairro: formattedData.bairro,
             gender: formattedData.gender
           })
-          .eq('id', patientId);
+          .eq('id', patientId)
+          .select();
         
-        if (error) throw error;
+        if (error) {
+          console.error('❌ [PatientForm] Erro ao atualizar:', error);
+          throw error;
+        }
         
+        console.log('✅ [PatientForm] Paciente atualizado:', data);
         toast.success("Paciente atualizado com sucesso!");
       } else {
-        const { error } = await supabase
+        console.log('➕ [PatientForm] Modo cadastro');
+        const { data, error } = await supabase
           .from('patients')
           .insert([{
             name: formattedData.name,
@@ -116,17 +127,22 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData
             address: formattedData.address,
             bairro: formattedData.bairro,
             gender: formattedData.gender
-          }]);
+          }])
+          .select();
         
-        if (error) throw error;
+        if (error) {
+          console.error('❌ [PatientForm] Erro ao cadastrar:', error);
+          throw error;
+        }
         
+        console.log('✅ [PatientForm] Paciente cadastrado:', data);
         toast.success("Paciente cadastrado com sucesso!");
       }
       
       navigate('/pacientes');
     } catch (error) {
-      console.error('Error saving patient:', error);
-      toast.error("Erro ao salvar paciente.");
+      console.error('❌ [PatientForm] Erro geral:', error);
+      toast.error(`Erro ao salvar paciente: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setLoading(false);
     }
