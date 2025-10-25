@@ -50,7 +50,7 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData
     const { name, value } = e.target;
     
     // Campos que devem ser convertidos para maiúsculo
-    const upperCaseFields = ['name', 'phone', 'address'];
+    const upperCaseFields = ['name', 'phone', 'address', 'bairro'];
     const processedValue = upperCaseFields.includes(name) ? value.toUpperCase() : value;
     
     setFormData(prev => ({ ...prev, [name]: processedValue }));
