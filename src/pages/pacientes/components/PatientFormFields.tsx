@@ -155,20 +155,19 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
         </Label>
         <div className="relative">
           <Input
-              id="name"
-              name="name"
-              value={formData.name || ''}
-              onChange={handleChange}
-              placeholder="NOME COMPLETO DO PACIENTE"
-              required
+            id="name"
+            name="name"
+            value={formData.name || ''}
+            onChange={handleChange}
+            placeholder="NOME COMPLETO DO PACIENTE"
+            required
             readOnly={readOnlyFields.includes('name')}
-            className={`border-slate-600/50 text-white placeholder:text-slate-400 focus:border-purple-500 focus:ring-purple-500/20 h-11 sm:h-12 backdrop-blur-sm transition-all duration-300 ${
+            className={`h-11 sm:h-12 text-base font-medium transition-all duration-200 ${
               readOnlyFields.includes('name') 
-                ? 'bg-slate-600/30 cursor-not-allowed opacity-70' 
-                : 'bg-slate-700/50 hover:bg-slate-700/70'
+                ? 'bg-slate-600/30 cursor-not-allowed opacity-70 text-slate-400 border-slate-600/50' 
+                : 'bg-white text-slate-900 border-slate-300 hover:border-purple-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 placeholder:text-slate-500'
             }`}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-cyan-500/5 rounded-md pointer-events-none opacity-0 transition-opacity duration-300 hover:opacity-100"></div>
         </div>
       </div>
       
@@ -185,17 +184,14 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
             placeholder="CPF (XXX.XXX.XXX-XX) OU SUS (XXX XXXX XXXX XXXX)"
             required
             readOnly={readOnlyFields.includes('sus')}
-            className={`border-slate-600/50 text-white placeholder:text-slate-400 focus:border-purple-500 focus:ring-purple-500/20 h-11 sm:h-12 backdrop-blur-sm transition-all duration-300 ${
+            className={`h-11 sm:h-12 text-base font-medium transition-all duration-200 ${
               readOnlyFields.includes('sus') 
-                ? 'bg-slate-600/30 cursor-not-allowed opacity-70' 
-                : 'bg-slate-700/50 hover:bg-slate-700/70'
-            } ${
-              formData.sus && !isValidCpfOrSus(formData.sus) && !readOnlyFields.includes('sus')
-                ? 'border-red-500/50 focus:border-red-500' 
-                : ''
+                ? 'bg-slate-600/30 cursor-not-allowed opacity-70 text-slate-400 border-slate-600/50' 
+                : formData.sus && !isValidCpfOrSus(formData.sus)
+                  ? 'bg-white text-slate-900 border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 placeholder:text-slate-500'
+                  : 'bg-white text-slate-900 border-slate-300 hover:border-purple-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 placeholder:text-slate-500'
             }`}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-cyan-500/5 rounded-md pointer-events-none opacity-0 transition-opacity duration-300 hover:opacity-100"></div>
         </div>
         {formData.sus && !isValidCpfOrSus(formData.sus) && !readOnlyFields.includes('sus') && (
           <p className="text-red-400 text-xs">
@@ -214,17 +210,17 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
           SEXO
         </Label>
         <Select value={formData.gender || ''} onValueChange={handleGenderChange} disabled={readOnlyFields.includes('gender')}>
-          <SelectTrigger id="gender" className={`border-slate-600/50 text-white focus:border-purple-500 focus:ring-purple-500/20 h-11 sm:h-12 backdrop-blur-sm transition-all duration-300 ${
+          <SelectTrigger id="gender" className={`h-11 sm:h-12 text-base font-medium transition-all duration-200 ${
             readOnlyFields.includes('gender') 
-              ? 'bg-slate-600/30 cursor-not-allowed opacity-70' 
-              : 'bg-slate-700/50 hover:bg-slate-700/70'
+              ? 'bg-slate-600/30 cursor-not-allowed opacity-70 text-slate-400 border-slate-600/50' 
+              : 'bg-white text-slate-900 border-slate-300 hover:border-purple-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20'
           }`}>
-            <SelectValue placeholder="SELECIONE O SEXO" className="text-slate-400" />
+            <SelectValue placeholder="SELECIONE O SEXO" className="text-slate-500" />
           </SelectTrigger>
-          <SelectContent className="bg-slate-800 border-slate-700">
-            <SelectItem value="Masculino" className="text-white hover:bg-slate-700 focus:bg-slate-700">MASCULINO</SelectItem>
-            <SelectItem value="Feminino" className="text-white hover:bg-slate-700 focus:bg-slate-700">FEMININO</SelectItem>
-            <SelectItem value="Outro" className="text-white hover:bg-slate-700 focus:bg-slate-700">OUTRO</SelectItem>
+          <SelectContent className="bg-white border-slate-300">
+            <SelectItem value="Masculino" className="text-slate-900 hover:bg-slate-100 focus:bg-slate-100">MASCULINO</SelectItem>
+            <SelectItem value="Feminino" className="text-slate-900 hover:bg-slate-100 focus:bg-slate-100">FEMININO</SelectItem>
+            <SelectItem value="Outro" className="text-slate-900 hover:bg-slate-100 focus:bg-slate-100">OUTRO</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -242,14 +238,15 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
                 onChange={handleDateInputChange}
                 placeholder="DD/MM/AAAA (DIGITE APENAS NÚMEROS)"
                 readOnly={readOnlyFields.includes('date_of_birth')}
-                className={`border-slate-600/50 text-white placeholder:text-slate-400 focus:border-purple-500 focus:ring-purple-500/20 h-11 sm:h-12 backdrop-blur-sm transition-all duration-300 ${
+                className={`h-11 sm:h-12 text-base font-medium transition-all duration-200 ${
                   readOnlyFields.includes('date_of_birth') 
-                    ? 'bg-slate-600/30 cursor-not-allowed opacity-70' 
-                    : 'bg-slate-700/50 hover:bg-slate-700/70'
-                } ${dateInputError ? "border-red-500 focus:border-red-500" : ""}`}
+                    ? 'bg-slate-600/30 cursor-not-allowed opacity-70 text-slate-400 border-slate-600/50' 
+                    : dateInputError
+                      ? 'bg-white text-slate-900 border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 placeholder:text-slate-500'
+                      : 'bg-white text-slate-900 border-slate-300 hover:border-purple-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 placeholder:text-slate-500'
+                }`}
                 maxLength={10}
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-cyan-500/5 rounded-md pointer-events-none opacity-0 transition-opacity duration-300 hover:opacity-100"></div>
             </div>
             
             <Popover>
@@ -257,10 +254,10 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
                 <Button
                   variant="outline"
                   disabled={readOnlyFields.includes('date_of_birth')}
-                  className={`w-full sm:w-auto border-slate-600/50 text-slate-200 hover:bg-slate-600/50 hover:text-white h-11 sm:h-12 font-semibold tracking-wide transition-all duration-300 ${
+                  className={`w-full sm:w-auto h-11 sm:h-12 font-semibold tracking-wide transition-all duration-200 ${
                     readOnlyFields.includes('date_of_birth') 
-                      ? 'bg-slate-600/30 cursor-not-allowed opacity-70' 
-                      : 'bg-slate-700/50'
+                      ? 'bg-slate-600/30 cursor-not-allowed opacity-70 text-slate-400 border-slate-600/50' 
+                      : 'bg-white text-slate-900 border-slate-300 hover:bg-slate-50 hover:border-purple-500'
                   }`}
                   id="date_of_birth"
                   type="button"
@@ -325,17 +322,14 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
             placeholder="(XX)XXXXX-XXXX"
             readOnly={readOnlyFields.includes('phone')}
             maxLength={14}
-            className={`border-slate-600/50 text-white placeholder:text-slate-400 focus:border-purple-500 focus:ring-purple-500/20 h-11 sm:h-12 backdrop-blur-sm transition-all duration-300 ${
+            className={`h-11 sm:h-12 text-base font-medium transition-all duration-200 ${
               readOnlyFields.includes('phone') 
-                ? 'bg-slate-600/30 cursor-not-allowed opacity-70' 
-                : 'bg-slate-700/50 hover:bg-slate-700/70'
-            } ${
-              formData.phone && !isValidPhoneNumber(formData.phone) && !readOnlyFields.includes('phone')
-                ? 'border-red-500/50 focus:border-red-500' 
-                : ''
+                ? 'bg-slate-600/30 cursor-not-allowed opacity-70 text-slate-400 border-slate-600/50' 
+                : formData.phone && !isValidPhoneNumber(formData.phone)
+                  ? 'bg-white text-slate-900 border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 placeholder:text-slate-500'
+                  : 'bg-white text-slate-900 border-slate-300 hover:border-purple-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 placeholder:text-slate-500'
             }`}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-cyan-500/5 rounded-md pointer-events-none opacity-0 transition-opacity duration-300 hover:opacity-100"></div>
         </div>
         {formData.phone && !isValidPhoneNumber(formData.phone) && !readOnlyFields.includes('phone') && (
           <p className="text-red-400 text-xs">
@@ -361,13 +355,12 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
             onChange={handleChange}
             placeholder="ENDEREÇO COMPLETO"
             readOnly={readOnlyFields.includes('address')}
-            className={`border-slate-600/50 text-white placeholder:text-slate-400 focus:border-purple-500 focus:ring-purple-500/20 h-11 sm:h-12 backdrop-blur-sm transition-all duration-300 ${
+            className={`h-11 sm:h-12 text-base font-medium transition-all duration-200 ${
               readOnlyFields.includes('address') 
-                ? 'bg-slate-600/30 cursor-not-allowed opacity-70' 
-                : 'bg-slate-700/50 hover:bg-slate-700/70'
+                ? 'bg-slate-600/30 cursor-not-allowed opacity-70 text-slate-400 border-slate-600/50' 
+                : 'bg-white text-slate-900 border-slate-300 hover:border-purple-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 placeholder:text-slate-500'
             }`}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-cyan-500/5 rounded-md pointer-events-none opacity-0 transition-opacity duration-300 hover:opacity-100"></div>
         </div>
       </div>
       
@@ -383,13 +376,12 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
             onChange={(e) => !readOnlyFields.includes('bairro') && handleBairroChange(e, handleChange)}
             placeholder="BAIRRO"
             readOnly={readOnlyFields.includes('bairro')}
-            className={`border-slate-600/50 text-white placeholder:text-slate-400 focus:border-purple-500 focus:ring-purple-500/20 h-11 sm:h-12 backdrop-blur-sm transition-all duration-300 ${
+            className={`h-11 sm:h-12 text-base font-medium transition-all duration-200 ${
               readOnlyFields.includes('bairro') 
-                ? 'bg-slate-600/30 cursor-not-allowed opacity-70' 
-                : 'bg-slate-700/50 hover:bg-slate-700/70'
+                ? 'bg-slate-600/30 cursor-not-allowed opacity-70 text-slate-400 border-slate-600/50' 
+                : 'bg-white text-slate-900 border-slate-300 hover:border-purple-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 placeholder:text-slate-500'
             }`}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-cyan-500/5 rounded-md pointer-events-none opacity-0 transition-opacity duration-300 hover:opacity-100"></div>
         </div>
       </div>
     </div>
