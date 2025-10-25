@@ -64,6 +64,7 @@ const handleCpfSusChange = (e: React.ChangeEvent<HTMLInputElement>, handleChange
     ...e,
     target: {
       ...e.target,
+      name: 'sus',
       value: formatted
     }
   };
