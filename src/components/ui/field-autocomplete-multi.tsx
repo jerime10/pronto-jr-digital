@@ -38,13 +38,25 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Reset searchTerm when component unmounts or selectedValues changes dramatically
+  useEffect(() => {
+    // Se selectedValues estiver vazio e searchTerm não estiver, limpar searchTerm
+    if (selectedValues.length === 0 && searchTerm) {
+      console.log('🧹 [AUTOCOMPLETE-RESET] Limpando searchTerm pois selectedValues está vazio');
+      setSearchTerm('');
+      setSuggestions([]);
+      setIsOpen(false);
+    }
+  }, [selectedValues, searchTerm]);
+
   // Debounce search
   useEffect(() => {
     console.log('🔍 [AUTOCOMPLETE-EFFECT] useEffect disparado:', {
       fieldName,
       searchTerm,
       searchTermLength: searchTerm.length,
-      searchTermTrimmed: searchTerm.trim()
+      searchTermTrimmed: searchTerm.trim(),
+      timestamp: new Date().toISOString()
     });
 
     if (!searchTerm.trim()) {
@@ -54,8 +66,9 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
       return;
     }
 
-    console.log('⏳ [AUTOCOMPLETE-EFFECT] Iniciando timer de debounce (300ms)');
+    console.log('⏳ [AUTOCOMPLETE-EFFECT] Iniciando timer de debounce (300ms)', { fieldName, searchTerm });
     const timer = setTimeout(async () => {
+      console.log('⏰ [AUTOCOMPLETE-DEBOUNCE] Timer disparado após 300ms', { fieldName, searchTerm });
       console.log('🔄 [AUTOCOMPLETE-SEARCH] Timer executado, iniciando busca...');
       setIsLoading(true);
       try {

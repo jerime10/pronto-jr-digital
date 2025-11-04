@@ -1503,6 +1503,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                               </span>
                             </Label>
                             <FieldAutocompleteMulti
+                              key={`${selectedModel?.id || 'no-model'}-${field.key}`}
                               selectedValues={selectedValues}
                               onChange={(selectedContents) => {
                                 console.log('🔄 [AUTOCOMPLETE-ONCHANGE] onChange disparado:', {
