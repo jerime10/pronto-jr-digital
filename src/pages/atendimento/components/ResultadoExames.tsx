@@ -565,6 +565,9 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   const [dynamicFields, setDynamicFields] = useState<Record<string, string>>({});
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [fieldToDelete, setFieldToDelete] = useState<{ key: string; label: string } | null>(null);
+  const [selectedFieldValues, setSelectedFieldValues] = useState<Record<string, string[]>>({});
+  const [isSavingField, setIsSavingField] = useState<string | null>(null);
+  const [isProcessingField, setIsProcessingField] = useState<string | null>(null);
   
   // Hook para gerenciar templates salvos
   const {
@@ -829,6 +832,44 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     console.log('🔧 [RESTORE] ===== FIM Restauração do Modelo =====');
   }, [initialSelectedModelId, completedExams, dynamicFieldsFromProps, selectedModelId]);
   
+  // Handler para mudança de valores multi-selecionados dos campos
+  const handleFieldModelChange = (fieldKey: string, selectedIds: string[]) => {
+    console.log('📝 [MULTI-SELECT] Campo:', fieldKey, 'IDs selecionados:', selectedIds);
+    
+    // Atualizar valores selecionados
+    setSelectedFieldValues(prev => ({
+      ...prev,
+      [fieldKey]: selectedIds
+    }));
+    
+    // Concatenar os valores selecionados com separador específico
+    const joinedValue = selectedIds.join('\n\n... ... ...\n\n');
+    
+    // Atualizar campo de texto
+    const newFields = { ...dynamicFields, [fieldKey]: joinedValue };
+    setDynamicFields(newFields);
+    updateExamResults(newFields);
+    
+    // Notificar componente pai
+    if (onDynamicFieldsChange) {
+      onDynamicFieldsChange(newFields);
+    }
+  };
+
+  // Handler para mudança direta do texto do campo
+  const handleFieldTextChange = (fieldKey: string, value: string) => {
+    console.log('📝 [TEXT-CHANGE] Campo:', fieldKey, 'Valor:', value);
+    
+    const newFields = { ...dynamicFields, [fieldKey]: value };
+    setDynamicFields(newFields);
+    updateExamResults(newFields);
+    
+    // Notificar componente pai
+    if (onDynamicFieldsChange) {
+      onDynamicFieldsChange(newFields);
+    }
+  };
+
   const handleModelSelect = (modelId: string) => {
     console.log('🎯 [SELECT] ===== MODELO SELECIONADO =====');
     console.log('🎯 [SELECT] Model ID:', modelId);
@@ -842,6 +883,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       
       // RESETAR campos dinâmicos quando modelo muda
       setDynamicFields({});
+      setSelectedFieldValues({});
       
       // Notificar componente pai para limpar também
       if (onDynamicFieldsChange) {
@@ -1171,10 +1213,6 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       onDynamicFieldsChange(enhancedFields);
     }
   };
-
-  // Estado para rastrear qual campo está sendo processado
-  const [isProcessingField, setIsProcessingField] = React.useState<string | null>(null);
-  const [isSavingField, setIsSavingField] = React.useState<string | null>(null);
 
   const handleProcessWithAI = async () => {
     // Verificar se há campos dinâmicos preenchidos ou conteúdo no textarea
