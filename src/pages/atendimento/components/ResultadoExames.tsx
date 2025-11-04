@@ -833,17 +833,19 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   }, [initialSelectedModelId, completedExams, dynamicFieldsFromProps, selectedModelId]);
   
   // Handler para mudança de valores multi-selecionados dos campos
-  const handleFieldModelChange = (fieldKey: string, selectedIds: string[]) => {
-    console.log('📝 [MULTI-SELECT] Campo:', fieldKey, 'IDs selecionados:', selectedIds);
+  const handleFieldModelChange = (fieldKey: string, selectedContents: string[]) => {
+    console.log('📝 [MULTI-SELECT] Campo:', fieldKey, 'Conteúdos selecionados:', selectedContents);
     
-    // Atualizar valores selecionados
+    // Atualizar valores selecionados (são os conteúdos, não IDs)
     setSelectedFieldValues(prev => ({
       ...prev,
-      [fieldKey]: selectedIds
+      [fieldKey]: selectedContents
     }));
     
     // Concatenar os valores selecionados com separador específico
-    const joinedValue = selectedIds.join('\n\n... ... ...\n\n');
+    const joinedValue = selectedContents.join('\n\n... ... ...\n\n');
+    
+    console.log('📝 [MULTI-SELECT] Valor concatenado:', joinedValue);
     
     // Atualizar campo de texto
     const newFields = { ...dynamicFields, [fieldKey]: joinedValue };
@@ -852,6 +854,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     
     // Notificar componente pai
     if (onDynamicFieldsChange) {
+      console.log('📤 [MULTI-SELECT] Notificando componente pai');
       onDynamicFieldsChange(newFields);
     }
   };
@@ -1479,7 +1482,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                             </Label>
                             <FieldAutocompleteMulti
                               selectedValues={selectedValues}
-                              onChange={(selectedIds) => handleFieldModelChange(field.key, selectedIds)}
+                              onChange={(selectedContents) => handleFieldModelChange(field.key, selectedContents)}
                               onSearch={(searchTerm) => searchFieldTemplates(field.key, searchTerm, selectedModel?.name || '')}
                               placeholder={`Digite para buscar modelos de ${field.label.toLowerCase()}...`}
                               fieldName={field.key}
