@@ -52,19 +52,14 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
     onFieldChange('evolucao', '');
   };
 
-  // Handler para mudança de modelos (similar ao PrescricaoTab)
-  const handleEvolucaoModelChange = async (selectedIds: string[]) => {
-    setSelectedEvolucoes(selectedIds);
+  // Handler para mudança de modelos (agora recebe conteúdos, não IDs)
+  const handleEvolucaoModelChange = (selectedContents: string[]) => {
+    console.log('📝 [EVOLUÇÃO] Conteúdos selecionados:', selectedContents);
+    setSelectedEvolucoes(selectedContents);
     
-    const contents = await Promise.all(
-      selectedIds.map(async (id) => {
-        const results = await searchFieldTemplates('evolucao', '', 'ATENDIMENTO');
-        const template = results.find((t: any) => t.id === id);
-        return template?.field_content || '';
-      })
-    );
-    
-    const concatenated = contents.filter(c => c).join('\n\n... ... ...\n\n');
+    // Concatenar os valores selecionados
+    const concatenated = selectedContents.join('\n\n... ... ...\n\n');
+    console.log('📝 [EVOLUÇÃO] Valor concatenado:', concatenated);
     onFieldChange('evolucao', concatenated);
   };
 

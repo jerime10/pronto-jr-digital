@@ -101,50 +101,34 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
     onFieldChange('alergias', '');
   };
 
-  // Handlers para mudança de modelos (similar ao PrescricaoTab)
-  const handleQueixaModelChange = async (selectedIds: string[]) => {
-    setSelectedQueixas(selectedIds);
+  // Handlers para mudança de modelos (agora recebem conteúdos, não IDs)
+  const handleQueixaModelChange = (selectedContents: string[]) => {
+    console.log('📝 [QUEIXA] Conteúdos selecionados:', selectedContents);
+    setSelectedQueixas(selectedContents);
     
-    // Buscar conteúdo dos templates selecionados
-    const contents = await Promise.all(
-      selectedIds.map(async (id) => {
-        const results = await searchFieldTemplates('queixaPrincipal', '', 'ATENDIMENTO');
-        const template = results.find((t: any) => t.id === id);
-        return template?.field_content || '';
-      })
-    );
-    
-    const concatenated = contents.filter(c => c).join('\n\n... ... ...\n\n');
+    // Concatenar os valores selecionados
+    const concatenated = selectedContents.join('\n\n... ... ...\n\n');
+    console.log('📝 [QUEIXA] Valor concatenado:', concatenated);
     onFieldChange('queixaPrincipal', concatenated);
   };
 
-  const handleAntecedentesModelChange = async (selectedIds: string[]) => {
-    setSelectedAntecedentes(selectedIds);
+  const handleAntecedentesModelChange = (selectedContents: string[]) => {
+    console.log('📝 [ANTECEDENTES] Conteúdos selecionados:', selectedContents);
+    setSelectedAntecedentes(selectedContents);
     
-    const contents = await Promise.all(
-      selectedIds.map(async (id) => {
-        const results = await searchFieldTemplates('antecedentes', '', 'ATENDIMENTO');
-        const template = results.find((t: any) => t.id === id);
-        return template?.field_content || '';
-      })
-    );
-    
-    const concatenated = contents.filter(c => c).join('\n\n... ... ...\n\n');
+    // Concatenar os valores selecionados
+    const concatenated = selectedContents.join('\n\n... ... ...\n\n');
+    console.log('📝 [ANTECEDENTES] Valor concatenado:', concatenated);
     onFieldChange('antecedentes', concatenated);
   };
 
-  const handleAlergiasModelChange = async (selectedIds: string[]) => {
-    setSelectedAlergias(selectedIds);
+  const handleAlergiasModelChange = (selectedContents: string[]) => {
+    console.log('📝 [ALERGIAS] Conteúdos selecionados:', selectedContents);
+    setSelectedAlergias(selectedContents);
     
-    const contents = await Promise.all(
-      selectedIds.map(async (id) => {
-        const results = await searchFieldTemplates('alergias', '', 'ATENDIMENTO');
-        const template = results.find((t: any) => t.id === id);
-        return template?.field_content || '';
-      })
-    );
-    
-    const concatenated = contents.filter(c => c).join('\n\n... ... ...\n\n');
+    // Concatenar os valores selecionados
+    const concatenated = selectedContents.join('\n\n... ... ...\n\n');
+    console.log('📝 [ALERGIAS] Valor concatenado:', concatenated);
     onFieldChange('alergias', concatenated);
   };
 
@@ -180,9 +164,9 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
             <FieldAutocompleteMulti
               selectedValues={selectedQueixas}
               onChange={handleQueixaModelChange}
-              onSearch={(searchTerm) => searchFieldTemplates('queixaPrincipal', searchTerm, 'ATENDIMENTO')}
+              onSearch={(searchTerm) => searchFieldTemplates('queixa_principal', searchTerm, 'ATENDIMENTO')}
               placeholder="Digite para buscar e selecionar múltiplas queixas..."
-              fieldName="queixaPrincipal"
+              fieldName="queixa_principal"
               className="w-full"
             />
           </div>
