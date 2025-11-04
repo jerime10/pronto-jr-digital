@@ -214,6 +214,14 @@ export function buildMedicalRecordFormData(params: FormDataBuilderParams): FormD
   console.log('📋 [FormData] dynamicFields recebidos:', params.dynamicFields);
   console.log('📋 [FormData] Quantidade de campos:', params.dynamicFields ? Object.keys(params.dynamicFields).length : 0);
   
+  // 🔍 DEBUG ESPECÍFICO: Campos de volume dos ovários e impressão diagnóstica
+  console.log('📋 [FormData] ===== DEBUG CAMPOS ESPECÍFICOS =====');
+  console.log('📋 [FormData] OVÁRIO DIREITO:', params.dynamicFields?.ovariodireito || params.dynamicFields?.ovario_direito || 'NÃO ENCONTRADO');
+  console.log('📋 [FormData] OVÁRIO ESQUERDO:', params.dynamicFields?.ovarioesquerdo || params.dynamicFields?.ovario_esquerdo || 'NÃO ENCONTRADO');
+  console.log('📋 [FormData] IMPRESSÃO DIAGNÓSTICA:', params.dynamicFields?.impressaodiagnostica || 'NÃO ENCONTRADO');
+  console.log('📋 [FormData] Todas as keys de dynamicFields:', params.dynamicFields ? Object.keys(params.dynamicFields) : []);
+  console.log('📋 [FormData] ===== FIM DEBUG CAMPOS ESPECÍFICOS =====');
+  
   if (params.dynamicFields && Object.keys(params.dynamicFields).length > 0) {
     console.log('✅ [FormData] Adicionando campos dinâmicos separados...');
     

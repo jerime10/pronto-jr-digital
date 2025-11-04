@@ -151,7 +151,7 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
             </div>
             <FieldAutocompleteMulti
               selectedValues={Array.isArray(form.queixaPrincipal) ? form.queixaPrincipal : form.queixaPrincipal ? [form.queixaPrincipal] : []}
-              onChange={(values) => onFieldChange('queixaPrincipal', values.join('\n\n'))}
+              onChange={(values) => onFieldChange('queixaPrincipal', values.join('\n\n... ... ...\n\n'))}
               onSearch={(searchTerm) => searchFieldTemplates('queixa_principal', searchTerm, 'ATENDIMENTO')}
               placeholder="Digite para buscar e selecionar múltiplas queixas..."
               fieldName="queixa_principal"
@@ -203,7 +203,7 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
             </div>
             <FieldAutocompleteMulti
               selectedValues={Array.isArray(form.antecedentes) ? form.antecedentes : form.antecedentes ? [form.antecedentes] : []}
-              onChange={(values) => onFieldChange('antecedentes', values.join('\n\n'))}
+              onChange={(values) => onFieldChange('antecedentes', values.join('\n\n... ... ...\n\n'))}
               onSearch={(searchTerm) => searchFieldTemplates('antecedentes', searchTerm, 'ATENDIMENTO')}
               placeholder="Digite para buscar e selecionar múltiplos antecedentes..."
               fieldName="antecedentes"
@@ -255,7 +255,7 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
             </div>
             <FieldAutocompleteMulti
               selectedValues={Array.isArray(form.alergias) ? form.alergias : form.alergias ? [form.alergias] : []}
-              onChange={(values) => onFieldChange('alergias', values.join('\n\n'))}
+              onChange={(values) => onFieldChange('alergias', values.join('\n\n... ... ...\n\n'))}
               onSearch={(searchTerm) => searchFieldTemplates('alergias', searchTerm, 'ATENDIMENTO')}
               placeholder="Digite para buscar e selecionar múltiplas alergias..."
               fieldName="alergias"

@@ -322,6 +322,29 @@ const parseTemplateToFields = (template: string, modelName: string): ParsedTempl
           placeholder: getPlaceholder(label, fieldType, '')
         });
         addedKeys.add(key);
+        console.log(`✅ [BANK-PATTERN-2] Campo capturado: "${label}" -> key: "${key}"`);
+      }
+      continue;
+    }
+    
+    // Padrão 6: CAMPO: (tipo) - formato específico após seções (ex: OVÁRIO DIREITO: (texto curto))
+    const sectionFieldPattern = line.match(/^([A-ZÀ-ÿ\s\(\)]+?):\s*\((texto [^)]+)\)\s*$/);
+    console.log(`🔍 [PARSE] Testando Padrão 6 (seção) em "${line}":`, sectionFieldPattern);
+    if (sectionFieldPattern) {
+      const label = sectionFieldPattern[1].trim();
+      const typeHint = sectionFieldPattern[2].trim();
+      const key = normalizeKey(label);
+      
+      if (!addedKeys.has(key)) {
+        const fieldType = getFieldTypeFromHint(typeHint);
+        fields.push({
+          key,
+          label,
+          type: fieldType,
+          placeholder: getPlaceholder(label, fieldType, '')
+        });
+        addedKeys.add(key);
+        console.log(`✅ [SECTION-FIELD] Campo capturado: "${label}" -> key: "${key}"`);
       }
       continue;
     }
@@ -1383,7 +1406,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                         <FieldAutocompleteMulti
                           selectedValues={Array.isArray(fieldValue) ? fieldValue : fieldValue ? [fieldValue] : []}
                           onChange={(values) => {
-                            const joinedValue = values.join('\n\n');
+                            const joinedValue = values.join('\n\n... ... ...\n\n');
                             console.log('🎯 [AUTOCOMPLETE-MULTI] Campo alterado:', field.key, 'Valor:', joinedValue);
                             const newFields = { ...dynamicFields, [field.key]: joinedValue };
                             console.log('🎯 [AUTOCOMPLETE-MULTI] Novos campos:', newFields);

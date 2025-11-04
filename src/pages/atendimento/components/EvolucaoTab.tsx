@@ -107,7 +107,7 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
             </div>
             <FieldAutocompleteMulti
               selectedValues={Array.isArray(form.evolucao) ? form.evolucao : form.evolucao ? [form.evolucao] : []}
-              onChange={(values) => onFieldChange('evolucao', values.join('\n\n'))}
+              onChange={(values) => onFieldChange('evolucao', values.join('\n\n... ... ...\n\n'))}
               onSearch={(searchTerm) => searchFieldTemplates('evolucao', searchTerm, 'ATENDIMENTO')}
               placeholder="Digite para buscar e selecionar múltiplas evoluções..."
               fieldName="evolucao"
