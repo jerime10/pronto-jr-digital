@@ -59,40 +59,43 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
       timestamp: new Date().toISOString()
     });
 
-    if (!searchTerm.trim()) {
-      console.log('⚠️ [AUTOCOMPLETE-EFFECT] searchTerm vazio, limpando sugestões');
-      setSuggestions([]);
-      setIsOpen(false);
-      return;
-    }
-
+    // Sempre fazer a busca, mesmo sem searchTerm (para mostrar todas as opções)
     console.log('⏳ [AUTOCOMPLETE-EFFECT] Iniciando timer de debounce (300ms)', { fieldName, searchTerm });
     const timer = setTimeout(async () => {
       console.log('⏰ [AUTOCOMPLETE-DEBOUNCE] Timer disparado após 300ms', { fieldName, searchTerm });
-      console.log('🔄 [AUTOCOMPLETE-SEARCH] Timer executado, iniciando busca...');
       setIsLoading(true);
       try {
         console.log('🔍 [AUTOCOMPLETE-SEARCH] Chamando onSearch:', {
           fieldName,
           searchTerm,
-          onSearchType: typeof onSearch
+          onSearchType: typeof onSearch,
+          timestamp: new Date().toISOString()
         });
         
         const results = await onSearch(searchTerm);
         
         console.log('✅ [AUTOCOMPLETE-SEARCH] Resultados recebidos:', {
           fieldName,
+          searchTerm,
           count: results.length,
-          results
+          firstResult: results[0]?.field_content?.substring(0, 50),
+          hasResults: results.length > 0
         });
         
         setSuggestions(results);
         const shouldOpen = results.length > 0;
-        console.log(`📋 [AUTOCOMPLETE-SEARCH] Atualizando estado: suggestions=${results.length}, isOpen=${shouldOpen}`);
+        console.log(`📋 [AUTOCOMPLETE-SEARCH] Atualizando estado:`, {
+          fieldName,
+          suggestionsCount: results.length,
+          isOpen: shouldOpen,
+          willShowDropdown: shouldOpen
+        });
         setIsOpen(shouldOpen);
         
         if (results.length === 0) {
-          console.log('⚠️ [AUTOCOMPLETE-SEARCH] Nenhum resultado encontrado para:', { fieldName, searchTerm });
+          console.log('⚠️ [AUTOCOMPLETE-SEARCH] Nenhum resultado encontrado:', { fieldName, searchTerm });
+        } else {
+          console.log('🎉 [AUTOCOMPLETE-SEARCH] Dropdown deve abrir agora com', results.length, 'itens');
         }
       } catch (error) {
         console.error('❌ [AUTOCOMPLETE-SEARCH] Erro ao buscar sugestões:', {
@@ -103,7 +106,7 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
         toast.error('Erro ao buscar sugestões');
       } finally {
         setIsLoading(false);
-        console.log('🏁 [AUTOCOMPLETE-SEARCH] Busca finalizada');
+        console.log('🏁 [AUTOCOMPLETE-SEARCH] Busca finalizada:', { fieldName, isLoading: false });
       }
     }, 300);
 
@@ -126,29 +129,34 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
   }, []);
 
   const handleSelectSuggestion = (suggestion: AutocompleteSuggestion) => {
+    console.log('🎯 [AUTOCOMPLETE-SELECT] ===== INÍCIO Seleção =====');
     console.log('🎯 [AUTOCOMPLETE-SELECT] Sugestão selecionada:', {
       fieldName,
-      suggestion,
+      suggestionId: suggestion.id,
+      suggestionContent: suggestion.field_content?.substring(0, 50) + '...',
       isAlreadySelected: selectedValues.includes(suggestion.field_content),
-      currentSelectedValues: selectedValues
+      currentSelectedValuesCount: selectedValues.length
     });
 
     if (!selectedValues.includes(suggestion.field_content)) {
       const newValues = [...selectedValues, suggestion.field_content];
       console.log('✅ [AUTOCOMPLETE-SELECT] Adicionando novo valor:', {
         fieldName,
-        newValue: suggestion.field_content,
-        allValues: newValues
+        newValuePreview: suggestion.field_content?.substring(0, 50) + '...',
+        totalValues: newValues.length
       });
+      console.log('📤 [AUTOCOMPLETE-SELECT] Chamando onChange com', newValues.length, 'valores');
       onChange(newValues);
     } else {
       console.log('⚠️ [AUTOCOMPLETE-SELECT] Valor já selecionado, ignorando');
     }
     
+    console.log('🧹 [AUTOCOMPLETE-SELECT] Limpando estado: searchTerm, suggestions, isOpen');
     setSearchTerm('');
     setSuggestions([]);
     setIsOpen(false);
     inputRef.current?.focus();
+    console.log('🎯 [AUTOCOMPLETE-SELECT] ===== FIM Seleção =====');
   };
 
   const handleRemoveValue = (value: string) => {
@@ -239,6 +247,28 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onFocus={async () => {
+              console.log('👆 [AUTOCOMPLETE-FOCUS] Campo focado, buscando sugestões:', fieldName);
+              // Buscar sugestões ao focar no campo
+              if (!isLoading && suggestions.length === 0) {
+                setIsLoading(true);
+                try {
+                  const results = await onSearch(searchTerm);
+                  console.log('👆 [AUTOCOMPLETE-FOCUS] Resultados ao focar:', results.length);
+                  setSuggestions(results);
+                  if (results.length > 0) {
+                    setIsOpen(true);
+                  }
+                } catch (error) {
+                  console.error('❌ [AUTOCOMPLETE-FOCUS] Erro ao buscar:', error);
+                } finally {
+                  setIsLoading(false);
+                }
+              } else if (suggestions.length > 0) {
+                console.log('👆 [AUTOCOMPLETE-FOCUS] Já existem sugestões, apenas abrindo dropdown');
+                setIsOpen(true);
+              }
+            }}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={disabled}

@@ -36,18 +36,24 @@ export const useIndividualFieldTemplates = () => {
     console.log('🔍 [HOOK-SEARCH] searchTerm:', searchTerm);
     console.log('🔍 [HOOK-SEARCH] modelName:', modelName);
     
-    if (!searchTerm || searchTerm.trim().length === 0) {
-      console.log('⚠️ [HOOK-SEARCH] searchTerm vazio, retornando array vazio');
-      return [];
-    }
-
-    const { data, error } = await supabase
+    // Construir query base
+    let query = supabase
       .from('individual_field_templates')
       .select('*')
       .eq('field_key', fieldKey)
-      .ilike('field_content', `%${searchTerm}%`)
+      .eq('model_name', modelName)
       .order('updated_at', { ascending: false })
       .limit(10);
+
+    // Se houver termo de busca, filtrar pelo conteúdo
+    if (searchTerm && searchTerm.trim()) {
+      console.log('🔍 [HOOK-SEARCH] Aplicando filtro ilike com termo:', searchTerm);
+      query = query.ilike('field_content', `%${searchTerm}%`);
+    } else {
+      console.log('🔍 [HOOK-SEARCH] SEM termo de busca - retornando TODOS os templates do campo');
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('❌ [HOOK-SEARCH] Erro ao buscar templates:', error);
