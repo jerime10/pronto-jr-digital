@@ -14,7 +14,7 @@ interface AutocompleteSuggestion {
 interface FieldAutocompleteMultiProps {
   selectedValues: string[];
   onChange: (values: string[]) => void;
-  onSearch: (term: string, fieldName: string) => Promise<AutocompleteSuggestion[]>;
+  onSearch: (term: string) => Promise<AutocompleteSuggestion[]>;
   placeholder?: string;
   fieldName: string;
   disabled?: boolean;
@@ -42,17 +42,20 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
   useEffect(() => {
     if (!searchTerm.trim()) {
       setSuggestions([]);
+      setIsOpen(false);
       return;
     }
 
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const results = await onSearch(searchTerm, fieldName);
+        console.log('🔍 [AUTOCOMPLETE] Buscando sugestões para:', fieldName, 'termo:', searchTerm);
+        const results = await onSearch(searchTerm);
+        console.log('✅ [AUTOCOMPLETE] Sugestões encontradas:', results.length, results);
         setSuggestions(results);
-        setIsOpen(true);
+        setIsOpen(results.length > 0);
       } catch (error) {
-        console.error('Erro ao buscar sugestões:', error);
+        console.error('❌ [AUTOCOMPLETE] Erro ao buscar sugestões:', error);
         toast.error('Erro ao buscar sugestões');
       } finally {
         setIsLoading(false);
@@ -60,7 +63,7 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, fieldName, onSearch]);
+  }, [searchTerm, onSearch]);
 
   // Click outside handler
   useEffect(() => {

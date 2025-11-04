@@ -834,21 +834,32 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   
   // Handler para mudança de valores multi-selecionados dos campos
   const handleFieldModelChange = (fieldKey: string, selectedContents: string[]) => {
-    console.log('📝 [MULTI-SELECT] Campo:', fieldKey, 'Conteúdos selecionados:', selectedContents);
+    console.log('📝 [MULTI-SELECT] ===== INÍCIO handleFieldModelChange =====');
+    console.log('📝 [MULTI-SELECT] Campo:', fieldKey);
+    console.log('📝 [MULTI-SELECT] Conteúdos selecionados:', selectedContents);
+    console.log('📝 [MULTI-SELECT] Quantidade:', selectedContents.length);
     
     // Atualizar valores selecionados (são os conteúdos, não IDs)
-    setSelectedFieldValues(prev => ({
-      ...prev,
-      [fieldKey]: selectedContents
-    }));
+    setSelectedFieldValues(prev => {
+      const updated = {
+        ...prev,
+        [fieldKey]: selectedContents
+      };
+      console.log('📝 [MULTI-SELECT] selectedFieldValues atualizado:', updated);
+      return updated;
+    });
     
     // Concatenar os valores selecionados com separador específico
     const joinedValue = selectedContents.join('\n\n... ... ...\n\n');
     
     console.log('📝 [MULTI-SELECT] Valor concatenado:', joinedValue);
+    console.log('📝 [MULTI-SELECT] Tamanho do valor:', joinedValue.length);
     
     // Atualizar campo de texto
     const newFields = { ...dynamicFields, [fieldKey]: joinedValue };
+    console.log('📝 [MULTI-SELECT] dynamicFields ANTES:', dynamicFields);
+    console.log('📝 [MULTI-SELECT] dynamicFields DEPOIS:', newFields);
+    
     setDynamicFields(newFields);
     updateExamResults(newFields);
     
@@ -857,6 +868,8 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       console.log('📤 [MULTI-SELECT] Notificando componente pai');
       onDynamicFieldsChange(newFields);
     }
+    
+    console.log('📝 [MULTI-SELECT] ===== FIM handleFieldModelChange =====');
   };
 
   // Handler para mudança direta do texto do campo

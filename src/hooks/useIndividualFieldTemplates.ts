@@ -31,7 +31,15 @@ export const useIndividualFieldTemplates = () => {
 
   // Buscar templates por campo específico e modelo
   const searchFieldTemplates = async (fieldKey: string, searchTerm: string, modelName: string) => {
-    if (!searchTerm || searchTerm.trim().length === 0) return [];
+    console.log('🔍 [HOOK-SEARCH] ===== INÍCIO searchFieldTemplates =====');
+    console.log('🔍 [HOOK-SEARCH] fieldKey:', fieldKey);
+    console.log('🔍 [HOOK-SEARCH] searchTerm:', searchTerm);
+    console.log('🔍 [HOOK-SEARCH] modelName:', modelName);
+    
+    if (!searchTerm || searchTerm.trim().length === 0) {
+      console.log('⚠️ [HOOK-SEARCH] searchTerm vazio, retornando array vazio');
+      return [];
+    }
 
     const { data, error } = await supabase
       .from('individual_field_templates')
@@ -42,10 +50,14 @@ export const useIndividualFieldTemplates = () => {
       .limit(10);
 
     if (error) {
-      console.error('Erro ao buscar templates:', error);
+      console.error('❌ [HOOK-SEARCH] Erro ao buscar templates:', error);
       return [];
     }
 
+    console.log('✅ [HOOK-SEARCH] Templates encontrados:', data?.length || 0);
+    console.log('✅ [HOOK-SEARCH] Dados:', data);
+    console.log('🔍 [HOOK-SEARCH] ===== FIM searchFieldTemplates =====');
+    
     return data as IndividualFieldTemplate[];
   };
 
