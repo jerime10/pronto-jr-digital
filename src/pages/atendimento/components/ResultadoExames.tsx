@@ -1380,192 +1380,165 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                   💡 Digite nos campos para ver sugestões salvas. Clique no <strong>🗑️ lixeira</strong> para excluir permanentemente
                 </p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 {selectedTemplate.fields.map((field) => {
                   const fieldValue = dynamicFields[field.key] || '';
+                  const selectedValues = selectedFieldValues[field.key] || [];
                   
-                  return (
-                  <div key={field.key} className="space-y-2">
-                    <Label htmlFor={field.key}>{field.label}</Label>
-                    <div className="flex gap-2">
-                      {field.type === 'date' ? (
-                        <Input
-                          id={field.key}
-                          type="date"
-                          value={fieldValue}
-                          onChange={(e) => {
-                            console.log('🎯 [DATE] Campo alterado:', field.key, 'Valor:', e.target.value);
-                            const newFields = { ...dynamicFields, [field.key]: e.target.value };
-                            console.log('🎯 [DATE] Novos campos:', newFields);
-                            setDynamicFields(newFields);
-                            updateExamResults(newFields);
-                          }}
-                          className="flex-1"
-                        />
-                      ) : (
-                        <FieldAutocompleteMulti
-                          selectedValues={Array.isArray(fieldValue) ? fieldValue : fieldValue ? [fieldValue] : []}
-                          onChange={(values) => {
-                            const joinedValue = values.join('\n\n... ... ...\n\n');
-                            console.log('🎯 [AUTOCOMPLETE-MULTI] Campo alterado:', field.key, 'Valor:', joinedValue);
-                            const newFields = { ...dynamicFields, [field.key]: joinedValue };
-                            console.log('🎯 [AUTOCOMPLETE-MULTI] Novos campos:', newFields);
-                            setDynamicFields(newFields);
-                            updateExamResults(newFields);
-                          }}
-                          onSearch={(searchTerm) => 
-                            searchFieldTemplates(field.key, searchTerm, selectedModel?.name || '')
-                          }
-                          placeholder={field.placeholder}
-                          fieldName={field.key}
-                          className="flex-1"
-                        />
-                      )}
-                      
-                      {/* Botão para processar campo individual com IA */}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleProcessFieldWithAI(field)}
-                        disabled={!fieldValue.trim() || isProcessingField === field.key}
-                        title="Processar este campo com IA"
-                      >
-                        {isProcessingField === field.key ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Sparkles className="h-4 w-4" />
-                        )}
-                      </Button>
-                      
-                      {/* Botão para salvar template do campo */}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                          console.log('🔵 [CLICK] Botão de salvar clicado');
-                          console.log('🔵 [CLICK] fieldValue:', fieldValue);
-                          console.log('🔵 [CLICK] selectedModel:', selectedModel);
-                          
-                          if (!fieldValue.trim()) {
-                            toast.error('Por favor, preencha o campo antes de salvar.');
-                            return;
-                          }
-                          
-                          if (!selectedModel) {
-                            toast.error('Selecione um modelo de exame primeiro.');
-                            return;
-                          }
-                          
-                          console.log('💾 [SAVE] Salvando campo:', field.key, field.label);
-                          setIsSavingField(field.key);
-                          
-                          try {
-                            await saveFieldTemplate({
-                              fieldKey: field.key,
-                              fieldLabel: field.label,
-                              fieldContent: fieldValue,
-                              modelName: selectedModel.name,
-                            });
-                            console.log('✅ [SAVE] Campo salvo com sucesso');
-                            toast.success(`Campo ${field.label} salvo com sucesso!`);
-                          } catch (error) {
-                            console.error('❌ [SAVE] Erro ao salvar:', error);
-                            toast.error('Não foi possível salvar o template.');
-                          } finally {
-                            setIsSavingField(null);
-                          }
+                  return field.type === 'date' ? (
+                    <div key={field.key} className="space-y-2">
+                      <Label htmlFor={field.key}>{field.label}</Label>
+                      <Input
+                        id={field.key}
+                        type="date"
+                        value={fieldValue}
+                        onChange={(e) => {
+                          console.log('🎯 [DATE] Campo alterado:', field.key, 'Valor:', e.target.value);
+                          const newFields = { ...dynamicFields, [field.key]: e.target.value };
+                          console.log('🎯 [DATE] Novos campos:', newFields);
+                          setDynamicFields(newFields);
+                          updateExamResults(newFields);
                         }}
-                        disabled={!fieldValue.trim() || isSavingField === field.key}
-                        title="Salvar este campo como template"
-                      >
-                        {isSavingField === field.key ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4" />
-                        )}
-                      </Button>
-                      
-                      {/* Botão para limpar template salvo */}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setFieldToDelete({ key: field.key, label: field.label });
-                          setDeleteConfirmOpen(true);
-                        }}
-                        disabled={isDeleting}
-                        title="Limpar dados salvos deste campo"
-                      >
-                        {isDeleting ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Eraser className="h-4 w-4" />
-                        )}
-                      </Button>
-                      {/* Botão para excluir campo */}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (selectedTemplate) {
-                            console.log('🗑️ [DELETE] ===== EXCLUINDO CAMPO =====');
-                            console.log('🗑️ [DELETE] Campo a excluir:', field);
-                            
-                            // Remove o campo do template
-                            const updatedFields = selectedTemplate.fields.filter(f => f.key !== field.key);
-                            
-                            // Remove a linha correspondente do template
-                            const currentTemplate = selectedTemplate.template;
-                            const templateLines = currentTemplate.split('\n');
-                            
-                            // Encontrar e remover a linha que contém o label do campo
-                            const fieldLabelLower = field.label.toLowerCase().trim();
-                            const filteredTemplateLines = templateLines.filter(line => {
-                              if (!line.trim()) return true; // Manter linhas vazias
-                              
-                              // Extrair o label da linha
-                              const labelMatch = line.match(/^([^(]+)/);
-                              if (!labelMatch) return true;
-                              
-                              const lineLabelLower = labelMatch[1].trim().toLowerCase().replace(/[:：]\s*$/, '');
-                              const shouldRemove = lineLabelLower === fieldLabelLower || 
-                                                 lineLabelLower.includes(fieldLabelLower) || 
-                                                 fieldLabelLower.includes(lineLabelLower);
-                              
-                              console.log(`🗑️ [DELETE] Linha "${line}" - Label: "${lineLabelLower}" vs "${fieldLabelLower}" - Remove: ${shouldRemove}`);
-                              return !shouldRemove;
-                            });
-                            
-                            const updatedTemplate = {
-                              ...selectedTemplate, 
-                              fields: updatedFields,
-                              template: filteredTemplateLines.join('\n')
-                            };
-                            
-                            console.log('🗑️ [DELETE] Template atualizado:', updatedTemplate.template);
-                            setSelectedTemplate(updatedTemplate);
-                            
-                            // Remove o valor do campo dos dados
-                            const { [field.key]: removed, ...remainingFields } = dynamicFields;
-                            setDynamicFields(remainingFields);
-                            
-                            // Atualiza o resultado usando o template atualizado
-                            updateExamResults(remainingFields, updatedTemplate);
-                            
-                            toast.success(`Campo ${field.label} removido!`);
-                            console.log('🗑️ [DELETE] ===== CAMPO EXCLUÍDO =====');
-                          }
-                        }}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        className="w-full"
+                      />
                     </div>
-                  </div>
+                  ) : (
+                    <div key={field.key} className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">
+                            Modelos: {field.label}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">
+                              Selecionar Modelos de {field.label}
+                              <span className="text-xs text-muted-foreground ml-2">
+                                (Clique no X para remover da seleção, no lixeira 🗑️ para excluir permanentemente)
+                              </span>
+                            </Label>
+                            <FieldAutocompleteMulti
+                              selectedValues={selectedValues}
+                              onChange={(selectedIds) => handleFieldModelChange(field.key, selectedIds)}
+                              onSearch={(searchTerm) => searchFieldTemplates(field.key, searchTerm, selectedModel?.name || '')}
+                              placeholder={`Digite para buscar modelos de ${field.label.toLowerCase()}...`}
+                              fieldName={field.key}
+                              className="w-full"
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">
+                            {field.label} Personalizado
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between mb-2">
+                              <Label className="text-sm font-medium">
+                                Edite ou adicione informações adicionais
+                              </Label>
+                              <div className="flex gap-2">
+                                {/* Botão para processar campo individual com IA */}
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleProcessFieldWithAI(field)}
+                                  disabled={!fieldValue.trim() || isProcessingField === field.key}
+                                  title="Processar este campo com IA"
+                                >
+                                  {isProcessingField === field.key ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Sparkles className="h-4 w-4" />
+                                  )}
+                                </Button>
+                                
+                                {/* Botão para salvar template do campo */}
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={async () => {
+                                    console.log('🔵 [CLICK] Botão de salvar clicado');
+                                    console.log('🔵 [CLICK] fieldValue:', fieldValue);
+                                    console.log('🔵 [CLICK] selectedModel:', selectedModel);
+                                    
+                                    if (!fieldValue.trim()) {
+                                      toast.error('Por favor, preencha o campo antes de salvar.');
+                                      return;
+                                    }
+                                    
+                                    if (!selectedModel) {
+                                      toast.error('Selecione um modelo de exame primeiro.');
+                                      return;
+                                    }
+                                    
+                                    console.log('💾 [SAVE] Salvando campo:', field.key, field.label);
+                                    setIsSavingField(field.key);
+                                    
+                                    try {
+                                      await saveFieldTemplate({
+                                        fieldKey: field.key,
+                                        fieldLabel: field.label,
+                                        fieldContent: fieldValue,
+                                        modelName: selectedModel.name,
+                                      });
+                                      console.log('✅ [SAVE] Campo salvo com sucesso');
+                                      toast.success(`Campo ${field.label} salvo com sucesso!`);
+                                    } catch (error) {
+                                      console.error('❌ [SAVE] Erro ao salvar:', error);
+                                      toast.error('Não foi possível salvar o template.');
+                                    } finally {
+                                      setIsSavingField(null);
+                                    }
+                                  }}
+                                  disabled={!fieldValue.trim() || isSavingField === field.key}
+                                  title="Salvar este campo como template"
+                                >
+                                  {isSavingField === field.key ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Save className="h-4 w-4" />
+                                  )}
+                                </Button>
+                                
+                                {/* Botão para limpar campo */}
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setFieldToDelete({ key: field.key, label: field.label });
+                                    setDeleteConfirmOpen(true);
+                                  }}
+                                  disabled={isDeleting}
+                                  title="Limpar dados salvos deste campo"
+                                >
+                                  {isDeleting ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Eraser className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                            <Textarea
+                              value={fieldValue}
+                              onChange={(e) => handleFieldTextChange(field.key, e.target.value)}
+                              placeholder={field.placeholder}
+                              rows={6}
+                              className="w-full"
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
                   );
                 })}
               </div>

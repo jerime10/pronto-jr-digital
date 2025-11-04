@@ -8,6 +8,7 @@ import { FormState } from '../hooks/useFormData';
 import { FieldAutocompleteMulti } from '@/components/ui/field-autocomplete-multi';
 import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
 import { toast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
 
 interface EvolucaoTabProps {
   form: FormState;
@@ -28,6 +29,7 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
 }) => {
   const { searchFieldTemplates, saveFieldTemplate, deleteFieldTemplate } = useIndividualFieldTemplates();
   const [isSavingEvolucao, setIsSavingEvolucao] = useState(false);
+  const [selectedEvolucoes, setSelectedEvolucoes] = useState<string[]>([]);
 
   // Salvar Evolução
   const handleSaveEvolucao = async () => {
@@ -48,6 +50,22 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
   // Limpar Evolução
   const handleClearEvolucao = () => {
     onFieldChange('evolucao', '');
+  };
+
+  // Handler para mudança de modelos (similar ao PrescricaoTab)
+  const handleEvolucaoModelChange = async (selectedIds: string[]) => {
+    setSelectedEvolucoes(selectedIds);
+    
+    const contents = await Promise.all(
+      selectedIds.map(async (id) => {
+        const results = await searchFieldTemplates('evolucao', '', 'ATENDIMENTO');
+        const template = results.find((t: any) => t.id === id);
+        return template?.field_content || '';
+      })
+    );
+    
+    const concatenated = contents.filter(c => c).join('\n\n... ... ...\n\n');
+    onFieldChange('evolucao', concatenated);
   };
 
   return (
@@ -73,47 +91,67 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium">
-                Evolução do Paciente
+                Selecionar Modelos de Evolução
                 <span className="text-xs text-muted-foreground ml-2">
-                  (Digite para ver sugestões salvas. Clique no lixeira 🗑️ para excluir)
+                  (Clique no X para remover da seleção, no lixeira 🗑️ para excluir permanentemente)
                 </span>
               </Label>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSaveEvolucao}
-                  disabled={!form.evolucao.trim() || isSavingEvolucao}
-                  title="Salvar conteúdo do campo"
-                >
-                  {isSavingEvolucao ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleClearEvolucao}
-                  disabled={!form.evolucao.trim()}
-                  title="Limpar campo"
-                >
-                  <Eraser className="h-4 w-4" />
-                </Button>
-              </div>
             </div>
             <FieldAutocompleteMulti
-              selectedValues={Array.isArray(form.evolucao) ? form.evolucao : form.evolucao ? [form.evolucao] : []}
-              onChange={(values) => onFieldChange('evolucao', values.join('\n\n... ... ...\n\n'))}
+              selectedValues={selectedEvolucoes}
+              onChange={handleEvolucaoModelChange}
               onSearch={(searchTerm) => searchFieldTemplates('evolucao', searchTerm, 'ATENDIMENTO')}
               placeholder="Digite para buscar e selecionar múltiplas evoluções..."
               fieldName="evolucao"
               className="w-full"
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Evolução Personalizada</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between mb-2">
+            <Label className="text-sm font-medium">
+              Edite ou adicione informações adicionais
+            </Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSaveEvolucao}
+                disabled={!form.evolucao.trim() || isSavingEvolucao}
+                title="Salvar conteúdo do campo"
+              >
+                {isSavingEvolucao ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleClearEvolucao}
+                disabled={!form.evolucao.trim()}
+                title="Limpar campo"
+              >
+                <Eraser className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <Textarea
+            value={form.evolucao}
+            onChange={(e) => onFieldChange('evolucao', e.target.value)}
+            placeholder="Digite a evolução personalizada..."
+            rows={8}
+            className="w-full"
+          />
         </CardContent>
       </Card>
     </div>

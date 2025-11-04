@@ -7,6 +7,8 @@ import { Sparkles, Save, Eraser, Loader2 } from 'lucide-react';
 import { FormState } from '../hooks/useFormData';
 import { FieldAutocompleteMulti } from '@/components/ui/field-autocomplete-multi';
 import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
+import { toast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
 
 interface InformacoesTabProps {
   form: FormState;
@@ -30,6 +32,11 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
   const [isSavingQueixa, setIsSavingQueixa] = useState(false);
   const [isSavingAntecedentes, setIsSavingAntecedentes] = useState(false);
   const [isSavingAlergias, setIsSavingAlergias] = useState(false);
+  
+  // Estados para gerenciar seleções múltiplas
+  const [selectedQueixas, setSelectedQueixas] = useState<string[]>([]);
+  const [selectedAntecedentes, setSelectedAntecedentes] = useState<string[]>([]);
+  const [selectedAlergias, setSelectedAlergias] = useState<string[]>([]);
 
   // Salvar Queixa Principal
   const handleSaveQueixa = async () => {
@@ -94,6 +101,53 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
     onFieldChange('alergias', '');
   };
 
+  // Handlers para mudança de modelos (similar ao PrescricaoTab)
+  const handleQueixaModelChange = async (selectedIds: string[]) => {
+    setSelectedQueixas(selectedIds);
+    
+    // Buscar conteúdo dos templates selecionados
+    const contents = await Promise.all(
+      selectedIds.map(async (id) => {
+        const results = await searchFieldTemplates('queixaPrincipal', '', 'ATENDIMENTO');
+        const template = results.find((t: any) => t.id === id);
+        return template?.field_content || '';
+      })
+    );
+    
+    const concatenated = contents.filter(c => c).join('\n\n... ... ...\n\n');
+    onFieldChange('queixaPrincipal', concatenated);
+  };
+
+  const handleAntecedentesModelChange = async (selectedIds: string[]) => {
+    setSelectedAntecedentes(selectedIds);
+    
+    const contents = await Promise.all(
+      selectedIds.map(async (id) => {
+        const results = await searchFieldTemplates('antecedentes', '', 'ATENDIMENTO');
+        const template = results.find((t: any) => t.id === id);
+        return template?.field_content || '';
+      })
+    );
+    
+    const concatenated = contents.filter(c => c).join('\n\n... ... ...\n\n');
+    onFieldChange('antecedentes', concatenated);
+  };
+
+  const handleAlergiasModelChange = async (selectedIds: string[]) => {
+    setSelectedAlergias(selectedIds);
+    
+    const contents = await Promise.all(
+      selectedIds.map(async (id) => {
+        const results = await searchFieldTemplates('alergias', '', 'ATENDIMENTO');
+        const template = results.find((t: any) => t.id === id);
+        return template?.field_content || '';
+      })
+    );
+    
+    const concatenated = contents.filter(c => c).join('\n\n... ... ...\n\n');
+    onFieldChange('alergias', concatenated);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -117,10 +171,33 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium">
-                Queixa Principal
+                Selecionar Modelos de Queixa Principal
                 <span className="text-xs text-muted-foreground ml-2">
-                  (Digite para ver sugestões. Clique no 🗑️ para excluir)
+                  (Clique no X para remover da seleção, no lixeira 🗑️ para excluir permanentemente)
                 </span>
+              </Label>
+            </div>
+            <FieldAutocompleteMulti
+              selectedValues={selectedQueixas}
+              onChange={handleQueixaModelChange}
+              onSearch={(searchTerm) => searchFieldTemplates('queixaPrincipal', searchTerm, 'ATENDIMENTO')}
+              placeholder="Digite para buscar e selecionar múltiplas queixas..."
+              fieldName="queixaPrincipal"
+              className="w-full"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Queixa Principal Personalizada</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-sm font-medium">
+                Edite ou adicione informações adicionais
               </Label>
               <div className="flex gap-2">
                 <Button
@@ -149,12 +226,11 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
                 </Button>
               </div>
             </div>
-            <FieldAutocompleteMulti
-              selectedValues={Array.isArray(form.queixaPrincipal) ? form.queixaPrincipal : form.queixaPrincipal ? [form.queixaPrincipal] : []}
-              onChange={(values) => onFieldChange('queixaPrincipal', values.join('\n\n... ... ...\n\n'))}
-              onSearch={(searchTerm) => searchFieldTemplates('queixa_principal', searchTerm, 'ATENDIMENTO')}
-              placeholder="Digite para buscar e selecionar múltiplas queixas..."
-              fieldName="queixa_principal"
+            <Textarea
+              value={form.queixaPrincipal}
+              onChange={(e) => onFieldChange('queixaPrincipal', e.target.value)}
+              placeholder="Digite a queixa principal personalizada..."
+              rows={6}
               className="w-full"
             />
           </div>
@@ -169,10 +245,33 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium">
-                Antecedentes
+                Selecionar Modelos de Antecedentes
                 <span className="text-xs text-muted-foreground ml-2">
-                  (Digite para ver sugestões. Clique no 🗑️ para excluir)
+                  (Clique no X para remover da seleção, no lixeira 🗑️ para excluir permanentemente)
                 </span>
+              </Label>
+            </div>
+            <FieldAutocompleteMulti
+              selectedValues={selectedAntecedentes}
+              onChange={handleAntecedentesModelChange}
+              onSearch={(searchTerm) => searchFieldTemplates('antecedentes', searchTerm, 'ATENDIMENTO')}
+              placeholder="Digite para buscar e selecionar múltiplos antecedentes..."
+              fieldName="antecedentes"
+              className="w-full"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Antecedentes Personalizados</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-sm font-medium">
+                Edite ou adicione informações adicionais
               </Label>
               <div className="flex gap-2">
                 <Button
@@ -201,12 +300,11 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
                 </Button>
               </div>
             </div>
-            <FieldAutocompleteMulti
-              selectedValues={Array.isArray(form.antecedentes) ? form.antecedentes : form.antecedentes ? [form.antecedentes] : []}
-              onChange={(values) => onFieldChange('antecedentes', values.join('\n\n... ... ...\n\n'))}
-              onSearch={(searchTerm) => searchFieldTemplates('antecedentes', searchTerm, 'ATENDIMENTO')}
-              placeholder="Digite para buscar e selecionar múltiplos antecedentes..."
-              fieldName="antecedentes"
+            <Textarea
+              value={form.antecedentes}
+              onChange={(e) => onFieldChange('antecedentes', e.target.value)}
+              placeholder="Digite os antecedentes personalizados..."
+              rows={6}
               className="w-full"
             />
           </div>
@@ -221,10 +319,33 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium">
-                Alergias
+                Selecionar Modelos de Alergias
                 <span className="text-xs text-muted-foreground ml-2">
-                  (Digite para ver sugestões. Clique no 🗑️ para excluir)
+                  (Clique no X para remover da seleção, no lixeira 🗑️ para excluir permanentemente)
                 </span>
+              </Label>
+            </div>
+            <FieldAutocompleteMulti
+              selectedValues={selectedAlergias}
+              onChange={handleAlergiasModelChange}
+              onSearch={(searchTerm) => searchFieldTemplates('alergias', searchTerm, 'ATENDIMENTO')}
+              placeholder="Digite para buscar e selecionar múltiplas alergias..."
+              fieldName="alergias"
+              className="w-full"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Alergias Personalizadas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-sm font-medium">
+                Edite ou adicione informações adicionais
               </Label>
               <div className="flex gap-2">
                 <Button
@@ -253,12 +374,11 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
                 </Button>
               </div>
             </div>
-            <FieldAutocompleteMulti
-              selectedValues={Array.isArray(form.alergias) ? form.alergias : form.alergias ? [form.alergias] : []}
-              onChange={(values) => onFieldChange('alergias', values.join('\n\n... ... ...\n\n'))}
-              onSearch={(searchTerm) => searchFieldTemplates('alergias', searchTerm, 'ATENDIMENTO')}
-              placeholder="Digite para buscar e selecionar múltiplas alergias..."
-              fieldName="alergias"
+            <Textarea
+              value={form.alergias}
+              onChange={(e) => onFieldChange('alergias', e.target.value)}
+              placeholder="Digite as alergias personalizadas..."
+              rows={6}
               className="w-full"
             />
           </div>
