@@ -72,7 +72,12 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
         <CardContent>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Evolução do Paciente</Label>
+              <Label className="text-sm font-medium">
+                Evolução do Paciente
+                <span className="text-xs text-muted-foreground ml-2">
+                  (Digite para ver sugestões salvas. Clique no lixeira 🗑️ para excluir)
+                </span>
+              </Label>
               <div className="flex gap-2">
                 <Button
                   type="button"

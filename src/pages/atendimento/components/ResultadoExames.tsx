@@ -1351,7 +1351,12 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
           })()}
           {selectedTemplate && selectedTemplate.fields.length > 0 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Campos do Exame - {selectedModel?.name}</h3>
+              <div>
+                <h3 className="text-lg font-semibold">Campos do Exame - {selectedModel?.name}</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  💡 Digite nos campos para ver sugestões salvas. Clique no <strong>🗑️ lixeira</strong> para excluir permanentemente
+                </p>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {selectedTemplate.fields.map((field) => {
                   const fieldValue = dynamicFields[field.key] || '';

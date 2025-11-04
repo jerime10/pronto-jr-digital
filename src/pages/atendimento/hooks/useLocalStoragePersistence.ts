@@ -97,13 +97,19 @@ export const useLocalStoragePersistence = ({
         allergies: form.alergias,
         evolution: form.evolucao,
         prescription_model_id: form.modeloPrescricao || null,
+        modelosPrescricaoSelecionados: form.modelosPrescricaoSelecionados || [],
         custom_prescription: form.prescricaoPersonalizada,
         exam_requests: form.examesSelecionados,
         exam_observations: form.observacoesExames,
         exam_results: form.resultadoExames,
         images_data: form.images,
-        attendance_start_at: form.dataInicioAtendimento?.toISOString(),
-        attendance_end_at: form.dataFimAtendimento?.toISOString() || null,
+        // Garantir que são Dates válidos antes de chamar toISOString
+        attendance_start_at: form.dataInicioAtendimento instanceof Date && !isNaN(form.dataInicioAtendimento.getTime())
+          ? form.dataInicioAtendimento.toISOString()
+          : new Date().toISOString(),
+        attendance_end_at: form.dataFimAtendimento instanceof Date && !isNaN(form.dataFimAtendimento.getTime())
+          ? form.dataFimAtendimento.toISOString()
+          : null,
         timestamp: new Date().toISOString()
       };
 

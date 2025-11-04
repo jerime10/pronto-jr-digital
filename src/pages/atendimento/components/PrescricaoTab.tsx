@@ -55,7 +55,12 @@ const PrescricaoTab: React.FC<PrescricaoTabProps> = ({
         <CardContent>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="modelos-prescricao">Selecionar Modelos</Label>
+              <Label htmlFor="modelos-prescricao" className="text-sm font-medium">
+                Selecionar Modelos de Prescrição
+                <span className="text-xs text-muted-foreground ml-2">
+                  (Clique no X para remover da seleção, no lixeira 🗑️ para excluir permanentemente)
+                </span>
+              </Label>
               <MultiSelectSearch
                 options={prescriptionModels}
                 selectedValues={form.modelosPrescricaoSelecionados || []}

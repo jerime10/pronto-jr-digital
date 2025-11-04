@@ -35,7 +35,10 @@ const SolicitacaoExames: React.FC<SolicitacaoExamesProps> = ({
       <CardHeader>
         <CardTitle className="text-lg">Solicitar Exames</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Use a busca inteligente para encontrar e selecionar múltiplos exames
+          Use a busca inteligente para encontrar e selecionar múltiplos exames.
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          💡 Clique no <strong>X</strong> para remover da seleção, no <strong>🗑️ lixeira</strong> para excluir permanentemente do banco de dados
         </p>
       </CardHeader>
       <CardContent>

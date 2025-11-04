@@ -116,7 +116,12 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
         <CardContent>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Queixa Principal</Label>
+              <Label className="text-sm font-medium">
+                Queixa Principal
+                <span className="text-xs text-muted-foreground ml-2">
+                  (Digite para ver sugestões. Clique no 🗑️ para excluir)
+                </span>
+              </Label>
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -164,7 +169,12 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
         <CardContent>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Antecedentes</Label>
+              <Label className="text-sm font-medium">
+                Antecedentes
+                <span className="text-xs text-muted-foreground ml-2">
+                  (Digite para ver sugestões. Clique no 🗑️ para excluir)
+                </span>
+              </Label>
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -212,7 +222,12 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
         <CardContent>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Alergias</Label>
+              <Label className="text-sm font-medium">
+                Alergias
+                <span className="text-xs text-muted-foreground ml-2">
+                  (Digite para ver sugestões. Clique no 🗑️ para excluir)
+                </span>
+              </Label>
               <div className="flex gap-2">
                 <Button
                   type="button"
