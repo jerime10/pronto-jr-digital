@@ -860,12 +860,33 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   const handleFieldTextChange = (fieldKey: string, value: string) => {
     console.log('📝 [TEXT-CHANGE] Campo:', fieldKey, 'Valor:', value);
     
+    // 🔍 DEBUG ESPECÍFICO: Impressão Diagnóstica
+    if (fieldKey === 'impressaodiagnostica') {
+      console.log('🔍🔍🔍 [IMPRESSÃO-DIAGNÓSTICA] ===== CAMPO DETECTADO =====');
+      console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] Valor recebido:', value);
+      console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] Tamanho:', value?.length || 0);
+      console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] dynamicFields ANTES:', dynamicFields);
+    }
+    
     const newFields = { ...dynamicFields, [fieldKey]: value };
     setDynamicFields(newFields);
+    
+    // 🔍 DEBUG ESPECÍFICO: Impressão Diagnóstica
+    if (fieldKey === 'impressaodiagnostica') {
+      console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] newFields DEPOIS:', newFields);
+      console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] Campo está em newFields?', fieldKey in newFields);
+      console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] Valor em newFields:', newFields[fieldKey]);
+      console.log('🔍🔍🔍 [IMPRESSÃO-DIAGNÓSTICA] ===== FIM =====');
+    }
+    
     updateExamResults(newFields);
     
     // Notificar componente pai
     if (onDynamicFieldsChange) {
+      console.log('📤 [TEXT-CHANGE] Notificando componente pai com campos:', Object.keys(newFields));
+      if (fieldKey === 'impressaodiagnostica') {
+        console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] Notificando pai com impressaodiagnostica:', newFields.impressaodiagnostica);
+      }
       onDynamicFieldsChange(newFields);
     }
   };

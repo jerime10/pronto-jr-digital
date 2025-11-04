@@ -220,6 +220,20 @@ export function buildMedicalRecordFormData(params: FormDataBuilderParams): FormD
   console.log('📋 [FormData] OVÁRIO ESQUERDO:', params.dynamicFields?.ovarioesquerdo || params.dynamicFields?.ovario_esquerdo || 'NÃO ENCONTRADO');
   console.log('📋 [FormData] IMPRESSÃO DIAGNÓSTICA:', params.dynamicFields?.impressaodiagnostica || 'NÃO ENCONTRADO');
   console.log('📋 [FormData] Todas as keys de dynamicFields:', params.dynamicFields ? Object.keys(params.dynamicFields) : []);
+  
+  // 🔍🔍🔍 DEBUG ULTRA ESPECÍFICO: IMPRESSÃO DIAGNÓSTICA
+  if (params.dynamicFields) {
+    console.log('🔍🔍🔍 [IMPRESSÃO-DIAGNÓSTICA] ===== DEBUG ULTRA ESPECÍFICO =====');
+    console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] Campo existe?', 'impressaodiagnostica' in params.dynamicFields);
+    console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] Valor:', params.dynamicFields.impressaodiagnostica);
+    console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] Tipo:', typeof params.dynamicFields.impressaodiagnostica);
+    console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] É null?', params.dynamicFields.impressaodiagnostica === null);
+    console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] É undefined?', params.dynamicFields.impressaodiagnostica === undefined);
+    console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] É string vazia?', params.dynamicFields.impressaodiagnostica === '');
+    console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] Length:', params.dynamicFields.impressaodiagnostica?.length || 0);
+    console.log('🔍🔍🔍 [IMPRESSÃO-DIAGNÓSTICA] ===== FIM DEBUG ULTRA ESPECÍFICO =====');
+  }
+  
   console.log('📋 [FormData] ===== FIM DEBUG CAMPOS ESPECÍFICOS =====');
   
   if (params.dynamicFields && Object.keys(params.dynamicFields).length > 0) {
