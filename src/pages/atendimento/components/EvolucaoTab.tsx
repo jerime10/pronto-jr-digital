@@ -104,6 +104,7 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
               value={form.evolucao}
               onChange={(value) => onFieldChange('evolucao', value)}
               onSearch={(searchTerm) => searchFieldTemplates('evolucao', searchTerm, 'ATENDIMENTO')}
+              onDelete={deleteFieldTemplate}
               placeholder="Descreva a evolução do quadro clínico do paciente..."
               type="textarea"
               className="w-full min-h-[150px]"

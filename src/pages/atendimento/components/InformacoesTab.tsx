@@ -148,6 +148,7 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
               value={form.queixaPrincipal}
               onChange={(value) => onFieldChange('queixaPrincipal', value)}
               onSearch={(searchTerm) => searchFieldTemplates('queixa_principal', searchTerm, 'ATENDIMENTO')}
+              onDelete={deleteFieldTemplate}
               placeholder="Descreva a queixa principal do paciente..."
               type="textarea"
               className="w-full min-h-[100px]"
@@ -195,6 +196,7 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
               value={form.antecedentes}
               onChange={(value) => onFieldChange('antecedentes', value)}
               onSearch={(searchTerm) => searchFieldTemplates('antecedentes', searchTerm, 'ATENDIMENTO')}
+              onDelete={deleteFieldTemplate}
               placeholder="Descreva o histórico médico e antecedentes relevantes do paciente..."
               type="textarea"
               className="w-full min-h-[100px]"
@@ -242,6 +244,7 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
               value={form.alergias}
               onChange={(value) => onFieldChange('alergias', value)}
               onSearch={(searchTerm) => searchFieldTemplates('alergias', searchTerm, 'ATENDIMENTO')}
+              onDelete={deleteFieldTemplate}
               placeholder="Liste as alergias conhecidas do paciente..."
               type="textarea"
               className="w-full min-h-[100px]"

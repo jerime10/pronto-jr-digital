@@ -3,7 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export interface AutocompleteSuggestion {
   id: string;
@@ -15,6 +16,7 @@ interface FieldAutocompleteProps {
   value: string;
   onChange: (value: string) => void;
   onSearch: (term: string) => Promise<AutocompleteSuggestion[]>;
+  onDelete?: (id: string) => Promise<void>;
   placeholder?: string;
   type?: 'input' | 'textarea';
   disabled?: boolean;
@@ -25,6 +27,7 @@ export const FieldAutocomplete = ({
   value,
   onChange,
   onSearch,
+  onDelete,
   placeholder,
   type = 'input',
   disabled = false,
@@ -34,6 +37,7 @@ export const FieldAutocomplete = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
@@ -88,6 +92,33 @@ export const FieldAutocomplete = ({
     setIsOpen(false);
     setSuggestions([]);
     setSelectedIndex(-1);
+  };
+
+  // Deletar sugestão
+  const handleDeleteSuggestion = async (e: React.MouseEvent, suggestionId: string) => {
+    e.stopPropagation();
+    
+    if (!onDelete) return;
+    
+    if (!window.confirm('Tem certeza que deseja excluir este item permanentemente?')) {
+      return;
+    }
+
+    setDeletingId(suggestionId);
+    
+    try {
+      await onDelete(suggestionId);
+      
+      // Remover da lista de sugestões
+      setSuggestions(prev => prev.filter(s => s.id !== suggestionId));
+      
+      toast.success('Item excluído com sucesso!');
+    } catch (error) {
+      console.error('Erro ao excluir item:', error);
+      toast.error('Erro ao excluir item do banco de dados');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   // Navegação por teclado
@@ -150,16 +181,18 @@ export const FieldAutocomplete = ({
           ) : (
             <div className="py-1">
               {suggestions.map((suggestion, index) => (
-                <button
+                <div
                   key={suggestion.id}
-                  onClick={() => handleSelectSuggestion(suggestion)}
                   className={cn(
-                    'w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors',
+                    'flex items-start gap-2 px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors',
                     'border-b border-border last:border-b-0',
                     selectedIndex === index && 'bg-accent text-accent-foreground'
                   )}
                 >
-                  <div className="flex items-start gap-2">
+                  <button
+                    onClick={() => handleSelectSuggestion(suggestion)}
+                    className="flex-1 text-left flex items-start gap-2"
+                  >
                     <span className="text-primary mt-0.5">💾</span>
                     <div className="flex-1 min-w-0">
                       <p className="truncate">{suggestion.field_content}</p>
@@ -167,8 +200,22 @@ export const FieldAutocomplete = ({
                         Salvo em {new Date(suggestion.created_at).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                  {onDelete && (
+                    <button
+                      onClick={(e) => handleDeleteSuggestion(e, suggestion.id)}
+                      disabled={deletingId === suggestion.id}
+                      className="hover:bg-destructive/20 rounded-full p-1.5 text-destructive disabled:opacity-50"
+                      title="Excluir permanentemente do banco de dados"
+                    >
+                      {deletingId === suggestion.id ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-destructive border-t-transparent" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           )}
