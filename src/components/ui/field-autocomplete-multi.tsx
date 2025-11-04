@@ -40,30 +40,65 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
 
   // Debounce search
   useEffect(() => {
+    console.log('🔍 [AUTOCOMPLETE-EFFECT] useEffect disparado:', {
+      fieldName,
+      searchTerm,
+      searchTermLength: searchTerm.length,
+      searchTermTrimmed: searchTerm.trim()
+    });
+
     if (!searchTerm.trim()) {
+      console.log('⚠️ [AUTOCOMPLETE-EFFECT] searchTerm vazio, limpando sugestões');
       setSuggestions([]);
       setIsOpen(false);
       return;
     }
 
+    console.log('⏳ [AUTOCOMPLETE-EFFECT] Iniciando timer de debounce (300ms)');
     const timer = setTimeout(async () => {
+      console.log('🔄 [AUTOCOMPLETE-SEARCH] Timer executado, iniciando busca...');
       setIsLoading(true);
       try {
-        console.log('🔍 [AUTOCOMPLETE] Buscando sugestões para:', fieldName, 'termo:', searchTerm);
+        console.log('🔍 [AUTOCOMPLETE-SEARCH] Chamando onSearch:', {
+          fieldName,
+          searchTerm,
+          onSearchType: typeof onSearch
+        });
+        
         const results = await onSearch(searchTerm);
-        console.log('✅ [AUTOCOMPLETE] Sugestões encontradas:', results.length, results);
+        
+        console.log('✅ [AUTOCOMPLETE-SEARCH] Resultados recebidos:', {
+          fieldName,
+          count: results.length,
+          results
+        });
+        
         setSuggestions(results);
-        setIsOpen(results.length > 0);
+        const shouldOpen = results.length > 0;
+        console.log(`📋 [AUTOCOMPLETE-SEARCH] Atualizando estado: suggestions=${results.length}, isOpen=${shouldOpen}`);
+        setIsOpen(shouldOpen);
+        
+        if (results.length === 0) {
+          console.log('⚠️ [AUTOCOMPLETE-SEARCH] Nenhum resultado encontrado para:', { fieldName, searchTerm });
+        }
       } catch (error) {
-        console.error('❌ [AUTOCOMPLETE] Erro ao buscar sugestões:', error);
+        console.error('❌ [AUTOCOMPLETE-SEARCH] Erro ao buscar sugestões:', {
+          fieldName,
+          searchTerm,
+          error
+        });
         toast.error('Erro ao buscar sugestões');
       } finally {
         setIsLoading(false);
+        console.log('🏁 [AUTOCOMPLETE-SEARCH] Busca finalizada');
       }
     }, 300);
 
-    return () => clearTimeout(timer);
-  }, [searchTerm, onSearch]);
+    return () => {
+      console.log('🧹 [AUTOCOMPLETE-EFFECT] Limpando timer de debounce');
+      clearTimeout(timer);
+    };
+  }, [searchTerm, onSearch, fieldName]);
 
   // Click outside handler
   useEffect(() => {
@@ -78,9 +113,25 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
   }, []);
 
   const handleSelectSuggestion = (suggestion: AutocompleteSuggestion) => {
+    console.log('🎯 [AUTOCOMPLETE-SELECT] Sugestão selecionada:', {
+      fieldName,
+      suggestion,
+      isAlreadySelected: selectedValues.includes(suggestion.field_content),
+      currentSelectedValues: selectedValues
+    });
+
     if (!selectedValues.includes(suggestion.field_content)) {
-      onChange([...selectedValues, suggestion.field_content]);
+      const newValues = [...selectedValues, suggestion.field_content];
+      console.log('✅ [AUTOCOMPLETE-SELECT] Adicionando novo valor:', {
+        fieldName,
+        newValue: suggestion.field_content,
+        allValues: newValues
+      });
+      onChange(newValues);
+    } else {
+      console.log('⚠️ [AUTOCOMPLETE-SELECT] Valor já selecionado, ignorando');
     }
+    
     setSearchTerm('');
     setSuggestions([]);
     setIsOpen(false);
@@ -188,7 +239,10 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
 
       {/* Suggestions dropdown */}
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute z-[100] w-full mt-1 bg-popover border rounded-md shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-[100] w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+          <div className="text-xs text-muted-foreground p-2 bg-muted/30 border-b">
+            {suggestions.length} sugestão(ões) encontrada(s)
+          </div>
           {suggestions.map((suggestion, index) => (
             <div
               key={suggestion.id}
@@ -196,7 +250,14 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
                 px-3 py-2 cursor-pointer hover:bg-accent flex items-center justify-between group
                 ${highlightedIndex === index ? 'bg-accent' : ''}
               `}
-              onClick={() => handleSelectSuggestion(suggestion)}
+              onClick={() => {
+                console.log('🖱️ [AUTOCOMPLETE-CLICK] Sugestão clicada:', {
+                  fieldName,
+                  index,
+                  suggestion
+                });
+                handleSelectSuggestion(suggestion);
+              }}
             >
               <span className="flex-1 text-sm truncate">
                 {suggestion.field_content}
@@ -211,6 +272,13 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
               </button>
             </div>
           ))}
+        </div>
+      )}
+      
+      {/* Debug overlay quando isOpen é true mas não há sugestões */}
+      {isOpen && suggestions.length === 0 && (
+        <div className="absolute z-[100] w-full mt-1 bg-yellow-100 border border-yellow-300 rounded-md shadow-lg p-2">
+          <p className="text-xs text-yellow-800">Debug: isOpen={String(isOpen)}, suggestions={suggestions.length}</p>
         </div>
       )}
     </div>

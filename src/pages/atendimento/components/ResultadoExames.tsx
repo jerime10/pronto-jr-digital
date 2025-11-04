@@ -1456,11 +1456,20 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                 </p>
               </div>
               <div className="space-y-4">
-                {selectedTemplate.fields.map((field) => {
-                  const fieldValue = dynamicFields[field.key] || '';
-                  const selectedValues = selectedFieldValues[field.key] || [];
-                  
-                  return field.type === 'date' ? (
+                 {selectedTemplate.fields.map((field) => {
+                   const fieldValue = dynamicFields[field.key] || '';
+                   const selectedValues = selectedFieldValues[field.key] || [];
+                   
+                   console.log('🎨 [RENDER-FIELD] Renderizando campo:', {
+                     key: field.key,
+                     label: field.label,
+                     type: field.type,
+                     fieldValue: fieldValue.substring(0, 50) + (fieldValue.length > 50 ? '...' : ''),
+                     selectedValues: selectedValues,
+                     selectedValuesCount: selectedValues.length
+                   });
+                   
+                   return field.type === 'date' ? (
                     <div key={field.key} className="space-y-2">
                       <Label htmlFor={field.key}>{field.label}</Label>
                       <Input
@@ -1495,8 +1504,29 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                             </Label>
                             <FieldAutocompleteMulti
                               selectedValues={selectedValues}
-                              onChange={(selectedContents) => handleFieldModelChange(field.key, selectedContents)}
-                              onSearch={(searchTerm) => searchFieldTemplates(field.key, searchTerm, selectedModel?.name || '')}
+                              onChange={(selectedContents) => {
+                                console.log('🔄 [AUTOCOMPLETE-ONCHANGE] onChange disparado:', {
+                                  fieldKey: field.key,
+                                  fieldLabel: field.label,
+                                  selectedContents
+                                });
+                                handleFieldModelChange(field.key, selectedContents);
+                              }}
+                              onSearch={async (searchTerm) => {
+                                console.log('🔍 [AUTOCOMPLETE-ONSEARCH] onSearch disparado:', {
+                                  fieldKey: field.key,
+                                  fieldLabel: field.label,
+                                  searchTerm,
+                                  modelName: selectedModel?.name || ''
+                                });
+                                const results = await searchFieldTemplates(field.key, searchTerm, selectedModel?.name || '');
+                                console.log('📊 [AUTOCOMPLETE-ONSEARCH] Resultados:', {
+                                  fieldKey: field.key,
+                                  count: results.length,
+                                  results
+                                });
+                                return results;
+                              }}
                               placeholder={`Digite para buscar modelos de ${field.label.toLowerCase()}...`}
                               fieldName={field.key}
                               className="w-full"
