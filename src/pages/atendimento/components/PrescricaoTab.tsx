@@ -63,6 +63,7 @@ const PrescricaoTab: React.FC<PrescricaoTabProps> = ({
                 placeholder="Digite para buscar e selecionar modelos..."
                 disabled={isLoadingPrescriptions}
                 className="w-full"
+                tableName="prescription_models"
               />
             </div>
           </div>

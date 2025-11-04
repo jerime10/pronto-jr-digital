@@ -1387,6 +1387,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                           onSearch={(searchTerm) => 
                             searchFieldTemplates(field.key, searchTerm, selectedModel?.name || '')
                           }
+                          onDelete={deleteFieldTemplate}
                           placeholder={field.placeholder}
                           type={field.type === 'input' ? 'input' : 'textarea'}
                           className="flex-1"
