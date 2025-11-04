@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Sparkles, Save, Eraser, Loader2 } from 'lucide-react';
 import { FormState } from '../hooks/useFormData';
-import { FieldAutocomplete } from '@/components/ui/field-autocomplete';
+import { FieldAutocompleteMulti } from '@/components/ui/field-autocomplete-multi';
 import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
 import { toast } from '@/hooks/use-toast';
 
@@ -105,14 +105,13 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
                 </Button>
               </div>
             </div>
-            <FieldAutocomplete
-              value={form.evolucao}
-              onChange={(value) => onFieldChange('evolucao', value)}
+            <FieldAutocompleteMulti
+              selectedValues={Array.isArray(form.evolucao) ? form.evolucao : form.evolucao ? [form.evolucao] : []}
+              onChange={(values) => onFieldChange('evolucao', values.join('\n\n'))}
               onSearch={(searchTerm) => searchFieldTemplates('evolucao', searchTerm, 'ATENDIMENTO')}
-              onDelete={deleteFieldTemplate}
-              placeholder="Descreva a evolução do quadro clínico do paciente..."
-              type="textarea"
-              className="w-full min-h-[150px]"
+              placeholder="Digite para buscar e selecionar múltiplas evoluções..."
+              fieldName="evolucao"
+              className="w-full"
             />
           </div>
         </CardContent>

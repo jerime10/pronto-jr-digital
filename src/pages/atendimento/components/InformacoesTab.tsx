@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Save, Eraser, Loader2 } from 'lucide-react';
 import { FormState } from '../hooks/useFormData';
-import { FieldAutocomplete } from '@/components/ui/field-autocomplete';
+import { FieldAutocompleteMulti } from '@/components/ui/field-autocomplete-multi';
 import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
 
 interface InformacoesTabProps {
@@ -149,14 +149,13 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
                 </Button>
               </div>
             </div>
-            <FieldAutocomplete
-              value={form.queixaPrincipal}
-              onChange={(value) => onFieldChange('queixaPrincipal', value)}
+            <FieldAutocompleteMulti
+              selectedValues={Array.isArray(form.queixaPrincipal) ? form.queixaPrincipal : form.queixaPrincipal ? [form.queixaPrincipal] : []}
+              onChange={(values) => onFieldChange('queixaPrincipal', values.join('\n\n'))}
               onSearch={(searchTerm) => searchFieldTemplates('queixa_principal', searchTerm, 'ATENDIMENTO')}
-              onDelete={deleteFieldTemplate}
-              placeholder="Descreva a queixa principal do paciente..."
-              type="textarea"
-              className="w-full min-h-[100px]"
+              placeholder="Digite para buscar e selecionar múltiplas queixas..."
+              fieldName="queixa_principal"
+              className="w-full"
             />
           </div>
         </CardContent>
@@ -202,14 +201,13 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
                 </Button>
               </div>
             </div>
-            <FieldAutocomplete
-              value={form.antecedentes}
-              onChange={(value) => onFieldChange('antecedentes', value)}
+            <FieldAutocompleteMulti
+              selectedValues={Array.isArray(form.antecedentes) ? form.antecedentes : form.antecedentes ? [form.antecedentes] : []}
+              onChange={(values) => onFieldChange('antecedentes', values.join('\n\n'))}
               onSearch={(searchTerm) => searchFieldTemplates('antecedentes', searchTerm, 'ATENDIMENTO')}
-              onDelete={deleteFieldTemplate}
-              placeholder="Descreva o histórico médico e antecedentes relevantes do paciente..."
-              type="textarea"
-              className="w-full min-h-[100px]"
+              placeholder="Digite para buscar e selecionar múltiplos antecedentes..."
+              fieldName="antecedentes"
+              className="w-full"
             />
           </div>
         </CardContent>
@@ -255,14 +253,13 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
                 </Button>
               </div>
             </div>
-            <FieldAutocomplete
-              value={form.alergias}
-              onChange={(value) => onFieldChange('alergias', value)}
+            <FieldAutocompleteMulti
+              selectedValues={Array.isArray(form.alergias) ? form.alergias : form.alergias ? [form.alergias] : []}
+              onChange={(values) => onFieldChange('alergias', values.join('\n\n'))}
               onSearch={(searchTerm) => searchFieldTemplates('alergias', searchTerm, 'ATENDIMENTO')}
-              onDelete={deleteFieldTemplate}
-              placeholder="Liste as alergias conhecidas do paciente..."
-              type="textarea"
-              className="w-full min-h-[100px]"
+              placeholder="Digite para buscar e selecionar múltiplas alergias..."
+              fieldName="alergias"
+              className="w-full"
             />
           </div>
         </CardContent>

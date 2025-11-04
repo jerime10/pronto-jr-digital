@@ -10,7 +10,7 @@ import { Loader2, Sparkles, Trash2, Save, Eraser } from 'lucide-react';
 import { toast } from 'sonner';
 import { calculateDUMFromIG } from '@/utils/obstetricUtils';
 import { useAIProcessing } from '../hooks/useAIProcessing';
-import { FieldAutocomplete } from '@/components/ui/field-autocomplete';
+import { FieldAutocompleteMulti } from '@/components/ui/field-autocomplete-multi';
 import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
 import {
   AlertDialog,
@@ -1380,21 +1380,21 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                           className="flex-1"
                         />
                       ) : (
-                        <FieldAutocomplete
-                          value={fieldValue}
-                          onChange={(value) => {
-                            console.log('🎯 [AUTOCOMPLETE] Campo alterado:', field.key, 'Valor:', value);
-                            const newFields = { ...dynamicFields, [field.key]: value };
-                            console.log('🎯 [AUTOCOMPLETE] Novos campos:', newFields);
+                        <FieldAutocompleteMulti
+                          selectedValues={Array.isArray(fieldValue) ? fieldValue : fieldValue ? [fieldValue] : []}
+                          onChange={(values) => {
+                            const joinedValue = values.join('\n\n');
+                            console.log('🎯 [AUTOCOMPLETE-MULTI] Campo alterado:', field.key, 'Valor:', joinedValue);
+                            const newFields = { ...dynamicFields, [field.key]: joinedValue };
+                            console.log('🎯 [AUTOCOMPLETE-MULTI] Novos campos:', newFields);
                             setDynamicFields(newFields);
                             updateExamResults(newFields);
                           }}
                           onSearch={(searchTerm) => 
                             searchFieldTemplates(field.key, searchTerm, selectedModel?.name || '')
                           }
-                          onDelete={deleteFieldTemplate}
                           placeholder={field.placeholder}
-                          type={field.type === 'input' ? 'input' : 'textarea'}
+                          fieldName={field.key}
                           className="flex-1"
                         />
                       )}
