@@ -3,8 +3,10 @@ import { Input } from './input';
 import { Badge } from './badge';
 import { Button } from './button';
 import { Card, CardContent } from './card';
-import { X, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Search, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ExamOption {
   id: string;
@@ -19,6 +21,7 @@ interface MultiSelectSearchExamsProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  onDeleteOption?: (optionId: string, optionName: string) => Promise<void>;
 }
 
 export const MultiSelectSearchExams: React.FC<MultiSelectSearchExamsProps> = ({
@@ -27,11 +30,13 @@ export const MultiSelectSearchExams: React.FC<MultiSelectSearchExamsProps> = ({
   onSelectionChange,
   placeholder = "Buscar exames...",
   className,
-  disabled = false
+  disabled = false,
+  onDeleteOption
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -112,6 +117,50 @@ export const MultiSelectSearchExams: React.FC<MultiSelectSearchExamsProps> = ({
     onSelectionChange(newSelection);
   };
 
+  const handleDeleteOption = async (examName: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    
+    if (!window.confirm(`Tem certeza que deseja excluir permanentemente "${examName}"?`)) {
+      return;
+    }
+
+    // Encontrar o ID do exame pelo nome
+    const exam = options.find(opt => opt.name === examName);
+    if (!exam) {
+      toast.error('Exame não encontrado');
+      return;
+    }
+
+    setIsDeleting(exam.id);
+    
+    try {
+      if (onDeleteOption) {
+        await onDeleteOption(exam.id, examName);
+      } else {
+        const { error } = await supabase
+          .from('exam_models')
+          .delete()
+          .eq('id', exam.id);
+        
+        if (error) throw error;
+      }
+      
+      // Remover da seleção se estava selecionado
+      const newSelection = selectedValues.filter(name => name !== examName);
+      onSelectionChange(newSelection);
+      
+      toast.success('Exame excluído com sucesso!');
+      
+      // Recarregar a página para atualizar a lista
+      window.location.reload();
+    } catch (error) {
+      console.error('Erro ao excluir exame:', error);
+      toast.error('Erro ao excluir exame do banco de dados');
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
   const clearAll = () => {
     onSelectionChange([]);
     setSearchTerm('');
@@ -137,23 +186,42 @@ export const MultiSelectSearchExams: React.FC<MultiSelectSearchExamsProps> = ({
             </Button>
           </div>
           <div className="flex flex-wrap gap-1">
-            {selectedValues.map((examName) => (
-              <Badge
-                key={examName}
-                variant="secondary"
-                className="flex items-center gap-1 text-xs"
-              >
-                {examName}
-                <button
-                  type="button"
-                  onClick={() => removeOption(examName)}
-                  disabled={disabled}
-                  className="ml-1 hover:bg-muted rounded-full p-0.5 disabled:opacity-50"
+            {selectedValues.map((examName) => {
+              const exam = options.find(opt => opt.name === examName);
+              return (
+                <Badge
+                  key={examName}
+                  variant="secondary"
+                  className="flex items-center gap-1 text-xs"
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
+                  {examName}
+                  <button
+                    type="button"
+                    onClick={() => removeOption(examName)}
+                    disabled={disabled}
+                    className="ml-1 hover:bg-muted rounded-full p-0.5 disabled:opacity-50"
+                    title="Remover da seleção"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                  {exam && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteOption(examName, e)}
+                      disabled={disabled || isDeleting === exam.id}
+                      className="ml-1 hover:bg-destructive/20 rounded-full p-0.5 text-destructive disabled:opacity-50"
+                      title="Excluir permanentemente do banco de dados"
+                    >
+                      {isDeleting === exam.id ? (
+                        <div className="h-3 w-3 animate-spin rounded-full border-2 border-destructive border-t-transparent" />
+                      ) : (
+                        <Trash2 className="h-3 w-3" />
+                      )}
+                    </button>
+                  )}
+                </Badge>
+              );
+            })}
           </div>
         </div>
       )}

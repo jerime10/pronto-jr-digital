@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Check, ChevronDown, X } from 'lucide-react';
+import { Check, ChevronDown, X, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Option {
   id: string;
@@ -15,6 +17,8 @@ interface MultiSelectSearchProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  onDeleteOption?: (optionId: string, optionName: string) => Promise<void>;
+  tableName?: 'prescription_models' | 'exam_models';
 }
 
 export const MultiSelectSearch: React.FC<MultiSelectSearchProps> = ({
@@ -23,8 +27,11 @@ export const MultiSelectSearch: React.FC<MultiSelectSearchProps> = ({
   onSelectionChange,
   placeholder = "Selecione opções...",
   disabled = false,
-  className
+  className,
+  onDeleteOption,
+  tableName = 'prescription_models'
 }) => {
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -107,6 +114,43 @@ export const MultiSelectSearch: React.FC<MultiSelectSearchProps> = ({
     onSelectionChange(newSelection);
   };
 
+  const handleDeleteOption = async (optionId: string, optionName: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    
+    if (!window.confirm(`Tem certeza que deseja excluir permanentemente "${optionName}"?`)) {
+      return;
+    }
+
+    setIsDeleting(optionId);
+    
+    try {
+      if (onDeleteOption) {
+        await onDeleteOption(optionId, optionName);
+      } else {
+        const { error } = await supabase
+          .from(tableName)
+          .delete()
+          .eq('id', optionId);
+        
+        if (error) throw error;
+      }
+      
+      // Remover da seleção se estava selecionado
+      const newSelection = selectedValues.filter(id => id !== optionId);
+      onSelectionChange(newSelection);
+      
+      toast.success('Item excluído com sucesso!');
+      
+      // Recarregar a página para atualizar a lista
+      window.location.reload();
+    } catch (error) {
+      console.error('Erro ao excluir item:', error);
+      toast.error('Erro ao excluir item do banco de dados');
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
   const handleInputClick = () => {
     if (!disabled) {
       setIsOpen(true);
@@ -143,13 +187,29 @@ export const MultiSelectSearch: React.FC<MultiSelectSearchProps> = ({
             >
               <span className="truncate max-w-[120px]">{option.name}</span>
               {!disabled && (
-                <button
-                  type="button"
-                  onClick={(e) => handleRemoveOption(option.id, e)}
-                  className="hover:bg-primary/20 rounded-full p-0.5"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => handleRemoveOption(option.id, e)}
+                    className="hover:bg-primary/20 rounded-full p-0.5"
+                    title="Remover da seleção"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeleteOption(option.id, option.name, e)}
+                    className="hover:bg-destructive/20 rounded-full p-0.5 text-destructive"
+                    disabled={isDeleting === option.id}
+                    title="Excluir permanentemente do banco de dados"
+                  >
+                    {isDeleting === option.id ? (
+                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-destructive border-t-transparent" />
+                    ) : (
+                      <Trash2 className="h-3 w-3" />
+                    )}
+                  </button>
+                </>
               )}
             </div>
           ))}
