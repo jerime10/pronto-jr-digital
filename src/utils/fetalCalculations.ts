@@ -243,50 +243,25 @@ export function isValidMeasurement(value: number, min: number, max: number): boo
 }
 
 /**
- * Calcula automaticamente o percentil e peso fetal a partir dos campos fornecidos
- * @param fields - Objeto com os campos do formulário
- * @returns Objeto com peso e percentil calculados ou null se dados incompletos
+ * Calcula automaticamente o percentil fetal a partir dos campos fornecidos
+ * @param fields - Objeto com os campos do formulário (deve incluir PESO manual)
+ * @returns Objeto com percentil calculado ou null se dados incompletos
  */
 export function calculateFetalPercentile(fields: Record<string, string>): {
-  weight: number;
   percentile: number;
   classification: 'PIG' | 'AIG' | 'GIG';
   formattedResult: string;
 } | null {
-  console.log('🧮 [PERCENTIL] ===== INÍCIO Cálculo Automático =====');
+  console.log('🧮 [PERCENTIL] ===== INÍCIO Cálculo de Percentil =====');
   console.log('🧮 [PERCENTIL] Campos recebidos:', fields);
   
-  // Extrair e validar BPD
-  const bpdValue = extractNumericValue(fields.bpd || fields.diametrobiparietal || '');
-  if (!bpdValue || !isValidMeasurement(bpdValue, 20, 100)) {
-    console.log('❌ [PERCENTIL] BPD inválido ou fora do range:', bpdValue);
+  // Extrair e validar PESO (manual)
+  const pesoValue = extractNumericValue(fields.peso || '');
+  if (!pesoValue || !isValidMeasurement(pesoValue, 200, 5000)) {
+    console.log('❌ [PERCENTIL] PESO inválido ou fora do range:', pesoValue);
     return null;
   }
-  console.log('✅ [PERCENTIL] BPD:', bpdValue, 'mm');
-  
-  // Extrair e validar HC
-  const hcValue = extractNumericValue(fields.hc || fields.circunferenciacefálica || fields.circunferenciacefalica || fields.cc || '');
-  if (!hcValue || !isValidMeasurement(hcValue, 100, 400)) {
-    console.log('❌ [PERCENTIL] HC inválido ou fora do range:', hcValue);
-    return null;
-  }
-  console.log('✅ [PERCENTIL] HC:', hcValue, 'mm');
-  
-  // Extrair e validar AC
-  const acValue = extractNumericValue(fields.ac || fields.circunferenciaabdominal || fields.ca || '');
-  if (!acValue || !isValidMeasurement(acValue, 100, 400)) {
-    console.log('❌ [PERCENTIL] AC inválido ou fora do range:', acValue);
-    return null;
-  }
-  console.log('✅ [PERCENTIL] AC:', acValue, 'mm');
-  
-  // Extrair e validar FL
-  const flValue = extractNumericValue(fields.fl || fields.comprimentofemur || fields.cf || '');
-  if (!flValue || !isValidMeasurement(flValue, 20, 90)) {
-    console.log('❌ [PERCENTIL] FL inválido ou fora do range:', flValue);
-    return null;
-  }
-  console.log('✅ [PERCENTIL] FL:', flValue, 'mm');
+  console.log('✅ [PERCENTIL] PESO:', pesoValue, 'g');
   
   // Extrair e validar IG
   const igValue = parseGestationalAge(fields.ig || fields.idadegestacional || '');
@@ -296,12 +271,8 @@ export function calculateFetalPercentile(fields: Record<string, string>): {
   }
   console.log('✅ [PERCENTIL] IG:', igValue, 'semanas');
   
-  // Calcular peso fetal usando Hadlock 4
-  const weight = calculateFetalWeightHadlock4(bpdValue, hcValue, acValue, flValue);
-  console.log('⚖️ [PERCENTIL] Peso calculado:', weight, 'g');
-  
-  // Calcular percentil
-  const percentile = calculatePercentile(weight, igValue);
+  // Calcular percentil usando o peso informado
+  const percentile = calculatePercentile(pesoValue, igValue);
   console.log('📊 [PERCENTIL] Percentil:', percentile);
   
   // Classificar
@@ -312,10 +283,9 @@ export function calculateFetalPercentile(fields: Record<string, string>): {
   const formattedResult = formatPercentileResult(percentile, classification);
   console.log('✅ [PERCENTIL] Resultado formatado:', formattedResult);
   
-  console.log('🧮 [PERCENTIL] ===== FIM Cálculo Automático =====');
+  console.log('🧮 [PERCENTIL] ===== FIM Cálculo de Percentil =====');
   
   return {
-    weight,
     percentile,
     classification,
     formattedResult

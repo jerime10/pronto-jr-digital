@@ -898,28 +898,17 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     
     // Verificar se é um modelo obstétrico e se mudou BPD, HC, AC, FL ou IG
     const isObstetricModel = selectedModel?.name?.includes('OBSTÉTRICA');
-    const measurementFields = ['bpd', 'diametrobiparietal', 'hc', 'cc', 'circunferenciacefalica', 'circunferenciacefálica', 'ac', 'ca', 'circunferenciaabdominal', 'fl', 'cf', 'comprimentofemur', 'ig', 'idadegestacional'];
+    const measurementFields = ['peso', 'ig', 'idadegestacional'];
     const isMeasurementField = measurementFields.some(f => fieldKey.toLowerCase().includes(f.toLowerCase()));
     
     if (isObstetricModel && isMeasurementField) {
-      console.log('🧮 [TEXT-CHANGE] Campo de medida obstétrica alterado, calculando percentil...');
+      console.log('🧮 [TEXT-CHANGE] Campo obstétrico alterado, calculando percentil...');
       
-      // Tentar calcular percentil
+      // Tentar calcular percentil (requer PESO e IG)
       const calculation = calculateFetalPercentile(newFields);
       
       if (calculation) {
         console.log('✅ [TEXT-CHANGE] Cálculo realizado com sucesso:', calculation);
-        
-        // Atualizar campo PESO sempre que houver cálculo
-        const pesoField = Object.keys(newFields).find(k => 
-          k.toLowerCase() === 'peso'
-        );
-        
-        if (pesoField) {
-          newFields[pesoField] = `${calculation.weight}g`;
-          console.log('⚖️ [TEXT-CHANGE] Campo PESO atualizado:', newFields[pesoField]);
-          toast.success('Peso fetal calculado automaticamente');
-        }
         
         // Atualizar campo PERCENTIL
         const percentilField = Object.keys(newFields).find(k => 
@@ -932,10 +921,10 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
           toast.success(`Percentil calculado: ${calculation.formattedResult}`);
         }
         
-        // Atualizar estado novamente com os campos calculados
+        // Atualizar estado novamente com o percentil calculado
         setDynamicFields(newFields);
       } else {
-        console.log('⚠️ [TEXT-CHANGE] Não foi possível calcular o percentil (dados incompletos ou inválidos)');
+        console.log('⚠️ [TEXT-CHANGE] Não foi possível calcular o percentil (PESO e IG são necessários)');
       }
     }
     
@@ -1051,16 +1040,6 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       
       if (calculation) {
         console.log('✅ [UPDATE] Percentil calculado:', calculation);
-        
-        // Atualizar campo PESO sempre que houver cálculo
-        const pesoField = Object.keys(enhancedFields).find(k => 
-          k.toLowerCase() === 'peso'
-        );
-        
-        if (pesoField) {
-          enhancedFields[pesoField] = `${calculation.weight}g`;
-          console.log('⚖️ [UPDATE] Campo PESO atualizado:', enhancedFields[pesoField]);
-        }
         
         // Atualizar campo PERCENTIL
         const percentilField = Object.keys(enhancedFields).find(k => 
