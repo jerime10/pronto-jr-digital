@@ -105,6 +105,7 @@ export function parseGestationalAge(ig: string): number | null {
 /**
  * Calcula o peso fetal usando a fórmula de Hadlock com 4 parâmetros
  * Fórmula: Log10(weight) = 1.3596 - 0.00386*AC*FL + 0.0064*HC + 0.00061*BPD*AC + 0.0424*AC + 0.174*FL
+ * IMPORTANTE: A fórmula requer valores em CENTÍMETROS
  * 
  * @param bpd - Diâmetro Biparietal em mm
  * @param hc - Circunferência Cefálica em mm
@@ -118,17 +119,29 @@ export function calculateFetalWeightHadlock4(
   ac: number,
   fl: number
 ): number {
+  // Converter mm para cm (a fórmula requer cm)
+  const bpdCm = bpd / 10;
+  const hcCm = hc / 10;
+  const acCm = ac / 10;
+  const flCm = fl / 10;
+  
+  console.log('⚖️ [HADLOCK] Valores em cm:', { bpdCm, hcCm, acCm, flCm });
+  
   // Fórmula de Hadlock 4 parâmetros
   const log10Weight = 
     1.3596 -
-    (0.00386 * ac * fl) +
-    (0.0064 * hc) +
-    (0.00061 * bpd * ac) +
-    (0.0424 * ac) +
-    (0.174 * fl);
+    (0.00386 * acCm * flCm) +
+    (0.0064 * hcCm) +
+    (0.00061 * bpdCm * acCm) +
+    (0.0424 * acCm) +
+    (0.174 * flCm);
+  
+  console.log('⚖️ [HADLOCK] Log10(weight):', log10Weight);
   
   // Converter log10 para peso em gramas
   const weight = Math.pow(10, log10Weight);
+  
+  console.log('⚖️ [HADLOCK] Peso calculado:', weight, 'g');
   
   return Math.round(weight);
 }
@@ -140,8 +153,11 @@ export function calculateFetalWeightHadlock4(
  * @returns Percentil de 0 a 100
  */
 export function calculatePercentile(weight: number, gestationalAgeWeeks: number): number {
+  console.log('📊 [PERCENTIL-CALC] Entrada:', { weight, gestationalAgeWeeks });
+  
   // Arredondar para a semana mais próxima
   const roundedWeeks = Math.round(gestationalAgeWeeks);
+  console.log('📊 [PERCENTIL-CALC] Semanas arredondadas:', roundedWeeks);
   
   // Verificar se está dentro do range da tabela
   if (roundedWeeks < 20 || roundedWeeks > 42) {
@@ -150,6 +166,7 @@ export function calculatePercentile(weight: number, gestationalAgeWeeks: number)
   }
   
   const reference = FETAL_WEIGHT_REFERENCE[roundedWeeks];
+  console.log('📊 [PERCENTIL-CALC] Referência encontrada:', reference);
   
   if (!reference) {
     console.warn('🚨 [PERCENTIL] Referência não encontrada para semana:', roundedWeeks);
@@ -157,22 +174,34 @@ export function calculatePercentile(weight: number, gestationalAgeWeeks: number)
   }
   
   // Calcular percentil usando interpolação linear entre os percentis de referência
+  console.log('📊 [PERCENTIL-CALC] Comparando peso:', weight, 'com referências:', reference);
+  
   if (weight <= reference.p10) {
     // Abaixo do P10
     const ratio = weight / reference.p10;
-    return Math.round(10 * ratio);
+    const percentil = Math.max(1, Math.round(10 * ratio));
+    console.log('📊 [PERCENTIL-CALC] Abaixo P10 - ratio:', ratio, 'percentil:', percentil);
+    return percentil;
   } else if (weight >= reference.p90) {
     // Acima do P90
-    const ratio = (weight - reference.p90) / (reference.p90 - reference.p50);
-    return Math.min(100, Math.round(90 + (10 * ratio)));
+    const excess = weight - reference.p90;
+    const range = reference.p90 - reference.p50;
+    const ratio = excess / range;
+    const percentil = Math.min(99, Math.round(90 + (10 * ratio)));
+    console.log('📊 [PERCENTIL-CALC] Acima P90 - excess:', excess, 'range:', range, 'ratio:', ratio, 'percentil:', percentil);
+    return percentil;
   } else if (weight < reference.p50) {
     // Entre P10 e P50
     const ratio = (weight - reference.p10) / (reference.p50 - reference.p10);
-    return Math.round(10 + (40 * ratio));
+    const percentil = Math.round(10 + (40 * ratio));
+    console.log('📊 [PERCENTIL-CALC] Entre P10-P50 - ratio:', ratio, 'percentil:', percentil);
+    return percentil;
   } else {
     // Entre P50 e P90
     const ratio = (weight - reference.p50) / (reference.p90 - reference.p50);
-    return Math.round(50 + (40 * ratio));
+    const percentil = Math.round(50 + (40 * ratio));
+    console.log('📊 [PERCENTIL-CALC] Entre P50-P90 - ratio:', ratio, 'percentil:', percentil);
+    return percentil;
   }
 }
 
