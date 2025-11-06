@@ -873,9 +873,94 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     console.log('📝 [MULTI-SELECT] ===== FIM handleFieldModelChange =====');
   };
 
+  // useEffect para calcular percentil automaticamente quando PESO ou IG mudarem
+  useEffect(() => {
+    console.log('🔄 [AUTO-PERCENTIL] ===== VERIFICANDO CÁLCULO AUTOMÁTICO =====');
+    
+    const isObstetricModel = selectedModel?.name?.includes('OBSTÉTRICA');
+    console.log('🔄 [AUTO-PERCENTIL] É modelo obstétrico?', isObstetricModel);
+    console.log('🔄 [AUTO-PERCENTIL] selectedModel:', selectedModel?.name);
+    console.log('🔄 [AUTO-PERCENTIL] dynamicFields:', dynamicFields);
+    
+    if (!isObstetricModel || !selectedModel) {
+      console.log('⏭️ [AUTO-PERCENTIL] Não é modelo obstétrico ou modelo não selecionado, pulando');
+      return;
+    }
+    
+    // Verificar se temos PESO e IG preenchidos
+    const pesoKey = Object.keys(dynamicFields).find(k => k.toLowerCase() === 'peso');
+    const igKey = Object.keys(dynamicFields).find(k => k.toLowerCase() === 'ig');
+    
+    const pesoValue = pesoKey ? dynamicFields[pesoKey] : null;
+    const igValue = igKey ? dynamicFields[igKey] : null;
+    
+    console.log('🔄 [AUTO-PERCENTIL] PESO key:', pesoKey, 'value:', pesoValue);
+    console.log('🔄 [AUTO-PERCENTIL] IG key:', igKey, 'value:', igValue);
+    
+    if (!pesoValue || !igValue) {
+      console.log('⏭️ [AUTO-PERCENTIL] PESO ou IG não preenchidos, aguardando...');
+      return;
+    }
+    
+    console.log('✅ [AUTO-PERCENTIL] PESO e IG preenchidos, iniciando cálculo...');
+    
+    // Calcular percentil
+    const calculation = calculateFetalPercentile(dynamicFields);
+    console.log('🔄 [AUTO-PERCENTIL] Resultado do cálculo:', calculation);
+    
+    if (calculation) {
+      console.log('✅ [AUTO-PERCENTIL] Percentil calculado:', calculation);
+      
+      // Encontrar campo PERCENTIL
+      const percentilKey = Object.keys(dynamicFields).find(k => 
+        k.toLowerCase().includes('percentil')
+      );
+      console.log('🔄 [AUTO-PERCENTIL] Campo PERCENTIL key:', percentilKey);
+      
+      if (percentilKey) {
+        // Adicionar alerta se houver
+        let formattedValue = calculation.formattedResult;
+        if (calculation.warning) {
+          formattedValue = `${calculation.formattedResult}\n\n${calculation.warning}`;
+        }
+        
+        // Verificar se o valor já está correto (evitar loops)
+        const currentPercentilValue = dynamicFields[percentilKey];
+        if (currentPercentilValue === formattedValue) {
+          console.log('⏭️ [AUTO-PERCENTIL] Percentil já está atualizado, pulando');
+          return;
+        }
+        
+        console.log('🔄 [AUTO-PERCENTIL] Atualizando campo PERCENTIL de:', currentPercentilValue);
+        console.log('🔄 [AUTO-PERCENTIL] Para:', formattedValue);
+        
+        // Atualizar campo PERCENTIL
+        const newFields = { ...dynamicFields, [percentilKey]: formattedValue };
+        setDynamicFields(newFields);
+        updateExamResults(newFields);
+        
+        // Notificar componente pai
+        if (onDynamicFieldsChange) {
+          onDynamicFieldsChange(newFields);
+        }
+        
+        toast.success(`Percentil calculado: ${calculation.formattedResult}`);
+        console.log('✅ [AUTO-PERCENTIL] Campo PERCENTIL atualizado com sucesso!');
+      } else {
+        console.log('⚠️ [AUTO-PERCENTIL] Campo PERCENTIL não encontrado no template');
+      }
+    } else {
+      console.log('⚠️ [AUTO-PERCENTIL] Cálculo falhou (verificar logs de calculateFetalPercentile)');
+    }
+    
+    console.log('🔄 [AUTO-PERCENTIL] ===== FIM VERIFICAÇÃO =====');
+  }, [dynamicFields, selectedModel, onDynamicFieldsChange]);
+
   // Handler para mudança direta do texto do campo
   const handleFieldTextChange = (fieldKey: string, value: string) => {
+    console.log('📝 [TEXT-CHANGE] ===== INÍCIO handleFieldTextChange =====');
     console.log('📝 [TEXT-CHANGE] Campo:', fieldKey, 'Valor:', value);
+    console.log('📝 [TEXT-CHANGE] dynamicFields ANTES:', dynamicFields);
     
     // 🔍 DEBUG ESPECÍFICO: Impressão Diagnóstica
     if (fieldKey === 'impressaodiagnostica') {
@@ -886,6 +971,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     }
     
     const newFields = { ...dynamicFields, [fieldKey]: value };
+    console.log('📝 [TEXT-CHANGE] newFields DEPOIS:', newFields);
     setDynamicFields(newFields);
     
     // 🔍 DEBUG ESPECÍFICO: Impressão Diagnóstica
@@ -896,16 +982,24 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       console.log('🔍🔍🔍 [IMPRESSÃO-DIAGNÓSTICA] ===== FIM =====');
     }
     
-    // Verificar se é um modelo obstétrico e se mudou BPD, HC, AC, FL ou IG
+    // Verificar se é um modelo obstétrico e se mudou PESO ou IG
     const isObstetricModel = selectedModel?.name?.includes('OBSTÉTRICA');
+    console.log('📝 [TEXT-CHANGE] É modelo obstétrico?', isObstetricModel);
+    console.log('📝 [TEXT-CHANGE] Nome do modelo:', selectedModel?.name);
+    
     const measurementFields = ['peso', 'ig', 'idadegestacional'];
     const isMeasurementField = measurementFields.some(f => fieldKey.toLowerCase().includes(f.toLowerCase()));
+    console.log('📝 [TEXT-CHANGE] É campo de medida (peso/ig)?', isMeasurementField);
+    console.log('📝 [TEXT-CHANGE] Campo alterado:', fieldKey);
     
     if (isObstetricModel && isMeasurementField) {
+      console.log('🧮 [TEXT-CHANGE] ===== INICIANDO CÁLCULO DE PERCENTIL =====');
       console.log('🧮 [TEXT-CHANGE] Campo obstétrico alterado, calculando percentil...');
+      console.log('🧮 [TEXT-CHANGE] newFields sendo enviados para cálculo:', newFields);
       
       // Tentar calcular percentil (requer PESO e IG)
       const calculation = calculateFetalPercentile(newFields);
+      console.log('🧮 [TEXT-CHANGE] Resultado do cálculo:', calculation);
       
       if (calculation) {
         console.log('✅ [TEXT-CHANGE] Cálculo realizado com sucesso:', calculation);
@@ -914,6 +1008,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         const percentilField = Object.keys(newFields).find(k => 
           k.toLowerCase().includes('percentil')
         );
+        console.log('✅ [TEXT-CHANGE] Campo PERCENTIL encontrado:', percentilField);
         
         if (percentilField) {
           // Adicionar alerta se houver
@@ -930,8 +1025,10 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         // Atualizar estado novamente com o percentil calculado
         setDynamicFields(newFields);
       } else {
-        console.log('⚠️ [TEXT-CHANGE] Não foi possível calcular o percentil (PESO e IG são necessários)');
+        console.log('⚠️ [TEXT-CHANGE] Não foi possível calcular o percentil');
+        console.log('⚠️ [TEXT-CHANGE] Verificar se PESO e IG estão preenchidos corretamente');
       }
+      console.log('🧮 [TEXT-CHANGE] ===== FIM CÁLCULO DE PERCENTIL =====');
     }
     
     updateExamResults(newFields);
@@ -944,6 +1041,8 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       }
       onDynamicFieldsChange(newFields);
     }
+    
+    console.log('📝 [TEXT-CHANGE] ===== FIM handleFieldTextChange =====');
   };
 
   const handleModelSelect = (modelId: string) => {

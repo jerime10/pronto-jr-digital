@@ -45,24 +45,41 @@ const FETAL_WEIGHT_REFERENCE: Record<number, { p10: number; p50: number; p90: nu
 export function extractNumericValue(input: string): number | null {
   if (!input || typeof input !== 'string') return null;
   
+  console.log('🔢 [EXTRACT] Entrada:', input);
+  
   // Remover espaços
   const cleaned = input.trim().toLowerCase();
+  console.log('🔢 [EXTRACT] Limpo:', cleaned);
   
   // Tentar extrair número com regex
   const match = cleaned.match(/(\d+[.,]?\d*)/);
-  if (!match) return null;
+  if (!match) {
+    console.log('❌ [EXTRACT] Nenhum número encontrado');
+    return null;
+  }
   
   // Converter vírgula para ponto
   const numStr = match[1].replace(',', '.');
+  console.log('🔢 [EXTRACT] String numérica:', numStr);
   let value = parseFloat(numStr);
   
-  if (isNaN(value)) return null;
+  if (isNaN(value)) {
+    console.log('❌ [EXTRACT] Não é um número válido');
+    return null;
+  }
+  
+  console.log('🔢 [EXTRACT] Valor extraído:', value);
   
   // Converter cm para mm se necessário
   if (cleaned.includes('cm')) {
     value = value * 10;
+    console.log('🔢 [EXTRACT] Convertido de cm para mm:', value);
   }
   
+  // Para valores com "g" (gramas), manter como está
+  // Para valores sem unidade ou com "mm", manter como está
+  
+  console.log('✅ [EXTRACT] Valor final:', value);
   return value;
 }
 
@@ -74,14 +91,19 @@ export function extractNumericValue(input: string): number | null {
 export function parseGestationalAge(ig: string): number | null {
   if (!ig || typeof ig !== 'string') return null;
   
+  console.log('📅 [PARSE-IG] Entrada:', ig);
+  
   const cleaned = ig.trim().toLowerCase();
+  console.log('📅 [PARSE-IG] Limpo:', cleaned);
   
   // Padrão 1: "32s 4d" ou "32S4D"
   let match = cleaned.match(/(\d+)\s*s\s*(\d+)\s*d/i);
   if (match) {
     const weeks = parseInt(match[1]);
     const days = parseInt(match[2]);
-    return weeks + (days / 7);
+    const result = weeks + (days / 7);
+    console.log('✅ [PARSE-IG] Padrão "32s 4d" encontrado:', result);
+    return result;
   }
   
   // Padrão 2: "32 semanas 4 dias"
@@ -89,7 +111,9 @@ export function parseGestationalAge(ig: string): number | null {
   if (match) {
     const weeks = parseInt(match[1]);
     const days = parseInt(match[2]);
-    return weeks + (days / 7);
+    const result = weeks + (days / 7);
+    console.log('✅ [PARSE-IG] Padrão "32 semanas 4 dias" encontrado:', result);
+    return result;
   }
   
   // Padrão 3: "32+4" ou "32 + 4"
@@ -97,15 +121,20 @@ export function parseGestationalAge(ig: string): number | null {
   if (match) {
     const weeks = parseInt(match[1]);
     const days = parseInt(match[2]);
-    return weeks + (days / 7);
+    const result = weeks + (days / 7);
+    console.log('✅ [PARSE-IG] Padrão "32+4" encontrado:', result);
+    return result;
   }
   
   // Padrão 4: apenas semanas "32"
   match = cleaned.match(/^(\d+)$/);
   if (match) {
-    return parseInt(match[1]);
+    const result = parseInt(match[1]);
+    console.log('✅ [PARSE-IG] Padrão numérico simples encontrado:', result);
+    return result;
   }
   
+  console.log('❌ [PARSE-IG] Nenhum padrão reconhecido');
   return null;
 }
 
@@ -261,22 +290,45 @@ export function calculateFetalPercentile(fields: Record<string, string>): {
 } | null {
   console.log('🧮 [PERCENTIL] ===== INÍCIO Cálculo de Percentil =====');
   console.log('🧮 [PERCENTIL] Campos recebidos:', fields);
+  console.log('🧮 [PERCENTIL] Chaves dos campos:', Object.keys(fields));
+  
+  // Tentar encontrar o campo PESO por diferentes variações de nome
+  const pesoKey = Object.keys(fields).find(k => k.toLowerCase() === 'peso');
+  console.log('🔍 [PERCENTIL] Chave do PESO encontrada:', pesoKey);
+  console.log('🔍 [PERCENTIL] Valor do PESO:', fields[pesoKey || 'peso']);
   
   // Extrair e validar PESO (manual)
-  const pesoValue = extractNumericValue(fields.peso || '');
-  if (!pesoValue || !isValidMeasurement(pesoValue, 200, 5000)) {
-    console.log('❌ [PERCENTIL] PESO inválido ou fora do range:', pesoValue);
+  const pesoValue = extractNumericValue(fields[pesoKey || 'peso'] || '');
+  console.log('🔍 [PERCENTIL] PESO extraído:', pesoValue);
+  
+  if (!pesoValue) {
+    console.log('❌ [PERCENTIL] PESO não encontrado ou inválido:', pesoValue);
     return null;
   }
-  console.log('✅ [PERCENTIL] PESO:', pesoValue, 'g');
+  
+  if (!isValidMeasurement(pesoValue, 10, 6000)) {
+    console.log('❌ [PERCENTIL] PESO fora do range (10-6000g):', pesoValue);
+    return null;
+  }
+  console.log('✅ [PERCENTIL] PESO válido:', pesoValue, 'g');
+  
+  // Tentar encontrar o campo IG por diferentes variações de nome
+  const igKey = Object.keys(fields).find(k => 
+    k.toLowerCase() === 'ig' || 
+    k.toLowerCase().includes('idadegestacional')
+  );
+  console.log('🔍 [PERCENTIL] Chave da IG encontrada:', igKey);
+  console.log('🔍 [PERCENTIL] Valor da IG:', fields[igKey || 'ig']);
   
   // Extrair e validar IG
-  const igValue = parseGestationalAge(fields.ig || fields.idadegestacional || '');
+  const igValue = parseGestationalAge(fields[igKey || 'ig'] || fields.idadegestacional || '');
+  console.log('🔍 [PERCENTIL] IG extraída:', igValue);
+  
   if (!igValue) {
-    console.log('❌ [PERCENTIL] IG inválida:', igValue);
+    console.log('❌ [PERCENTIL] IG não encontrada ou inválida:', igValue);
     return null;
   }
-  console.log('✅ [PERCENTIL] IG:', igValue, 'semanas');
+  console.log('✅ [PERCENTIL] IG válida:', igValue, 'semanas');
   
   // Verificar se IG está fora da faixa válida (14-42 semanas)
   let warning: string | undefined;
