@@ -910,12 +910,12 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       if (calculation) {
         console.log('✅ [TEXT-CHANGE] Cálculo realizado com sucesso:', calculation);
         
-        // Atualizar campo PESO se existir e estiver vazio
+        // Atualizar campo PESO sempre que houver cálculo
         const pesoField = Object.keys(newFields).find(k => 
-          k.toLowerCase().includes('peso') && k.toLowerCase().includes('fetal')
+          k.toLowerCase() === 'peso'
         );
         
-        if (pesoField && !newFields[pesoField]?.trim()) {
+        if (pesoField) {
           newFields[pesoField] = `${calculation.weight}g`;
           console.log('⚖️ [TEXT-CHANGE] Campo PESO atualizado:', newFields[pesoField]);
           toast.success('Peso fetal calculado automaticamente');
@@ -1052,12 +1052,12 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       if (calculation) {
         console.log('✅ [UPDATE] Percentil calculado:', calculation);
         
-        // Atualizar campo PESO se existir e estiver vazio
+        // Atualizar campo PESO sempre que houver cálculo
         const pesoField = Object.keys(enhancedFields).find(k => 
-          k.toLowerCase().includes('peso') && k.toLowerCase().includes('fetal')
+          k.toLowerCase() === 'peso'
         );
         
-        if (pesoField && !enhancedFields[pesoField]?.trim()) {
+        if (pesoField) {
           enhancedFields[pesoField] = `${calculation.weight}g`;
           console.log('⚖️ [UPDATE] Campo PESO atualizado:', enhancedFields[pesoField]);
         }
