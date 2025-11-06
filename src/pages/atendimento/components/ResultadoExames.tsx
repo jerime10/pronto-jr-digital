@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Sparkles, Trash2, Save, Eraser } from 'lucide-react';
 import { toast } from 'sonner';
 import { calculateDUMFromIG } from '@/utils/obstetricUtils';
+import { calculateFetalPercentile } from '@/utils/fetalCalculations';
 import { useAIProcessing } from '../hooks/useAIProcessing';
 import { FieldAutocompleteMulti } from '@/components/ui/field-autocomplete-multi';
 import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
@@ -895,6 +896,49 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       console.log('🔍🔍🔍 [IMPRESSÃO-DIAGNÓSTICA] ===== FIM =====');
     }
     
+    // Verificar se é um modelo obstétrico e se mudou BPD, HC, AC, FL ou IG
+    const isObstetricModel = selectedModel?.name?.includes('OBSTÉTRICA');
+    const measurementFields = ['bpd', 'diametrobiparietal', 'hc', 'cc', 'circunferenciacefalica', 'circunferenciacefálica', 'ac', 'ca', 'circunferenciaabdominal', 'fl', 'cf', 'comprimentofemur', 'ig', 'idadegestacional'];
+    const isMeasurementField = measurementFields.some(f => fieldKey.toLowerCase().includes(f.toLowerCase()));
+    
+    if (isObstetricModel && isMeasurementField) {
+      console.log('🧮 [TEXT-CHANGE] Campo de medida obstétrica alterado, calculando percentil...');
+      
+      // Tentar calcular percentil
+      const calculation = calculateFetalPercentile(newFields);
+      
+      if (calculation) {
+        console.log('✅ [TEXT-CHANGE] Cálculo realizado com sucesso:', calculation);
+        
+        // Atualizar campo PESO se existir e estiver vazio
+        const pesoField = Object.keys(newFields).find(k => 
+          k.toLowerCase().includes('peso') && k.toLowerCase().includes('fetal')
+        );
+        
+        if (pesoField && !newFields[pesoField]?.trim()) {
+          newFields[pesoField] = `${calculation.weight}g`;
+          console.log('⚖️ [TEXT-CHANGE] Campo PESO atualizado:', newFields[pesoField]);
+          toast.success('Peso fetal calculado automaticamente');
+        }
+        
+        // Atualizar campo PERCENTIL
+        const percentilField = Object.keys(newFields).find(k => 
+          k.toLowerCase().includes('percentil')
+        );
+        
+        if (percentilField) {
+          newFields[percentilField] = calculation.formattedResult;
+          console.log('📊 [TEXT-CHANGE] Campo PERCENTIL atualizado:', newFields[percentilField]);
+          toast.success(`Percentil calculado: ${calculation.formattedResult}`);
+        }
+        
+        // Atualizar estado novamente com os campos calculados
+        setDynamicFields(newFields);
+      } else {
+        console.log('⚠️ [TEXT-CHANGE] Não foi possível calcular o percentil (dados incompletos ou inválidos)');
+      }
+    }
+    
     updateExamResults(newFields);
     
     // Notificar componente pai
@@ -997,6 +1041,38 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
 
     // Verificar se há campo IG e calcular DUM automaticamente
     const enhancedFields = { ...fields };
+    
+    // NOVO: Calcular percentil fetal automaticamente para modelos obstétricos
+    const isObstetricModel = selectedModel?.name?.includes('OBSTÉTRICA');
+    if (isObstetricModel) {
+      console.log('🧮 [UPDATE] Modelo obstétrico detectado, verificando cálculo de percentil...');
+      
+      const calculation = calculateFetalPercentile(enhancedFields);
+      
+      if (calculation) {
+        console.log('✅ [UPDATE] Percentil calculado:', calculation);
+        
+        // Atualizar campo PESO se existir e estiver vazio
+        const pesoField = Object.keys(enhancedFields).find(k => 
+          k.toLowerCase().includes('peso') && k.toLowerCase().includes('fetal')
+        );
+        
+        if (pesoField && !enhancedFields[pesoField]?.trim()) {
+          enhancedFields[pesoField] = `${calculation.weight}g`;
+          console.log('⚖️ [UPDATE] Campo PESO atualizado:', enhancedFields[pesoField]);
+        }
+        
+        // Atualizar campo PERCENTIL
+        const percentilField = Object.keys(enhancedFields).find(k => 
+          k.toLowerCase().includes('percentil')
+        );
+        
+        if (percentilField) {
+          enhancedFields[percentilField] = calculation.formattedResult;
+          console.log('📊 [UPDATE] Campo PERCENTIL atualizado:', enhancedFields[percentilField]);
+        }
+      }
+    }
     
     // Procurar por campos que contenham "IG" ou "IDADE GESTACIONAL"
     const igField = Object.keys(enhancedFields).find(key => 
