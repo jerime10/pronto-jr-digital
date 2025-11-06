@@ -1654,13 +1654,14 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                     </div>
                   ) : (
                     <div key={field.key} className="space-y-4">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-base">
+                      {/* Seção de Modelos - Fundo mais escuro e destacado */}
+                      <Card className="border-2 border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/50 shadow-md">
+                        <CardHeader className="bg-slate-200 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700">
+                          <CardTitle className="text-base font-semibold text-slate-900 dark:text-slate-100">
                             Modelos: {field.label}
                           </CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="pt-6">
                           <div className="space-y-2">
                             <Label className="text-sm font-medium">
                               Selecionar Modelos de {field.label}
@@ -1702,13 +1703,14 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                         </CardContent>
                       </Card>
                       
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-base">
+                      {/* Seção Personalizado - Fundo mais claro */}
+                      <Card className="border border-slate-200 dark:border-slate-800 bg-background shadow-sm">
+                        <CardHeader className="border-b border-slate-200 dark:border-slate-800">
+                          <CardTitle className="text-base font-semibold">
                             {field.label} Personalizado
                           </CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="pt-6">
                           <div className="space-y-2">
                             <div className="flex items-center justify-between mb-2">
                               <Label className="text-sm font-medium">
