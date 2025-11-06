@@ -4,8 +4,14 @@
 
 // Tabela de referência de peso fetal por idade gestacional (semanas)
 // Valores baseados em curvas de crescimento fetal de Hadlock (percentis 10, 50 e 90)
-// Ajustados para refletir valores clínicos mais precisos
+// Faixa válida: 14 a 42 semanas
 const FETAL_WEIGHT_REFERENCE: Record<number, { p10: number; p50: number; p90: number }> = {
+  14: { p10: 90, p50: 110, p90: 130 },
+  15: { p10: 110, p50: 135, p90: 160 },
+  16: { p10: 135, p50: 165, p90: 200 },
+  17: { p10: 165, p50: 200, p90: 240 },
+  18: { p10: 200, p50: 240, p90: 290 },
+  19: { p10: 225, p50: 270, p90: 330 },
   20: { p10: 250, p50: 300, p90: 370 },
   21: { p10: 290, p50: 360, p90: 440 },
   22: { p10: 340, p50: 430, p90: 520 },
@@ -160,8 +166,8 @@ export function calculatePercentile(weight: number, gestationalAgeWeeks: number)
   const roundedWeeks = Math.round(gestationalAgeWeeks);
   console.log('📊 [PERCENTIL-CALC] Semanas arredondadas:', roundedWeeks);
   
-  // Verificar se está dentro do range da tabela
-  if (roundedWeeks < 20 || roundedWeeks > 42) {
+  // Verificar se está dentro do range da tabela (14-42 semanas)
+  if (roundedWeeks < 14 || roundedWeeks > 42) {
     console.warn('🚨 [PERCENTIL] Idade gestacional fora do range da tabela:', roundedWeeks);
     return 50; // Retornar percentil 50 como padrão
   }
@@ -245,12 +251,13 @@ export function isValidMeasurement(value: number, min: number, max: number): boo
 /**
  * Calcula automaticamente o percentil fetal a partir dos campos fornecidos
  * @param fields - Objeto com os campos do formulário (deve incluir PESO manual)
- * @returns Objeto com percentil calculado ou null se dados incompletos
+ * @returns Objeto com percentil calculado e alerta se IG fora da faixa válida
  */
 export function calculateFetalPercentile(fields: Record<string, string>): {
   percentile: number;
   classification: 'PIG' | 'AIG' | 'GIG';
   formattedResult: string;
+  warning?: string;
 } | null {
   console.log('🧮 [PERCENTIL] ===== INÍCIO Cálculo de Percentil =====');
   console.log('🧮 [PERCENTIL] Campos recebidos:', fields);
@@ -265,11 +272,18 @@ export function calculateFetalPercentile(fields: Record<string, string>): {
   
   // Extrair e validar IG
   const igValue = parseGestationalAge(fields.ig || fields.idadegestacional || '');
-  if (!igValue || igValue < 20 || igValue > 42) {
-    console.log('❌ [PERCENTIL] IG inválida ou fora do range:', igValue);
+  if (!igValue) {
+    console.log('❌ [PERCENTIL] IG inválida:', igValue);
     return null;
   }
   console.log('✅ [PERCENTIL] IG:', igValue, 'semanas');
+  
+  // Verificar se IG está fora da faixa válida (14-42 semanas)
+  let warning: string | undefined;
+  if (igValue < 14 || igValue > 42) {
+    warning = '⚠️ ATENÇÃO: Cálculo preciso apenas para IG entre 14 e 42 semanas';
+    console.log('⚠️ [PERCENTIL] ' + warning);
+  }
   
   // Calcular percentil usando o peso informado
   const percentile = calculatePercentile(pesoValue, igValue);
@@ -288,6 +302,7 @@ export function calculateFetalPercentile(fields: Record<string, string>): {
   return {
     percentile,
     classification,
-    formattedResult
+    formattedResult,
+    warning
   };
 }

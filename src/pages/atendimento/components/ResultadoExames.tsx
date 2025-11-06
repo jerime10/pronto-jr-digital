@@ -916,7 +916,13 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         );
         
         if (percentilField) {
-          newFields[percentilField] = calculation.formattedResult;
+          // Adicionar alerta se houver
+          let formattedValue = calculation.formattedResult;
+          if (calculation.warning) {
+            formattedValue = `${calculation.formattedResult}\n\n${calculation.warning}`;
+          }
+          
+          newFields[percentilField] = formattedValue;
           console.log('📊 [TEXT-CHANGE] Campo PERCENTIL atualizado:', newFields[percentilField]);
           toast.success(`Percentil calculado: ${calculation.formattedResult}`);
         }
@@ -1047,7 +1053,13 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         );
         
         if (percentilField) {
-          enhancedFields[percentilField] = calculation.formattedResult;
+          // Adicionar alerta se houver
+          let formattedValue = calculation.formattedResult;
+          if (calculation.warning) {
+            formattedValue = `${calculation.formattedResult}\n\n${calculation.warning}`;
+          }
+          
+          enhancedFields[percentilField] = formattedValue;
           console.log('📊 [UPDATE] Campo PERCENTIL atualizado:', enhancedFields[percentilField]);
         }
       }
@@ -1689,13 +1701,38 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                                 </Button>
                               </div>
                             </div>
-                            <Textarea
-                              value={fieldValue}
-                              onChange={(e) => handleFieldTextChange(field.key, e.target.value)}
-                              placeholder={field.placeholder}
-                              rows={6}
-                              className="w-full"
-                            />
+                            {field.key === 'percentil' ? (
+                              <div className="space-y-2">
+                                <Textarea
+                                  value={fieldValue}
+                                  onChange={(e) => handleFieldTextChange(field.key, e.target.value)}
+                                  placeholder={field.placeholder}
+                                  rows={6}
+                                  className={`w-full font-bold ${
+                                    fieldValue.includes('(AIG)') 
+                                      ? 'text-blue-600' 
+                                      : fieldValue.includes('(PIG)')
+                                      ? 'text-rose-600'
+                                      : fieldValue.includes('(GIG)')
+                                      ? 'text-red-600'
+                                      : ''
+                                  }`}
+                                />
+                                {fieldValue && fieldValue.includes('⚠️') && (
+                                  <div className="text-amber-600 text-sm font-medium bg-amber-50 p-2 rounded">
+                                    {fieldValue.split('\n').find(line => line.includes('⚠️'))}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <Textarea
+                                value={fieldValue}
+                                onChange={(e) => handleFieldTextChange(field.key, e.target.value)}
+                                placeholder={field.placeholder}
+                                rows={6}
+                                className="w-full"
+                              />
+                            )}
                           </div>
                         </CardContent>
                       </Card>
