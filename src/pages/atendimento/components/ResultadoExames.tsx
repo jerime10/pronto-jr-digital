@@ -1485,9 +1485,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                           <div className="space-y-2">
                             <Label className="text-sm font-medium">
                               Selecionar Modelos de {field.label}
-                              <span className="text-xs text-muted-foreground ml-2">
-                                (Clique no X para remover da seleção, no lixeira 🗑️ para excluir permanentemente)
-                              </span>
+                              
                             </Label>
                             <FieldAutocompleteMulti key={`${selectedModel?.id || 'no-model'}-${field.key}`} selectedValues={selectedValues} onChange={selectedContents => {
                         console.log('🔄 [AUTOCOMPLETE-ONCHANGE] onChange disparado:', {
@@ -1530,46 +1528,46 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                               
                               {/* Botão para salvar template do campo */}
                               <Button type="button" variant="outline" size="sm" onClick={async () => {
-                            console.log('🔵 [CLICK] Botão de salvar clicado');
-                            console.log('🔵 [CLICK] fieldValue:', fieldValue);
-                            console.log('🔵 [CLICK] selectedModel:', selectedModel);
-                            if (!fieldValue.trim()) {
-                              toast.error('Por favor, preencha o campo antes de salvar.');
-                              return;
-                            }
-                            if (!selectedModel) {
-                              toast.error('Selecione um modelo de exame primeiro.');
-                              return;
-                            }
-                            console.log('💾 [SAVE] Salvando campo:', field.key, field.label);
-                            setIsSavingField(field.key);
-                            try {
-                              await saveFieldTemplate({
-                                fieldKey: field.key,
-                                fieldLabel: field.label,
-                                fieldContent: fieldValue,
-                                modelName: selectedModel.name
-                              });
-                              console.log('✅ [SAVE] Campo salvo com sucesso');
-                              toast.success(`Campo ${field.label} salvo com sucesso!`);
-                            } catch (error) {
-                              console.error('❌ [SAVE] Erro ao salvar:', error);
-                              toast.error('Não foi possível salvar o template.');
-                            } finally {
-                              setIsSavingField(null);
-                            }
-                          }} disabled={!fieldValue.trim() || isSavingField === field.key} title="Salvar este campo como template">
+                          console.log('🔵 [CLICK] Botão de salvar clicado');
+                          console.log('🔵 [CLICK] fieldValue:', fieldValue);
+                          console.log('🔵 [CLICK] selectedModel:', selectedModel);
+                          if (!fieldValue.trim()) {
+                            toast.error('Por favor, preencha o campo antes de salvar.');
+                            return;
+                          }
+                          if (!selectedModel) {
+                            toast.error('Selecione um modelo de exame primeiro.');
+                            return;
+                          }
+                          console.log('💾 [SAVE] Salvando campo:', field.key, field.label);
+                          setIsSavingField(field.key);
+                          try {
+                            await saveFieldTemplate({
+                              fieldKey: field.key,
+                              fieldLabel: field.label,
+                              fieldContent: fieldValue,
+                              modelName: selectedModel.name
+                            });
+                            console.log('✅ [SAVE] Campo salvo com sucesso');
+                            toast.success(`Campo ${field.label} salvo com sucesso!`);
+                          } catch (error) {
+                            console.error('❌ [SAVE] Erro ao salvar:', error);
+                            toast.error('Não foi possível salvar o template.');
+                          } finally {
+                            setIsSavingField(null);
+                          }
+                        }} disabled={!fieldValue.trim() || isSavingField === field.key} title="Salvar este campo como template">
                                 {isSavingField === field.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                               </Button>
                               
                               {/* Botão para limpar campo */}
                               <Button type="button" variant="outline" size="sm" onClick={() => {
-                            setFieldToDelete({
-                              key: field.key,
-                              label: field.label
-                            });
-                            setDeleteConfirmOpen(true);
-                          }} disabled={isDeleting} title="Limpar dados salvos deste campo">
+                          setFieldToDelete({
+                            key: field.key,
+                            label: field.label
+                          });
+                          setDeleteConfirmOpen(true);
+                        }} disabled={isDeleting} title="Limpar dados salvos deste campo">
                                 {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eraser className="h-4 w-4" />}
                               </Button>
                             </div>
