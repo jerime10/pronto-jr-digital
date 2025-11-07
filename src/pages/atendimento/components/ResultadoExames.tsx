@@ -771,8 +771,8 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       return updated;
     });
 
-    // Concatenar os valores selecionados com separador específico
-    const joinedValue = selectedContents.join('\n\n... ... ...\n\n');
+    // Concatenar os valores selecionados sem separadores extras
+    const joinedValue = selectedContents.join('\n\n');
     console.log('📝 [MULTI-SELECT] Valor concatenado:', joinedValue);
     console.log('📝 [MULTI-SELECT] Tamanho do valor:', joinedValue.length);
 
@@ -1475,9 +1475,11 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                       {/* Seção de Modelos - Fundo mais escuro e destacado */}
                       <Card className="border-2 border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/50 shadow-md">
                         <CardHeader className="border-b border-slate-300 dark:border-slate-700 bg-stone-950 rounded-3xl">
-                          <CardTitle className="text-base font-semibold text-slate-50">
-                            Modelos: {field.label}
-                          </CardTitle>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base font-semibold text-slate-50">
+                              Modelos: {field.label}
+                            </CardTitle>
+                          </div>
                         </CardHeader>
                         <CardContent className="pt-6 bg-stone-950">
                           <div className="space-y-2">
@@ -1516,24 +1518,18 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                       {/* Seção Personalizado - Fundo mais claro */}
                       <Card className="border border-slate-200 dark:border-slate-800 bg-background shadow-sm">
                         <CardHeader className="border-b border-slate-200 dark:border-slate-800 bg-lime-500">
-                          <CardTitle className="text-base font-semibold">
-                            {field.label} Personalizado
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-6 bg-lime-500">
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between mb-2 rounded">
-                              <Label className="text-sm font-medium">
-                                Edite ou adicione informações adicionais
-                              </Label>
-                              <div className="flex gap-2">
-                                {/* Botão para processar campo individual com IA */}
-                                <Button type="button" variant="outline" size="sm" onClick={() => handleProcessFieldWithAI(field)} disabled={!fieldValue.trim() || isProcessingField === field.key} title="Processar este campo com IA">
-                                  {isProcessingField === field.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                                </Button>
-                                
-                                {/* Botão para salvar template do campo */}
-                                <Button type="button" variant="outline" size="sm" onClick={async () => {
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base font-semibold">
+                              {field.label} Personalizado
+                            </CardTitle>
+                            <div className="flex gap-2">
+                              {/* Botão para processar campo individual com IA */}
+                              <Button type="button" variant="outline" size="sm" onClick={() => handleProcessFieldWithAI(field)} disabled={!fieldValue.trim() || isProcessingField === field.key} title="Processar este campo com IA">
+                                {isProcessingField === field.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                              </Button>
+                              
+                              {/* Botão para salvar template do campo */}
+                              <Button type="button" variant="outline" size="sm" onClick={async () => {
                             console.log('🔵 [CLICK] Botão de salvar clicado');
                             console.log('🔵 [CLICK] fieldValue:', fieldValue);
                             console.log('🔵 [CLICK] selectedModel:', selectedModel);
@@ -1563,21 +1559,24 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                               setIsSavingField(null);
                             }
                           }} disabled={!fieldValue.trim() || isSavingField === field.key} title="Salvar este campo como template">
-                                  {isSavingField === field.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                                </Button>
-                                
-                                {/* Botão para limpar campo */}
-                                <Button type="button" variant="outline" size="sm" onClick={() => {
+                                {isSavingField === field.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                              </Button>
+                              
+                              {/* Botão para limpar campo */}
+                              <Button type="button" variant="outline" size="sm" onClick={() => {
                             setFieldToDelete({
                               key: field.key,
                               label: field.label
                             });
                             setDeleteConfirmOpen(true);
                           }} disabled={isDeleting} title="Limpar dados salvos deste campo">
-                                  {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eraser className="h-4 w-4" />}
-                                </Button>
-                              </div>
+                                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eraser className="h-4 w-4" />}
+                              </Button>
                             </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-6 bg-lime-500">
+                          <div className="space-y-2">
                             {field.key === 'percentil' ? <div className="space-y-2">
                                 <Textarea value={fieldValue} onChange={e => handleFieldTextChange(field.key, e.target.value)} placeholder={field.placeholder} rows={6} className={`w-full font-bold ${fieldValue.includes('(AIG)') ? 'text-blue-600' : fieldValue.includes('(PIG)') ? 'text-rose-600' : fieldValue.includes('(GIG)') ? 'text-red-600' : ''}`} />
                                 {fieldValue && fieldValue.includes('⚠️') && <div className="text-amber-600 text-sm font-medium bg-amber-50 p-2 rounded">
