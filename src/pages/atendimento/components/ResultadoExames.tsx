@@ -1444,7 +1444,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         })()}
           {selectedTemplate && selectedTemplate.fields.length > 0 && <div className="space-y-4">
               <div>
-                <h3 className="text-lg font-semibold">ULTRASSONOGRAFIA OBSTÉTRICA 2º E 3º TRI{selectedModel?.name}</h3>
+                <h3 className="text-lg font-semibold">{selectedModel?.name}</h3>
                 
               </div>
               <div className="space-y-4">
