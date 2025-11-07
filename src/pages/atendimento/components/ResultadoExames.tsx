@@ -1399,8 +1399,8 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   };
   return <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>Resultado de Exames</CardTitle>
+        <CardHeader className="bg-purple-400">
+          <CardTitle className="text-base">Resultado de Exames</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
@@ -1444,10 +1444,8 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         })()}
           {selectedTemplate && selectedTemplate.fields.length > 0 && <div className="space-y-4">
               <div>
-                <h3 className="text-lg font-semibold">Campos do Exame - {selectedModel?.name}</h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  💡 Digite nos campos para ver sugestões salvas. Clique no <strong>🗑️ lixeira</strong> para excluir permanentemente
-                </p>
+                <h3 className="text-lg font-semibold">ULTRASSONOGRAFIA OBSTÉTRICA 2º E 3º TRI{selectedModel?.name}</h3>
+                
               </div>
               <div className="space-y-4">
                  {selectedTemplate.fields.map(field => {
@@ -1476,12 +1474,12 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                     </div> : <div key={field.key} className="space-y-4">
                       {/* Seção de Modelos - Fundo mais escuro e destacado */}
                       <Card className="border-2 border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/50 shadow-md">
-                        <CardHeader className="border-b border-slate-300 dark:border-slate-700 bg-lime-200">
-                          <CardTitle className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                        <CardHeader className="border-b border-slate-300 dark:border-slate-700 bg-stone-950 rounded-3xl">
+                          <CardTitle className="text-base font-semibold text-slate-50">
                             Modelos: {field.label}
                           </CardTitle>
                         </CardHeader>
-                        <CardContent className="pt-6 bg-lime-200">
+                        <CardContent className="pt-6 bg-stone-950">
                           <div className="space-y-2">
                             <Label className="text-sm font-medium">
                               Selecionar Modelos de {field.label}
@@ -1517,14 +1515,14 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                       
                       {/* Seção Personalizado - Fundo mais claro */}
                       <Card className="border border-slate-200 dark:border-slate-800 bg-background shadow-sm">
-                        <CardHeader className="border-b border-slate-200 dark:border-slate-800 bg-emerald-300">
+                        <CardHeader className="border-b border-slate-200 dark:border-slate-800 bg-lime-500">
                           <CardTitle className="text-base font-semibold">
                             {field.label} Personalizado
                           </CardTitle>
                         </CardHeader>
-                        <CardContent className="pt-6 bg-emerald-300">
+                        <CardContent className="pt-6 bg-lime-500">
                           <div className="space-y-2">
-                            <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center justify-between mb-2 rounded">
                               <Label className="text-sm font-medium">
                                 Edite ou adicione informações adicionais
                               </Label>
