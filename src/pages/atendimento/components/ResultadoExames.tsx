@@ -1402,7 +1402,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         <CardHeader className="bg-purple-400">
           <CardTitle className="text-base">Resultado de Exames</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 bg-purple-800">
+        <CardContent className="space-y-4 bg-rose-100">
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             <div className="w-full md:w-1/2">
               <Select value={selectedModelId} onValueChange={handleModelSelect} disabled={isLoading}>
