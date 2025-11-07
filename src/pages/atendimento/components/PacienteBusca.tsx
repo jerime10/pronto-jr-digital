@@ -65,9 +65,9 @@ const PacienteBusca: React.FC<PacienteBuscaProps> = ({
           {/* Componente de Data/Hora do Atendimento */}
           {onStartDateTimeChange && onEndDateTimeChange && <AttendanceDateTime startDateTime={startDateTime} endDateTime={endDateTime} onStartDateTimeChange={onStartDateTimeChange} onEndDateTimeChange={onEndDateTimeChange} disabled={disabled} />}
         </div> : <div className="relative">
-          <div className="relative bg-yellow-300">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input type="text" placeholder="Clique para ver todos os pacientes ou digite para buscar..." value={buscarPaciente} onChange={e => onBuscarPacienteChange(e)} onFocus={onInputFocus} onBlur={onInputBlur} disabled={disabled} className="pl-10 pr-10 h-12" />
+            <Input type="text" placeholder="Clique para ver todos os pacientes ou digite para buscar..." value={buscarPaciente} onChange={(e) => onBuscarPacienteChange(e.target.value)} onFocus={onInputFocus} onBlur={onInputBlur} disabled={disabled} className="pl-10 pr-10 h-12" />
             <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           </div>
           
