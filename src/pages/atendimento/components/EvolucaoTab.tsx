@@ -57,10 +57,17 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
     console.log('📝 [EVOLUÇÃO] Conteúdos selecionados:', selectedContents);
     setSelectedEvolucoes(selectedContents);
     
-    // Concatenar os valores selecionados
-    const concatenated = selectedContents.join('\n\n... ... ...\n\n');
-    console.log('📝 [EVOLUÇÃO] Valor concatenado:', concatenated);
-    onFieldChange('evolucao', concatenated);
+    // Append único preservando texto existente
+    const existingLines = (form.evolucao || '')
+      .split(/\n+/)
+      .map(s => s.trim())
+      .filter(s => s.length);
+    const newLines = selectedContents
+      .map(s => s.trim())
+      .filter(s => s.length)
+      .filter(s => !existingLines.includes(s));
+    const finalText = [...existingLines, ...newLines].join('\n');
+    onFieldChange('evolucao', finalText);
   };
 
   return (

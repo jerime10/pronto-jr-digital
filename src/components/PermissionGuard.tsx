@@ -84,10 +84,23 @@ export const MenuItemGuard: React.FC<MenuItemGuardProps> = ({
 }) => {
   const { hasPermission, isLoading } = usePermissions();
 
-  if (isLoading || !hasPermission(permission)) {
+  console.log('🔒 [MenuItemGuard] Verificando permissão:', permission, 'isLoading:', isLoading, 'hasPermission:', hasPermission(permission));
+
+  if (isLoading) {
+    console.log('⏳ [MenuItemGuard] Ainda carregando, renderizando item com estado de loading');
+    // Durante o carregamento, vamos renderizar o item mas desabilitado
+    return React.cloneElement(children as React.ReactElement, {
+      className: ((children as React.ReactElement).props.className || '') + ' opacity-50 pointer-events-none',
+      title: 'Carregando permissões...'
+    });
+  }
+
+  if (!hasPermission(permission)) {
+    console.log('❌ [MenuItemGuard] Sem permissão para:', permission);
     return null;
   }
 
+  console.log('✅ [MenuItemGuard] Renderizando item de menu com permissão:', permission);
   return <>{children}</>;
 };
 

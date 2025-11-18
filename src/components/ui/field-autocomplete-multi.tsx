@@ -38,82 +38,39 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Reset searchTerm when component unmounts or selectedValues changes dramatically
+  // Remover o useEffect problemático que estava causando loop
+  // A limpeza do searchTerm agora será feita apenas após seleção ou quando apropriado
+
+  // Debounce search (somente com 1+ caractere e com foco no input)
   useEffect(() => {
-    // Se selectedValues estiver vazio e searchTerm não estiver, limpar searchTerm
-    if (selectedValues.length === 0 && searchTerm) {
-      console.log('🧹 [AUTOCOMPLETE-RESET] Limpando searchTerm pois selectedValues está vazio');
-      setSearchTerm('');
+    // APENAS limpar se NÃO estiver digitando (input não está focado)
+    if (!searchTerm.trim().length && document.activeElement !== inputRef.current) {
       setSuggestions([]);
       setIsOpen(false);
+      return;
     }
-  }, [selectedValues, searchTerm]);
 
-  // Debounce search
-  useEffect(() => {
-    console.log('🔍 [AUTOCOMPLETE-EFFECT] useEffect disparado:', {
-      fieldName,
-      searchTerm,
-      searchTermLength: searchTerm.length,
-      searchTermTrimmed: searchTerm.trim(),
-      timestamp: new Date().toISOString()
-    });
+    // Se estiver vazio mas o input está focado, não fazer nada (permite digitar)
+    if (!searchTerm.trim().length) {
+      return;
+    }
 
-    // Sempre fazer a busca, mesmo sem searchTerm (para mostrar todas as opções)
-    console.log('⏳ [AUTOCOMPLETE-EFFECT] Iniciando timer de debounce (300ms)', { fieldName, searchTerm });
     const timer = setTimeout(async () => {
-      console.log('⏰ [AUTOCOMPLETE-DEBOUNCE] Timer disparado após 300ms', { fieldName, searchTerm });
       setIsLoading(true);
       try {
-        console.log('🔍 [AUTOCOMPLETE-SEARCH] Chamando onSearch:', {
-          fieldName,
-          searchTerm,
-          onSearchType: typeof onSearch,
-          timestamp: new Date().toISOString()
-        });
-        
         const results = await onSearch(searchTerm);
-        
-        console.log('✅ [AUTOCOMPLETE-SEARCH] Resultados recebidos:', {
-          fieldName,
-          searchTerm,
-          count: results.length,
-          firstResult: results[0]?.field_content?.substring(0, 50),
-          hasResults: results.length > 0
-        });
-        
         setSuggestions(results);
-        const shouldOpen = results.length > 0;
-        console.log(`📋 [AUTOCOMPLETE-SEARCH] Atualizando estado:`, {
-          fieldName,
-          suggestionsCount: results.length,
-          isOpen: shouldOpen,
-          willShowDropdown: shouldOpen
-        });
+        const shouldOpen = results.length > 0 && document.activeElement === inputRef.current;
         setIsOpen(shouldOpen);
-        
-        if (results.length === 0) {
-          console.log('⚠️ [AUTOCOMPLETE-SEARCH] Nenhum resultado encontrado:', { fieldName, searchTerm });
-        } else {
-          console.log('🎉 [AUTOCOMPLETE-SEARCH] Dropdown deve abrir agora com', results.length, 'itens');
-        }
       } catch (error) {
-        console.error('❌ [AUTOCOMPLETE-SEARCH] Erro ao buscar sugestões:', {
-          fieldName,
-          searchTerm,
-          error
-        });
+        console.error('❌ [AUTOCOMPLETE-SEARCH] Erro ao buscar sugestões:', { fieldName, searchTerm, error });
         toast.error('Erro ao buscar sugestões');
       } finally {
         setIsLoading(false);
-        console.log('🏁 [AUTOCOMPLETE-SEARCH] Busca finalizada:', { fieldName, isLoading: false });
       }
     }, 300);
 
-    return () => {
-      console.log('🧹 [AUTOCOMPLETE-EFFECT] Limpando timer de debounce');
-      clearTimeout(timer);
-    };
+    return () => clearTimeout(timer);
   }, [searchTerm, onSearch, fieldName]);
 
   // Click outside handler
@@ -143,7 +100,8 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
       console.log('✅ [AUTOCOMPLETE-SELECT] Adicionando novo valor:', {
         fieldName,
         newValuePreview: suggestion.field_content?.substring(0, 50) + '...',
-        totalValues: newValues.length
+        totalValues: newValues.length,
+        callingOnChange: true
       });
       console.log('📤 [AUTOCOMPLETE-SELECT] Chamando onChange com', newValues.length, 'valores');
       onChange(newValues);
@@ -161,6 +119,19 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
 
   const handleRemoveValue = (value: string) => {
     onChange(selectedValues.filter(v => v !== value));
+    // Limpar searchTerm quando remover um valor, mas manter foco
+    if (inputRef.current) {
+      setSearchTerm('');
+      inputRef.current.focus();
+    }
+  };
+
+  const handleClearAll = () => {
+    onChange([]);
+    setSearchTerm('');
+    setSuggestions([]);
+    setIsOpen(false);
+    inputRef.current?.focus();
   };
 
   const handleDeleteSuggestion = async (suggestion: AutocompleteSuggestion, event: React.MouseEvent) => {
@@ -236,6 +207,17 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
                 </button>
               </Badge>
             ))}
+            {selectedValues.length > 1 && (
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="px-2 py-1 text-xs text-destructive hover:bg-destructive/10 rounded transition-colors"
+                disabled={disabled}
+                title="Limpar todos"
+              >
+                Limpar todos
+              </button>
+            )}
           </div>
         )}
 
@@ -246,28 +228,25 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
             ref={inputRef}
             type="text"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onInput={(e) => {
+              console.log('🎯 [INPUT-EVENT] Evento input nativo:', e.target.value);
+            }}
+            onChange={(e) => {
+              console.log('⌨️ [AUTOCOMPLETE-TYPING] Digitando no campo:', fieldName, 'valor:', e.target.value);
+              const novoValor = e.target.value;
+              setSearchTerm(novoValor);
+              console.log('⌨️ [AUTOCOMPLETE-TYPING] searchTerm atualizado para:', novoValor);
+            }}
             onFocus={async () => {
-              console.log('👆 [AUTOCOMPLETE-FOCUS] Campo focado, buscando sugestões:', fieldName);
-              // Buscar sugestões ao focar no campo
-              if (!isLoading && suggestions.length === 0) {
-                setIsLoading(true);
-                try {
-                  const results = await onSearch(searchTerm);
-                  console.log('👆 [AUTOCOMPLETE-FOCUS] Resultados ao focar:', results.length);
-                  setSuggestions(results);
-                  if (results.length > 0) {
-                    setIsOpen(true);
-                  }
-                } catch (error) {
-                  console.error('❌ [AUTOCOMPLETE-FOCUS] Erro ao buscar:', error);
-                } finally {
-                  setIsLoading(false);
-                }
-              } else if (suggestions.length > 0) {
-                console.log('👆 [AUTOCOMPLETE-FOCUS] Já existem sugestões, apenas abrindo dropdown');
+              // Apenas abrir/buscar se já houver 1+ caractere
+              if (searchTerm.trim().length === 0) return;
+              if (suggestions.length > 0) {
                 setIsOpen(true);
               }
+            }}
+            onBlur={() => {
+              // Adicionar pequeno delay para permitir cliques em sugestões
+              setTimeout(() => setIsOpen(false), 150);
             }}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}

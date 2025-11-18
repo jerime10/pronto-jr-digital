@@ -29,20 +29,43 @@ const PrescricaoTab: React.FC<PrescricaoTabProps> = ({
     if (onMultiModelChange) {
       onMultiModelChange(selectedIds);
     } else {
-      // Fallback para o comportamento local
+      // Fallback para o comportamento local - manter ordem e evitar duplicatas
       onFieldChange('modelosPrescricaoSelecionados', selectedIds);
       
-      // Concatenar as descrições dos modelos selecionados
-      const selectedModels = prescriptionModels.filter(model => 
-        selectedIds.includes(model.id)
-      );
+      // Manter a ordem de seleção e evitar duplicatas
+      const selectedModels = selectedIds.map(id => 
+        prescriptionModels.find(model => model.id === id)
+      ).filter(Boolean); // Remove undefined
       
-      const concatenatedDescriptions = selectedModels
-        .map(model => model.description)
-        .join('\n\n... ... ...\n\n');
+      // Usar Map para manter ordem e evitar duplicatas
+      const uniqueModels = new Map<string, any>();
       
-      // Atualizar a prescrição personalizada com as descrições concatenadas
-      onFieldChange('prescricaoPersonalizada', concatenatedDescriptions);
+      selectedModels.forEach(model => {
+        const description = (model.description || '').trim();
+        if (description && !uniqueModels.has(description)) {
+          uniqueModels.set(description, model);
+        }
+      });
+      
+      // Manter a ordem original de seleção e limpar separadores
+      const finalLines = Array.from(uniqueModels.values()).map(model => {
+        let desc = (model.description || '').trim();
+        
+        // Remover linhas de separadores (----)
+        desc = desc.replace(/^[-]{3,}.*$/gm, '').trim();
+        
+        // Remover múltiplas linhas vazias consecutivas
+        desc = desc.replace(/\n{3,}/g, '\n\n');
+        
+        return desc;
+      }).filter(Boolean);
+      
+      // Se não houver modelos selecionados, manter o texto existente do usuário
+      const finalText = finalLines.length > 0 
+        ? finalLines.join('\n\n') // Apenas espaço duplo entre itens, sem separadores
+        : form.prescricaoPersonalizada || '';
+      
+      onFieldChange('prescricaoPersonalizada', finalText);
     }
   };
 

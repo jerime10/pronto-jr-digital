@@ -61,6 +61,7 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
     onSelectedModelChange?.(modelTitle);
   };
   const handleFieldChange = (field: keyof FormState, value: any) => {
+    console.log('🔄 [AtendimentoTabs] handleFieldChange chamado:', { field, value: typeof value === 'string' ? value.substring(0, 50) + (value.length > 50 ? '...' : '') : value });
     updateFormField(field as string, value);
   };
 

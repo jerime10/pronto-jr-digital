@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,19 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
   const [selectedQueixas, setSelectedQueixas] = useState<string[]>([]);
   const [selectedAntecedentes, setSelectedAntecedentes] = useState<string[]>([]);
   const [selectedAlergias, setSelectedAlergias] = useState<string[]>([]);
+
+  // Inicializar valores dos campos se já existirem no formulário
+  useEffect(() => {
+    if (form.antecedentes && !selectedAntecedentes.length) {
+      setSelectedAntecedentes([form.antecedentes]);
+    }
+    if (form.alergias && !selectedAlergias.length) {
+      setSelectedAlergias([form.alergias]);
+    }
+    if (form.queixaPrincipal && !selectedQueixas.length) {
+      setSelectedQueixas([form.queixaPrincipal]);
+    }
+  }, []); // Removendo dependências para evitar loop infinito
 
   // Salvar Queixa Principal
   const handleSaveQueixa = async () => {
@@ -104,32 +117,59 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
   // Handlers para mudança de modelos (agora recebem conteúdos, não IDs)
   const handleQueixaModelChange = (selectedContents: string[]) => {
     console.log('📝 [QUEIXA] Conteúdos selecionados:', selectedContents);
+    console.log('📝 [QUEIXA] Estado atual de form.queixaPrincipal:', form.queixaPrincipal);
     setSelectedQueixas(selectedContents);
     
-    // Concatenar os valores selecionados
-    const concatenated = selectedContents.join('\n\n... ... ...\n\n');
-    console.log('📝 [QUEIXA] Valor concatenado:', concatenated);
-    onFieldChange('queixaPrincipal', concatenated);
+    // Append único preservando texto existente
+    const existingLines = (form.queixaPrincipal || '')
+      .split(/\n+/)
+      .map(s => s.trim())
+      .filter(s => s.length);
+    const newLines = selectedContents
+      .map(s => s.trim())
+      .filter(s => s.length)
+      .filter(s => !existingLines.includes(s));
+    const finalText = [...existingLines, ...newLines].join('\n');
+    console.log('📝 [QUEIXA] Texto final a ser aplicado:', finalText);
+    onFieldChange('queixaPrincipal', finalText);
   };
 
   const handleAntecedentesModelChange = (selectedContents: string[]) => {
     console.log('📝 [ANTECEDENTES] Conteúdos selecionados:', selectedContents);
+    console.log('📝 [ANTECEDENTES] Estado atual de form.antecedentes:', form.antecedentes);
     setSelectedAntecedentes(selectedContents);
     
-    // Concatenar os valores selecionados
-    const concatenated = selectedContents.join('\n\n... ... ...\n\n');
-    console.log('📝 [ANTECEDENTES] Valor concatenado:', concatenated);
-    onFieldChange('antecedentes', concatenated);
+    // Append único preservando texto existente
+    const existingLines = (form.antecedentes || '')
+      .split(/\n+/)
+      .map(s => s.trim())
+      .filter(s => s.length);
+    const newLines = selectedContents
+      .map(s => s.trim())
+      .filter(s => s.length)
+      .filter(s => !existingLines.includes(s));
+    const finalText = [...existingLines, ...newLines].join('\n');
+    console.log('📝 [ANTECEDENTES] Texto final a ser aplicado:', finalText);
+    onFieldChange('antecedentes', finalText);
   };
 
   const handleAlergiasModelChange = (selectedContents: string[]) => {
     console.log('📝 [ALERGIAS] Conteúdos selecionados:', selectedContents);
+    console.log('📝 [ALERGIAS] Estado atual de form.alergias:', form.alergias);
     setSelectedAlergias(selectedContents);
     
-    // Concatenar os valores selecionados
-    const concatenated = selectedContents.join('\n\n... ... ...\n\n');
-    console.log('📝 [ALERGIAS] Valor concatenado:', concatenated);
-    onFieldChange('alergias', concatenated);
+    // Append único preservando texto existente
+    const existingLines = (form.alergias || '')
+      .split(/\n+/)
+      .map(s => s.trim())
+      .filter(s => s.length);
+    const newLines = selectedContents
+      .map(s => s.trim())
+      .filter(s => s.length)
+      .filter(s => !existingLines.includes(s));
+    const finalText = [...existingLines, ...newLines].join('\n');
+    console.log('📝 [ALERGIAS] Texto final a ser aplicado:', finalText);
+    onFieldChange('alergias', finalText);
   };
 
   return (

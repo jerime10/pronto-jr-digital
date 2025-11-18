@@ -63,16 +63,61 @@ export const useFormData = () => {
   }, [prescriptionModels]);
 
   const handleModelosPrescricaoChange = useCallback((modelIds: string[]) => {
-    // Atualizar prescrição personalizada com os modelos selecionados
-    const selectedModels = prescriptionModels.filter(model => modelIds.includes(model.id));
-    const combinedDescription = selectedModels.map(model => model.description).join('\n\n... ... ...\n\n');
+    console.log('💊 [useFormData] handleModelosPrescricaoChange chamado com:', modelIds);
+    console.log('💊 [useFormData] Ordem original dos IDs:', modelIds);
+    
+    // Manter a ordem de seleção e evitar duplicatas
+    const selectedModels = modelIds.map(id => {
+      const model = prescriptionModels.find(model => model.id === id);
+      console.log(`💊 [useFormData] Buscando ID ${id}:`, model ? `encontrado (${model.name})` : 'não encontrado');
+      return model;
+    }).filter(Boolean); // Remove undefined
+    
+    console.log('💊 [useFormData] Modelos selecionados na ordem:', selectedModels.map(m => ({ id: m.id, name: m.name })));
+    
+    // Usar Map para manter ordem e evitar duplicatas
+    const uniqueModels = new Map<string, any>();
+    
+    selectedModels.forEach(model => {
+      const description = (model.description || '').trim();
+      if (description && !uniqueModels.has(description)) {
+        uniqueModels.set(description, model);
+        console.log('💊 [useFormData] Adicionando modelo único na ordem:', model.name);
+      } else if (uniqueModels.has(description)) {
+        console.log('💊 [useFormData] Modelo duplicado ignorado:', model.name);
+      }
+    });
+    
+    // Manter a ordem original de seleção e limpar separadores
+    const finalLines = Array.from(uniqueModels.values()).map(model => {
+      let desc = (model.description || '').trim();
+      
+      // Remover linhas de separadores (----)
+      desc = desc.replace(/^[-]{3,}.*$/gm, '').trim();
+      
+      // Remover múltiplas linhas vazias consecutivas
+      desc = desc.replace(/\n{3,}/g, '\n\n');
+      
+      console.log('💊 [useFormData] Linha final limpa:', model.name, '-', desc.substring(0, 50) + '...');
+      return desc;
+    }).filter(Boolean);
+    
+    console.log('💊 [useFormData] Total de modelos únicos na ordem:', finalLines.length);
+    
+    // Se não houver modelos selecionados, manter o texto existente do usuário
+    const finalText = finalLines.length > 0 
+      ? finalLines.join('\n\n') // Apenas espaço duplo entre itens, sem separadores
+      : form.prescricaoPersonalizada || '';
+    
+    console.log('💊 [useFormData] Texto final gerado (completo):', finalText);
+    console.log('💊 [useFormData] Texto final (primeiros 300 chars):', finalText.substring(0, 300) + (finalText.length > 300 ? '...' : ''));
     
     setForm(prev => ({
       ...prev,
       modelosPrescricaoSelecionados: modelIds,
-      prescricaoPersonalizada: combinedDescription || prev.prescricaoPersonalizada
+      prescricaoPersonalizada: finalText
     }));
-  }, [prescriptionModels]);
+  }, [prescriptionModels, form.prescricaoPersonalizada]);
 
   const handleExamesChange = useCallback((examIds: string[]) => {
     setForm(prev => ({
