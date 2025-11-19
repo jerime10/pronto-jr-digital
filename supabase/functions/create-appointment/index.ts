@@ -108,8 +108,8 @@ Deno.serve(async (req) => {
       }
     }
     
-    // Executar tarefa em background sem bloquear resposta
-    EdgeRuntime.waitUntil(sendReminderTask())
+    // Executar tarefa em background sem bloquear resposta (removido EdgeRuntime.waitUntil que não existe)
+    sendReminderTask()
     
     return new Response(
       JSON.stringify({ success: true, data: { message: 'Agendamento criado com sucesso' } }),
@@ -117,8 +117,9 @@ Deno.serve(async (req) => {
     )
   } catch (error) {
     console.error('❌ [Edge Function] Unexpected error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: errorMessage }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }

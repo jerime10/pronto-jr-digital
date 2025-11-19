@@ -273,13 +273,14 @@ serve(async (req) => {
         console.error(`❌ Error sending webhook request:`, error);
         
         // Log erro
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         await supabase
           .from('appointment_reminders_log')
           .insert({
             appointment_id: appointment.id,
             reminder_type: reminderType,
             status: 'failed',
-            error_message: error.message
+            error_message: errorMessage
           });
       }
     }
@@ -308,11 +309,13 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('❌ Error in scheduled-reminders function:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorDetails = error instanceof Error ? error.toString() : String(error)
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
-        details: error.toString()
+        error: errorMessage,
+        details: errorDetails
       }),
       {
         status: 500,
