@@ -228,10 +228,10 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
             ref={inputRef}
             type="text"
             value={searchTerm}
-            onInput={(e) => {
-              console.log('🎯 [INPUT-EVENT] Evento input nativo:', e.target.value);
+            onInput={(e: React.FormEvent<HTMLInputElement>) => {
+              console.log('🎯 [INPUT-EVENT] Evento input nativo:', e.currentTarget.value);
             }}
-            onChange={(e) => {
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               console.log('⌨️ [AUTOCOMPLETE-TYPING] Digitando no campo:', fieldName, 'valor:', e.target.value);
               const novoValor = e.target.value;
               setSearchTerm(novoValor);

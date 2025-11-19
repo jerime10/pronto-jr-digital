@@ -1094,10 +1094,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      cleanup_expired_sessions: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      cleanup_expired_sessions: { Args: never; Returns: number }
       create_auth_policy: {
         Args: {
           check_expression: string
@@ -1115,12 +1112,9 @@ export type Database = {
         Args: { username_input: string }
         Returns: string
       }
-      get_current_user_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_current_user_id: { Args: never; Returns: string }
       get_modelo_result_exames: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           id: string
@@ -1148,17 +1142,11 @@ export type Database = {
           updated_at: string
         }[]
       }
-      get_user_permissions: {
-        Args: { user_id_input: string }
-        Returns: Json
-      }
-      hash_password: {
-        Args: { password: string }
-        Returns: string
-      }
-      insert_appointment: {
-        Args:
-          | {
+      get_user_permissions: { Args: { user_id_input: string }; Returns: Json }
+      hash_password: { Args: { password: string }; Returns: string }
+      insert_appointment:
+        | {
+            Args: {
               p_appointment_date: string
               p_appointment_datetime: string
               p_appointment_time: string
@@ -1181,7 +1169,10 @@ export type Database = {
               p_service_price: number
               p_status: string
             }
-          | {
+            Returns: string
+          }
+        | {
+            Args: {
               p_appointment_date: string
               p_appointment_datetime: string
               p_appointment_time: string
@@ -1203,12 +1194,9 @@ export type Database = {
               p_service_price: number
               p_status: string
             }
-        Returns: string
-      }
-      is_current_user_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+            Returns: string
+          }
+      is_current_user_admin: { Args: never; Returns: boolean }
       pg_enable_row_level_security: {
         Args: { table_name: string }
         Returns: undefined

@@ -32,9 +32,13 @@ export const useIndividualFieldTemplates = () => {
   // Buscar templates por campo específico e modelo
   const searchFieldTemplates = async (fieldKey: string, searchTerm: string, modelName: string) => {
     console.log('🔍 [HOOK-SEARCH] ===== INÍCIO searchFieldTemplates =====');
-    console.log('🔍 [HOOK-SEARCH] fieldKey:', fieldKey);
-    console.log('🔍 [HOOK-SEARCH] searchTerm:', searchTerm);
-    console.log('🔍 [HOOK-SEARCH] modelName:', modelName);
+    console.log('🔍 [HOOK-SEARCH] Parâmetros recebidos:', {
+      fieldKey,
+      searchTerm,
+      searchTermLength: searchTerm?.length || 0,
+      modelName,
+      modelNameLength: modelName?.length || 0
+    });
     
     // Exigir ao menos 1 caractere; se vazio, não buscar
     if (!searchTerm || !searchTerm.trim()) {
@@ -42,6 +46,38 @@ export const useIndividualFieldTemplates = () => {
       return [] as IndividualFieldTemplate[];
     }
 
+    // Primeiro, verificar TODOS os registros para diagnóstico
+    console.log('🔍 [HOOK-SEARCH] Verificando TODOS os registros da tabela...');
+    const { data: allData, error: allError } = await supabase
+      .from('individual_field_templates')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (allError) {
+      console.error('❌ [HOOK-SEARCH] Erro ao buscar TODOS templates:', allError);
+    } else {
+      console.log('📊 [HOOK-SEARCH] Total de registros na tabela:', allData?.length || 0);
+      console.log('📊 [HOOK-SEARCH] Registros para este modelo:', 
+        allData?.filter(d => d.model_name === modelName).length || 0
+      );
+      console.log('📊 [HOOK-SEARCH] Registros para este fieldKey:', 
+        allData?.filter(d => d.field_key === fieldKey).length || 0
+      );
+      console.log('📊 [HOOK-SEARCH] Registros para modelo E fieldKey:', 
+        allData?.filter(d => d.model_name === modelName && d.field_key === fieldKey).length || 0
+      );
+      
+      // Mostrar amostra dos dados
+      const sampleData = allData?.slice(0, 3).map(d => ({
+        field_key: d.field_key,
+        model_name: d.model_name,
+        field_content_preview: d.field_content?.substring(0, 50) + '...'
+      }));
+      console.log('📊 [HOOK-SEARCH] Amostra dos primeiros 3 registros:', sampleData);
+    }
+
+    // Agora fazer a busca filtrada
+    console.log('🔍 [HOOK-SEARCH] Executando busca filtrada...');
     const { data, error } = await supabase
       .from('individual_field_templates')
       .select('*')
@@ -52,12 +88,25 @@ export const useIndividualFieldTemplates = () => {
       .limit(10);
 
     if (error) {
-      console.error('❌ [HOOK-SEARCH] Erro ao buscar templates:', error);
+      console.error('❌ [HOOK-SEARCH] Erro ao buscar templates filtrados:', error);
       return [];
     }
 
-    console.log('✅ [HOOK-SEARCH] Templates encontrados:', data?.length || 0);
-    console.log('✅ [HOOK-SEARCH] Dados:', data);
+    console.log('✅ [HOOK-SEARCH] Templates encontrados (filtrados):', data?.length || 0);
+    if (data && data.length > 0) {
+      console.log('✅ [HOOK-SEARCH] Dados encontrados:', data.map(d => ({
+        id: d.id,
+        field_key: d.field_key,
+        field_label: d.field_label,
+        model_name: d.model_name,
+        content_preview: d.field_content?.substring(0, 50) + '...'
+      })));
+    } else {
+      console.log('⚠️ [HOOK-SEARCH] Nenhum resultado encontrado. Possíveis causas:');
+      console.log('   - model_name não corresponde (esperado:', modelName, ')');
+      console.log('   - field_key não corresponde (esperado:', fieldKey, ')');
+      console.log('   - field_content não contém o termo de busca:', searchTerm);
+    }
     console.log('🔍 [HOOK-SEARCH] ===== FIM searchFieldTemplates =====');
     
     return data as IndividualFieldTemplate[];
