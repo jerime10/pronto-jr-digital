@@ -46,36 +46,6 @@ export const useIndividualFieldTemplates = () => {
       return [] as IndividualFieldTemplate[];
     }
 
-    // Primeiro, verificar TODOS os registros para diagnóstico
-    console.log('🔍 [HOOK-SEARCH] Verificando TODOS os registros da tabela...');
-    const { data: allData, error: allError } = await supabase
-      .from('individual_field_templates')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (allError) {
-      console.error('❌ [HOOK-SEARCH] Erro ao buscar TODOS templates:', allError);
-    } else {
-      console.log('📊 [HOOK-SEARCH] Total de registros na tabela:', allData?.length || 0);
-      console.log('📊 [HOOK-SEARCH] Registros para este modelo:', 
-        allData?.filter(d => d.model_name === modelName).length || 0
-      );
-      console.log('📊 [HOOK-SEARCH] Registros para este fieldKey:', 
-        allData?.filter(d => d.field_key === fieldKey).length || 0
-      );
-      console.log('📊 [HOOK-SEARCH] Registros para modelo E fieldKey:', 
-        allData?.filter(d => d.model_name === modelName && d.field_key === fieldKey).length || 0
-      );
-      
-      // Mostrar amostra dos dados
-      const sampleData = allData?.slice(0, 3).map(d => ({
-        field_key: d.field_key,
-        model_name: d.model_name,
-        field_content_preview: d.field_content?.substring(0, 50) + '...'
-      }));
-      console.log('📊 [HOOK-SEARCH] Amostra dos primeiros 3 registros:', sampleData);
-    }
-
     // Agora fazer a busca filtrada
     console.log('🔍 [HOOK-SEARCH] Executando busca filtrada...');
     const { data, error } = await supabase

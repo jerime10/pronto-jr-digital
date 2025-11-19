@@ -86,35 +86,15 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
   }, []);
 
   const handleSelectSuggestion = (suggestion: AutocompleteSuggestion) => {
-    console.log('🎯 [AUTOCOMPLETE-SELECT] ===== INÍCIO Seleção =====');
-    console.log('🎯 [AUTOCOMPLETE-SELECT] Sugestão selecionada:', {
-      fieldName,
-      suggestionId: suggestion.id,
-      suggestionContent: suggestion.field_content?.substring(0, 50) + '...',
-      isAlreadySelected: selectedValues.includes(suggestion.field_content),
-      currentSelectedValuesCount: selectedValues.length
-    });
-
     if (!selectedValues.includes(suggestion.field_content)) {
       const newValues = [...selectedValues, suggestion.field_content];
-      console.log('✅ [AUTOCOMPLETE-SELECT] Adicionando novo valor:', {
-        fieldName,
-        newValuePreview: suggestion.field_content?.substring(0, 50) + '...',
-        totalValues: newValues.length,
-        callingOnChange: true
-      });
-      console.log('📤 [AUTOCOMPLETE-SELECT] Chamando onChange com', newValues.length, 'valores');
       onChange(newValues);
-    } else {
-      console.log('⚠️ [AUTOCOMPLETE-SELECT] Valor já selecionado, ignorando');
     }
-    
-    console.log('🧹 [AUTOCOMPLETE-SELECT] Limpando estado: searchTerm, suggestions, isOpen');
+
     setSearchTerm('');
     setSuggestions([]);
     setIsOpen(false);
     inputRef.current?.focus();
-    console.log('🎯 [AUTOCOMPLETE-SELECT] ===== FIM Seleção =====');
   };
 
   const handleRemoveValue = (value: string) => {
@@ -228,14 +208,9 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
             ref={inputRef}
             type="text"
             value={searchTerm}
-            onInput={(e: React.FormEvent<HTMLInputElement>) => {
-              console.log('🎯 [INPUT-EVENT] Evento input nativo:', e.currentTarget.value);
-            }}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              console.log('⌨️ [AUTOCOMPLETE-TYPING] Digitando no campo:', fieldName, 'valor:', e.target.value);
               const novoValor = e.target.value;
               setSearchTerm(novoValor);
-              console.log('⌨️ [AUTOCOMPLETE-TYPING] searchTerm atualizado para:', novoValor);
             }}
             onFocus={async () => {
               // Apenas abrir/buscar se já houver 1+ caractere
@@ -273,11 +248,6 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
                 ${highlightedIndex === index ? 'bg-accent' : ''}
               `}
               onClick={() => {
-                console.log('🖱️ [AUTOCOMPLETE-CLICK] Sugestão clicada:', {
-                  fieldName,
-                  index,
-                  suggestion
-                });
                 handleSelectSuggestion(suggestion);
               }}
             >
