@@ -1,5 +1,6 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Patient } from '@/types/database';
 
@@ -42,67 +43,43 @@ export const usePacienteSearch = (initialPatient?: Patient | null) => {
     }
   }, [initialPatient, pacienteSelecionado]);
   
-  const [filteredPacientes, setFilteredPacientes] = useState<Patient[]>([]);
-  const [isSearchingPacientes, setIsSearchingPacientes] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Buscar todos os pacientes ou filtrados com debounce simples
-  useEffect(() => {
-    if (!mostrarResultadosBusca) return;
-
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    searchTimeoutRef.current = setTimeout(async () => {
-      setIsSearchingPacientes(true);
-      try {
-        let query = supabase.from('patients').select('*');
-
-        if (buscarPaciente.trim().length > 0) {
-          const searchTerm = buscarPaciente.trim();
-          query = query.or(`name.ilike.%${searchTerm}%,sus.ilike.%${searchTerm}%`);
-        }
-
-        const { data, error } = await query
-          .order('name', { ascending: true })
-          .limit(50);
-
-        if (error) {
-          console.error('Error searching patients:', error);
-          setFilteredPacientes([]);
-          return;
-        }
-
-        const mapped =
-          data?.map((p) => ({
-            id: p.id,
-            name: p.name,
-            sus: p.sus,
-            age: p.age || 0,
-            gender: p.gender || 'não informado',
-            phone: p.phone || '',
-            address: p.address || '',
-            date_of_birth: p.date_of_birth,
-            created_at: p.created_at,
-            updated_at: p.updated_at,
-          })) || [];
-
-        setFilteredPacientes(mapped);
-      } catch (error) {
+  // Query para buscar todos os pacientes ou filtrados
+  const { data: filteredPacientes, isLoading: isSearchingPacientes } = useQuery({
+    queryKey: ['patients_search', buscarPaciente],
+    queryFn: async () => {
+      let query = supabase.from('patients').select('*');
+      
+      // Se há termo de busca, filtra por nome ou SUS
+      if (buscarPaciente.trim().length > 0) {
+        const searchTerm = buscarPaciente.trim();
+        query = query.or(`name.ilike.%${searchTerm}%,sus.ilike.%${searchTerm}%`);
+      }
+      
+      const { data, error } = await query
+        .order('name', { ascending: true })
+        .limit(50);
+      
+      if (error) {
         console.error('Error searching patients:', error);
-        setFilteredPacientes([]);
-      } finally {
-        setIsSearchingPacientes(false);
+        throw error;
       }
-    }, 300);
-
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [buscarPaciente, mostrarResultadosBusca]);
+      
+      return data?.map(p => ({
+        id: p.id,
+        name: p.name,
+        sus: p.sus,
+        age: p.age || 0,
+        gender: p.gender || 'não informado',
+        phone: p.phone || '',
+        address: p.address || '',
+        date_of_birth: p.date_of_birth,
+        created_at: p.created_at,
+        updated_at: p.updated_at
+      })) || [];
+    },
+    enabled: true,
+    staleTime: 5 * 60 * 1000,
+  });
   
   // Modified to support both event and direct string input
   const handlePacienteSearch = (input: React.ChangeEvent<HTMLInputElement> | string) => {
