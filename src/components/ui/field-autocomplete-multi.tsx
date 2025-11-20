@@ -41,17 +41,11 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
   // Remover o useEffect problemático que estava causando loop
   // A limpeza do searchTerm agora será feita apenas após seleção ou quando apropriado
 
-  // Debounce search (somente com 1+ caractere e com foco no input)
+  // Debounce search - SEMPRE buscar, mas só mostrar dropdown se houver 1+ caractere
   useEffect(() => {
-    // APENAS limpar se NÃO estiver digitando (input não está focado)
-    if (!searchTerm.trim().length && document.activeElement !== inputRef.current) {
-      setSuggestions([]);
-      setIsOpen(false);
-      return;
-    }
-
-    // Se estiver vazio mas o input está focado, não fazer nada (permite digitar)
+    // Se vazio, fechar dropdown mas NÃO limpar sugestões (para próxima busca)
     if (!searchTerm.trim().length) {
+      setIsOpen(false);
       return;
     }
 
@@ -60,6 +54,7 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
       try {
         const results = await onSearch(searchTerm);
         setSuggestions(results);
+        // Só abrir dropdown se houver resultados E o input estiver focado
         const shouldOpen = results.length > 0 && document.activeElement === inputRef.current;
         setIsOpen(shouldOpen);
       } catch (error) {
@@ -212,12 +207,9 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
               const novoValor = e.target.value;
               setSearchTerm(novoValor);
             }}
-            onFocus={async () => {
-              // Apenas abrir/buscar se já houver 1+ caractere
-              if (searchTerm.trim().length === 0) return;
-              if (suggestions.length > 0) {
-                setIsOpen(true);
-              }
+            onFocus={() => {
+              // Não fazer nada no foco - deixar o usuário digitar
+              // O dropdown só abrirá quando houver 1+ caractere
             }}
             onBlur={() => {
               // Adicionar pequeno delay para permitir cliques em sugestões

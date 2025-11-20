@@ -40,6 +40,7 @@ export const useIndividualFieldTemplates = () => {
       modelNameLength: modelName?.length || 0
     });
     
+    // Sempre retornar dados mesmo com termo vazio (para que o dropdown funcione)
     let query = supabase
       .from('individual_field_templates')
       .select('*')
