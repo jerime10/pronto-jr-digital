@@ -54,9 +54,8 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
       try {
         const results = await onSearch(searchTerm);
         setSuggestions(results);
-        // Só abrir dropdown se houver resultados E o input estiver focado
-        const shouldOpen = results.length > 0 && document.activeElement === inputRef.current;
-        setIsOpen(shouldOpen);
+        // Só abrir dropdown se houver resultados para o termo digitado
+        setIsOpen(results.length > 0);
       } catch (error) {
         console.error('❌ [AUTOCOMPLETE-SEARCH] Erro ao buscar sugestões:', { fieldName, searchTerm, error });
         toast.error('Erro ao buscar sugestões');
