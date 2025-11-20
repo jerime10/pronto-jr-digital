@@ -89,16 +89,18 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
     setSearchTerm('');
     setSuggestions([]);
     setIsOpen(false);
+    setHighlightedIndex(-1);
     inputRef.current?.focus();
   };
 
   const handleRemoveValue = (value: string) => {
     onChange(selectedValues.filter(v => v !== value));
-    // Limpar searchTerm quando remover um valor, mas manter foco
-    if (inputRef.current) {
-      setSearchTerm('');
-      inputRef.current.focus();
-    }
+    // Limpar tudo quando remover um valor para permitir nova busca
+    setSearchTerm('');
+    setSuggestions([]);
+    setIsOpen(false);
+    setHighlightedIndex(-1);
+    inputRef.current?.focus();
   };
 
   const handleClearAll = () => {
