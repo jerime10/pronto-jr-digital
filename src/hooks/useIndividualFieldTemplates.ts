@@ -40,29 +40,30 @@ export const useIndividualFieldTemplates = () => {
       modelNameLength: modelName?.length || 0
     });
     
-    // Exigir ao menos 1 caractere; se vazio, não buscar
-    if (!searchTerm || !searchTerm.trim()) {
-      console.log('🔍 [HOOK-SEARCH] Termo vazio — não buscar e retornar []');
-      return [] as IndividualFieldTemplate[];
-    }
-
-    // Agora fazer a busca filtrada
-    console.log('🔍 [HOOK-SEARCH] Executando busca filtrada...');
-    const { data, error } = await supabase
+    let query = supabase
       .from('individual_field_templates')
       .select('*')
       .eq('field_key', fieldKey)
       .eq('model_name', modelName)
-      .ilike('field_content', `%${searchTerm}%`)
       .order('updated_at', { ascending: false })
       .limit(10);
 
+    // Se houver termo de busca, filtrar por ele
+    if (searchTerm && searchTerm.trim()) {
+      console.log('🔍 [HOOK-SEARCH] Executando busca filtrada com termo:', searchTerm);
+      query = query.ilike('field_content', `%${searchTerm}%`);
+    } else {
+      console.log('🔍 [HOOK-SEARCH] Termo vazio — buscar os 10 mais recentes sem filtro de texto');
+    }
+
+    const { data, error } = await query;
+
     if (error) {
-      console.error('❌ [HOOK-SEARCH] Erro ao buscar templates filtrados:', error);
+      console.error('❌ [HOOK-SEARCH] Erro ao buscar templates:', error);
       return [];
     }
 
-    console.log('✅ [HOOK-SEARCH] Templates encontrados (filtrados):', data?.length || 0);
+    console.log('✅ [HOOK-SEARCH] Templates encontrados:', data?.length || 0);
     if (data && data.length > 0) {
       console.log('✅ [HOOK-SEARCH] Dados encontrados:', data.map(d => ({
         id: d.id,
@@ -75,7 +76,9 @@ export const useIndividualFieldTemplates = () => {
       console.log('⚠️ [HOOK-SEARCH] Nenhum resultado encontrado. Possíveis causas:');
       console.log('   - model_name não corresponde (esperado:', modelName, ')');
       console.log('   - field_key não corresponde (esperado:', fieldKey, ')');
-      console.log('   - field_content não contém o termo de busca:', searchTerm);
+      if (searchTerm && searchTerm.trim()) {
+        console.log('   - field_content não contém o termo de busca:', searchTerm);
+      }
     }
     console.log('🔍 [HOOK-SEARCH] ===== FIM searchFieldTemplates =====');
     
