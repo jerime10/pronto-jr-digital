@@ -152,19 +152,12 @@ const defaultPermissions: UserPermissions = {
 export const usePermissions = () => {
   const { user } = useSimpleAuth();
 
-  console.log('🔑 [usePermissions] Iniciando hook. User:', user?.id, 'Username:', user?.username);
-
   const { data: permissions = defaultPermissions, isLoading, error } = useQuery({
     queryKey: ['user-permissions', user?.id],
     queryFn: async () => {
-      console.log('🔑 [usePermissions] Executando queryFn. User ID:', user?.id);
-      
       if (!user?.id) {
-        console.log('🔑 [usePermissions] User ID não encontrado, retornando defaultPermissions');
         return defaultPermissions;
       }
-
-      console.log('🔑 [usePermissions] Buscando permissões para user ID:', user.id);
 
       // Buscar permissões do usuário diretamente da tabela usuarios
       const { data: userData, error: userError } = await supabase
@@ -172,36 +165,31 @@ export const usePermissions = () => {
         .select('permissions, user_type')
         .eq('id', user.id)
         .eq('is_active', true)
-        .maybeSingle(); // Usar maybeSingle() em vez de single() para evitar erro quando não há resultados
-
-      console.log('🔑 [usePermissions] Resultado da consulta:', { userData, userError });
+        .maybeSingle();
 
       if (userError) {
-        console.error('🔑 [usePermissions] Erro ao buscar permissões:', userError);
+        console.error('[usePermissions] Erro ao buscar permissões:', userError);
         return defaultPermissions;
       }
 
       if (!userData) {
-          console.log('🔑 [usePermissions] UserData não encontrado, criando permissões padrão básicas');
-          // Se o usuário existe no auth mas não no banco, criar permissões básicas
-          const basicPermissions = {
-            ...defaultPermissions,
-            dashboard: true,
-            pacientes: true,
-            prescricoes: true,
-            exames: true,
-            atendimento: true,
-            historico_atendimentos: true,
-            agendamentos: true,
-            configuracoes: true,
-            user_type: 'user' as const,
-            is_admin: false,
-            is_partner: false
-          };
-          return basicPermissions as UserPermissions;
-        }
-
-      console.log('🔑 [usePermissions] UserData encontrado:', userData);
+        // Se o usuário existe no auth mas não no banco, criar permissões básicas
+        const basicPermissions = {
+          ...defaultPermissions,
+          dashboard: true,
+          pacientes: true,
+          prescricoes: true,
+          exames: true,
+          atendimento: true,
+          historico_atendimentos: true,
+          agendamentos: true,
+          configuracoes: true,
+          user_type: 'user' as const,
+          is_admin: false,
+          is_partner: false
+        };
+        return basicPermissions as UserPermissions;
+      }
 
       // Combinar permissões do banco com defaults e informações de contexto
       const userPermissions = userData.permissions as Record<string, boolean> || {};
@@ -213,15 +201,12 @@ export const usePermissions = () => {
         is_partner: userData.user_type === 'partner'
       };
 
-      console.log('🔑 [usePermissions] Permissões finais:', finalPermissions);
       return finalPermissions as UserPermissions;
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutos
     gcTime: 10 * 60 * 1000, // 10 minutos (cache time no React Query v5)
   });
-
-  console.log('🔑 [usePermissions] Estado final do hook:', { isLoading, error, permissions });
 
   // Função para verificar permissão específica
   const hasPermission = (permission: keyof UserPermissions): boolean => {
