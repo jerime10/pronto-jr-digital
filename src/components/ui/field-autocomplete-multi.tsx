@@ -102,7 +102,14 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        console.log('👆 [AUTOCOMPLETE] Click fora detectado - fechando dropdown e limpando estado');
         setIsOpen(false);
+        setSearchTerm('');
+        setSuggestions([]);
+        setHighlightedIndex(-1);
+        if (inputRef.current) {
+          inputRef.current.value = '';
+        }
       }
     };
 
@@ -176,6 +183,23 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
     }
   };
 
+  const handleInputBlur = () => {
+    console.log('🔵 [AUTOCOMPLETE] Input perdeu foco - preparando para limpar estado');
+    // Aguardar um pouco para permitir clicks em sugestões
+    setTimeout(() => {
+      if (!dropdownRef.current?.contains(document.activeElement)) {
+        console.log('🧹 [AUTOCOMPLETE] Limpando estado após perder foco');
+        setSearchTerm('');
+        setSuggestions([]);
+        setIsOpen(false);
+        setHighlightedIndex(-1);
+        if (inputRef.current) {
+          inputRef.current.value = '';
+        }
+      }
+    }, 200);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isOpen || suggestions.length === 0) return;
 
@@ -199,6 +223,11 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
       case 'Escape':
         setIsOpen(false);
         setSearchTerm('');
+        setSuggestions([]);
+        setHighlightedIndex(-1);
+        if (inputRef.current) {
+          inputRef.current.value = '';
+        }
         break;
     }
   };
@@ -251,6 +280,7 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
               setSearchTerm(e.target.value);
             }}
             onKeyDown={handleKeyDown}
+            onBlur={handleInputBlur}
             placeholder={placeholder}
             disabled={disabled}
             className="pl-9 pr-9"
