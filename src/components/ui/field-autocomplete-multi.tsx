@@ -59,6 +59,8 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
 
   // Debounce search - buscar sempre que houver 1+ caractere
   useEffect(() => {
+    console.log('🔄 [AUTOCOMPLETE] useEffect de busca acionado:', { searchTerm, fieldName, hasTrim: searchTerm.trim().length > 0 });
+    
     // IMPORTANTE: Só buscar se houver texto E se o campo estiver definido
     if (!searchTerm.trim().length || !fieldName) {
       console.log('🚫 [AUTOCOMPLETE] Busca cancelada - searchTerm ou fieldName vazio');
@@ -67,16 +69,19 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
       return;
     }
 
+    console.log('⏳ [AUTOCOMPLETE] Agendando busca com debounce de 300ms...');
     const timer = setTimeout(async () => {
+      console.log('🚀 [AUTOCOMPLETE] Executando busca agora!');
       setIsLoading(true);
       try {
         console.log('🔍 [AUTOCOMPLETE] Buscando sugestões para:', { fieldName, searchTerm });
         const results = await onSearch(searchTerm);
-        console.log('✅ [AUTOCOMPLETE] Resultados recebidos:', results.length);
+        console.log('✅ [AUTOCOMPLETE] Resultados recebidos:', results.length, results);
         
         // Só atualizar se ainda estivermos no mesmo campo e termo de busca
         setSuggestions(results);
         setIsOpen(results.length > 0);
+        console.log('📊 [AUTOCOMPLETE] Estado atualizado:', { suggestionsCount: results.length, isOpenNow: results.length > 0 });
       } catch (error) {
         console.error('❌ [AUTOCOMPLETE-SEARCH] Erro ao buscar sugestões:', { fieldName, searchTerm, error });
         toast.error('Erro ao buscar sugestões');
@@ -107,25 +112,29 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
 
   const handleSelectSuggestion = (suggestion: AutocompleteSuggestion) => {
     console.log('✅ [AUTOCOMPLETE] Item selecionado:', suggestion.field_content);
+    console.log('📊 [AUTOCOMPLETE] Estado ANTES da limpeza:', { searchTerm, suggestionsCount: suggestions.length, isOpen, highlightedIndex });
     
     if (!selectedValues.includes(suggestion.field_content)) {
       const newValues = [...selectedValues, suggestion.field_content];
       onChange(newValues);
     }
 
-    // LIMPAR COMPLETAMENTE O ESTADO imediatamente
-    setSearchTerm('');
-    setSuggestions([]);
-    setIsOpen(false);
-    setHighlightedIndex(-1);
-    
-    // Limpar o input DOM também
-    if (inputRef.current) {
-      inputRef.current.value = '';
-      inputRef.current.blur();
-    }
-    
-    console.log('🧹 [AUTOCOMPLETE] Estado limpo após seleção');
+    // CRÍTICO: Usar setTimeout para garantir que o estado seja limpo DEPOIS do render
+    setTimeout(() => {
+      console.log('🧹 [AUTOCOMPLETE] Limpando estado após seleção...');
+      setSearchTerm('');
+      setSuggestions([]);
+      setIsOpen(false);
+      setHighlightedIndex(-1);
+      
+      // Limpar o input DOM
+      if (inputRef.current) {
+        inputRef.current.value = '';
+        console.log('✅ [AUTOCOMPLETE] Input DOM limpo');
+      }
+      
+      console.log('✅ [AUTOCOMPLETE] Estado completamente limpo e pronto para nova busca');
+    }, 0);
   };
 
   const handleRemoveValue = (value: string) => {
