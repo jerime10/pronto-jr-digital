@@ -93,11 +93,19 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
       onChange(newValues);
     }
 
+    // LIMPAR COMPLETAMENTE O ESTADO para permitir nova busca imediatamente
     setSearchTerm('');
     setSuggestions([]);
     setIsOpen(false);
     setHighlightedIndex(-1);
-    inputRef.current?.focus();
+    
+    // Forçar blur e re-focus para resetar completamente o input
+    if (inputRef.current) {
+      inputRef.current.blur();
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
+    }
   };
 
   const handleRemoveValue = (value: string) => {
