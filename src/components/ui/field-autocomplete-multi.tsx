@@ -37,6 +37,14 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Limpar estado quando o fieldName mudar (troca de campo)
+  useEffect(() => {
+    setSearchTerm('');
+    setSuggestions([]);
+    setIsOpen(false);
+    setHighlightedIndex(-1);
+  }, [fieldName]);
 
   // Remover o useEffect problemático que estava causando loop
   // A limpeza do searchTerm agora será feita apenas após seleção ou quando apropriado
