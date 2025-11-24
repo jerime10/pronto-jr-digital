@@ -38,20 +38,17 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   
-  // Limpar estado quando o fieldName mudar (troca de campo)
+  // CRÍTICO: Limpar COMPLETAMENTE o estado quando o fieldName mudar (troca de campo)
   useEffect(() => {
+    console.log('🔄 [AUTOCOMPLETE] Campo mudou para:', fieldName);
     setSearchTerm('');
     setSuggestions([]);
     setIsOpen(false);
     setHighlightedIndex(-1);
   }, [fieldName]);
 
-  // Remover o useEffect problemático que estava causando loop
-  // A limpeza do searchTerm agora será feita apenas após seleção ou quando apropriado
-
-  // Debounce search - SEMPRE buscar, mas só mostrar dropdown se houver 1+ caractere
+  // Debounce search - buscar sempre que houver 1+ caractere
   useEffect(() => {
-    // Se vazio, fechar dropdown mas NÃO limpar sugestões (para próxima busca)
     if (!searchTerm.trim().length) {
       setIsOpen(false);
       return;
@@ -60,9 +57,10 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
+        console.log('🔍 [AUTOCOMPLETE] Buscando sugestões para:', { fieldName, searchTerm });
         const results = await onSearch(searchTerm);
+        console.log('✅ [AUTOCOMPLETE] Resultados recebidos:', results.length);
         setSuggestions(results);
-        // Só abrir dropdown se houver resultados para o termo digitado
         setIsOpen(results.length > 0);
       } catch (error) {
         console.error('❌ [AUTOCOMPLETE-SEARCH] Erro ao buscar sugestões:', { fieldName, searchTerm, error });
@@ -88,34 +86,34 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
   }, []);
 
   const handleSelectSuggestion = (suggestion: AutocompleteSuggestion) => {
+    console.log('✅ [AUTOCOMPLETE] Item selecionado:', suggestion.field_content);
+    
     if (!selectedValues.includes(suggestion.field_content)) {
       const newValues = [...selectedValues, suggestion.field_content];
       onChange(newValues);
     }
 
-    // LIMPAR COMPLETAMENTE O ESTADO para permitir nova busca imediatamente
+    // LIMPAR COMPLETAMENTE O ESTADO imediatamente
     setSearchTerm('');
     setSuggestions([]);
     setIsOpen(false);
     setHighlightedIndex(-1);
     
-    // Forçar blur e re-focus para resetar completamente o input
+    // Limpar o input DOM também
     if (inputRef.current) {
+      inputRef.current.value = '';
       inputRef.current.blur();
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 0);
     }
+    
+    console.log('🧹 [AUTOCOMPLETE] Estado limpo após seleção');
   };
 
   const handleRemoveValue = (value: string) => {
     onChange(selectedValues.filter(v => v !== value));
-    // Limpar tudo quando remover um valor para permitir nova busca
     setSearchTerm('');
     setSuggestions([]);
     setIsOpen(false);
     setHighlightedIndex(-1);
-    inputRef.current?.focus();
   };
 
   const handleClearAll = () => {
@@ -123,7 +121,7 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
     setSearchTerm('');
     setSuggestions([]);
     setIsOpen(false);
-    inputRef.current?.focus();
+    setHighlightedIndex(-1);
   };
 
   const handleDeleteSuggestion = async (suggestion: AutocompleteSuggestion, event: React.MouseEvent) => {
@@ -221,16 +219,7 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
             type="text"
             value={searchTerm}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              const novoValor = e.target.value;
-              setSearchTerm(novoValor);
-            }}
-            onFocus={() => {
-              // Não fazer nada no foco - deixar o usuário digitar
-              // O dropdown só abrirá quando houver 1+ caractere
-            }}
-            onBlur={() => {
-              // Adicionar pequeno delay para permitir cliques em sugestões
-              setTimeout(() => setIsOpen(false), 150);
+              setSearchTerm(e.target.value);
             }}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
@@ -273,13 +262,6 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
               </button>
             </div>
           ))}
-        </div>
-      )}
-      
-      {/* Debug overlay quando isOpen é true mas não há sugestões */}
-      {isOpen && suggestions.length === 0 && (
-        <div className="absolute z-[100] w-full mt-1 bg-yellow-100 border border-yellow-300 rounded-md shadow-lg p-2">
-          <p className="text-xs text-yellow-800">Debug: isOpen={String(isOpen)}, suggestions={suggestions.length}</p>
         </div>
       )}
     </div>
