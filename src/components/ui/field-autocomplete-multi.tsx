@@ -41,16 +41,29 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
   // CRÍTICO: Limpar COMPLETAMENTE o estado quando o fieldName mudar (troca de campo)
   useEffect(() => {
     console.log('🔄 [AUTOCOMPLETE] Campo mudou para:', fieldName);
+    console.log('🧹 [AUTOCOMPLETE] RESETANDO TUDO - searchTerm, suggestions, isOpen, highlightedIndex');
+    
+    // Limpar TUDO imediatamente
     setSearchTerm('');
     setSuggestions([]);
     setIsOpen(false);
     setHighlightedIndex(-1);
+    
+    // Limpar também o input DOM
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
+    
+    console.log('✅ [AUTOCOMPLETE] Estado COMPLETAMENTE resetado');
   }, [fieldName]);
 
   // Debounce search - buscar sempre que houver 1+ caractere
   useEffect(() => {
-    if (!searchTerm.trim().length) {
+    // IMPORTANTE: Só buscar se houver texto E se o campo estiver definido
+    if (!searchTerm.trim().length || !fieldName) {
+      console.log('🚫 [AUTOCOMPLETE] Busca cancelada - searchTerm ou fieldName vazio');
       setIsOpen(false);
+      setSuggestions([]);
       return;
     }
 
@@ -60,17 +73,24 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
         console.log('🔍 [AUTOCOMPLETE] Buscando sugestões para:', { fieldName, searchTerm });
         const results = await onSearch(searchTerm);
         console.log('✅ [AUTOCOMPLETE] Resultados recebidos:', results.length);
+        
+        // Só atualizar se ainda estivermos no mesmo campo e termo de busca
         setSuggestions(results);
         setIsOpen(results.length > 0);
       } catch (error) {
         console.error('❌ [AUTOCOMPLETE-SEARCH] Erro ao buscar sugestões:', { fieldName, searchTerm, error });
         toast.error('Erro ao buscar sugestões');
+        setSuggestions([]);
+        setIsOpen(false);
       } finally {
         setIsLoading(false);
       }
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      console.log('🧹 [AUTOCOMPLETE] Timer de busca cancelado');
+    };
   }, [searchTerm, onSearch, fieldName]);
 
   // Click outside handler
