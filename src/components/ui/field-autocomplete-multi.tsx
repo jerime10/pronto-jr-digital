@@ -58,12 +58,13 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
   }, [fieldName]);
 
   // Debounce search - buscar sempre que houver 1+ caractere
+  // Debounce search - buscar sempre que o termo mudar (inclui vazio, que traz últimos itens)
   useEffect(() => {
     console.log('🔄 [AUTOCOMPLETE] useEffect de busca acionado:', { searchTerm, fieldName, hasTrim: searchTerm.trim().length > 0 });
     
-    // IMPORTANTE: Só buscar se houver texto E se o campo estiver definido
-    if (!searchTerm.trim().length || !fieldName) {
-      console.log('🚫 [AUTOCOMPLETE] Busca cancelada - searchTerm ou fieldName vazio');
+    // IMPORTANTE: Só buscar se o campo estiver definido
+    if (!fieldName) {
+      console.log('🚫 [AUTOCOMPLETE] Busca cancelada - fieldName vazio');
       setIsOpen(false);
       setSuggestions([]);
       return;
@@ -78,7 +79,6 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
         const results = await onSearch(searchTerm);
         console.log('✅ [AUTOCOMPLETE] Resultados recebidos:', results.length, results);
         
-        // Só atualizar se ainda estivermos no mesmo campo e termo de busca
         setSuggestions(results);
         setIsOpen(results.length > 0);
         console.log('📊 [AUTOCOMPLETE] Estado atualizado:', { suggestionsCount: results.length, isOpenNow: results.length > 0 });
