@@ -37,6 +37,7 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchTimeoutRef = useRef<number | null>(null);
   
   // CRÍTICO: Limpar COMPLETAMENTE o estado quando o fieldName mudar (troca de campo)
   useEffect(() => {
@@ -57,12 +58,10 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
     console.log('✅ [AUTOCOMPLETE] Estado COMPLETAMENTE resetado');
   }, [fieldName]);
 
-  // Debounce search - buscar sempre que houver 1+ caractere
-  // Debounce search - buscar sempre que o termo mudar (inclui vazio, que traz últimos itens)
-  useEffect(() => {
-    console.log('🔄 [AUTOCOMPLETE] useEffect de busca acionado:', { searchTerm, fieldName, hasTrim: searchTerm.trim().length > 0 });
-    
-    // IMPORTANTE: Só buscar se o campo estiver definido
+  // Debounce da busca controlado diretamente no onChange
+  const triggerSearch = (term: string) => {
+    console.log('🔄 [AUTOCOMPLETE] triggerSearch chamado:', { term, fieldName, hasTrim: term.trim().length > 0 });
+
     if (!fieldName) {
       console.log('🚫 [AUTOCOMPLETE] Busca cancelada - fieldName vazio');
       setIsOpen(false);
@@ -70,20 +69,25 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
       return;
     }
 
-    console.log('⏳ [AUTOCOMPLETE] Agendando busca com debounce de 300ms...');
-    const timer = setTimeout(async () => {
-      console.log('🚀 [AUTOCOMPLETE] Executando busca agora!');
+    // Limpa debounce anterior
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+      console.log('🧹 [AUTOCOMPLETE] Debounce anterior limpo');
+    }
+
+    searchTimeoutRef.current = window.setTimeout(async () => {
+      console.log('🚀 [AUTOCOMPLETE] Executando busca agora (triggerSearch)!');
       setIsLoading(true);
       try {
-        console.log('🔍 [AUTOCOMPLETE] Buscando sugestões para:', { fieldName, searchTerm });
-        const results = await onSearch(searchTerm);
+        console.log('🔍 [AUTOCOMPLETE] Buscando sugestões para:', { fieldName, term });
+        const results = await onSearch(term);
         console.log('✅ [AUTOCOMPLETE] Resultados recebidos:', results.length, results);
-        
+
         setSuggestions(results);
         setIsOpen(results.length > 0);
         console.log('📊 [AUTOCOMPLETE] Estado atualizado:', { suggestionsCount: results.length, isOpenNow: results.length > 0 });
       } catch (error) {
-        console.error('❌ [AUTOCOMPLETE-SEARCH] Erro ao buscar sugestões:', { fieldName, searchTerm, error });
+        console.error('❌ [AUTOCOMPLETE-SEARCH] Erro ao buscar sugestões:', { fieldName, term, error });
         toast.error('Erro ao buscar sugestões');
         setSuggestions([]);
         setIsOpen(false);
@@ -91,12 +95,17 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
         setIsLoading(false);
       }
     }, 300);
+  };
 
+  // Limpa o debounce ao desmontar
+  useEffect(() => {
     return () => {
-      clearTimeout(timer);
-      console.log('🧹 [AUTOCOMPLETE] Timer de busca cancelado');
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+        console.log('🧹 [AUTOCOMPLETE] Debounce limpo no unmount');
+      }
     };
-  }, [searchTerm, onSearch, fieldName]);
+  }, []);
 
   // Click outside handler
   useEffect(() => {
@@ -277,7 +286,9 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
             type="text"
             value={searchTerm}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              setSearchTerm(e.target.value);
+              const value = e.target.value;
+              setSearchTerm(value);
+              triggerSearch(value);
             }}
             onKeyDown={handleKeyDown}
             onBlur={handleInputBlur}
