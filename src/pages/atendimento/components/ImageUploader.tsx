@@ -140,50 +140,6 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Upload Area */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ImageIcon className="h-5 w-5" />
-            Upload de Imagens
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div
-            className={`
-              border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-              ${dragActive ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-primary/50'}
-              ${isUploading ? 'opacity-50 pointer-events-none' : ''}
-            `}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-            onClick={() => document.getElementById('file-input')?.click()}
-          >
-            <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-lg font-medium mb-2">
-              {isUploading ? 'Processando imagens...' : 'Clique ou arraste imagens aqui'}
-            </p>
-            <p className="text-sm text-gray-500 mb-4">
-              Formatos suportados: JPG, JPEG, PNG (máx. 10MB cada)
-            </p>
-            <Button variant="outline" disabled={isUploading}>
-              <Upload className="h-4 w-4 mr-2" />
-              {isUploading ? 'Enviando...' : 'Selecionar Arquivos'}
-            </Button>
-            <input
-              id="file-input"
-              type="file"
-              multiple
-              accept={SUPPORTED_IMAGE_TYPES.join(',')}
-              onChange={handleFileInput}
-              className="hidden"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Images Preview and Description */}
       {images.length > 0 && (
         <Card>
@@ -267,6 +223,50 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
           </CardContent>
         </Card>
       )}
+
+      {/* Upload Area - Posicionado após as imagens */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5" />
+            Upload de Imagens
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div
+            className={`
+              border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
+              ${dragActive ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-primary/50'}
+              ${isUploading ? 'opacity-50 pointer-events-none' : ''}
+            `}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            onClick={() => document.getElementById('file-input')?.click()}
+          >
+            <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <p className="text-lg font-medium mb-2">
+              {isUploading ? 'Processando imagens...' : 'Clique ou arraste imagens aqui'}
+            </p>
+            <p className="text-sm text-gray-500 mb-4">
+              Formatos suportados: JPG, JPEG, PNG (máx. 10MB cada)
+            </p>
+            <Button variant="outline" disabled={isUploading}>
+              <Upload className="h-4 w-4 mr-2" />
+              {isUploading ? 'Enviando...' : 'Selecionar Arquivos'}
+            </Button>
+            <input
+              id="file-input"
+              type="file"
+              multiple
+              accept={SUPPORTED_IMAGE_TYPES.join(',')}
+              onChange={handleFileInput}
+              className="hidden"
+            />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
