@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { FormState } from './useFormData';
 
-interface Patient {
+export interface Patient {
   id: string;
   name: string;
   sus: string;
@@ -17,10 +17,11 @@ interface Patient {
   updated_at: string;
 }
 
-interface Draft {
+export interface Draft {
   id: string;
   patient_id: string;
   professional_id: string;
+  title: string;
   form_data: FormState;
   patient_data: Patient;
   created_at: string;
@@ -86,6 +87,7 @@ export const useDraftManager = ({
           id: draft.id,
           patient_id: draft.patient_id,
           professional_id: draft.professional_id,
+          title: draft.title || 'Rascunho sem título',
           form_data: draft.form_data as FormState,
           patient_data: patientData as Patient,
           created_at: draft.created_at,
@@ -103,8 +105,8 @@ export const useDraftManager = ({
     }
   };
 
-  // Salvar rascunho atual
-  const saveDraft = async (formData: FormState, fields?: Record<string, string>) => {
+  // Salvar rascunho atual - agora aceita título e sempre cria novo
+  const saveDraft = async (title?: string, formData?: FormState, fields?: Record<string, string>) => {
     if (!pacienteSelecionado || !profissionalAtual) {
       console.error('❌ [useDraftManager] Dados insuficientes para salvar rascunho:', { 
         paciente: !!pacienteSelecionado, 
@@ -113,6 +115,8 @@ export const useDraftManager = ({
       toast.error('Selecione um paciente e profissional antes de salvar o rascunho.');
       return;
     }
+
+    const dataToSave = formData || form;
     
     // Combinar formData com dynamicFields (usar o que foi passado ou o do estado)
     const camposDinamicosParaSalvar = fields || dynamicFields || {};
@@ -120,7 +124,7 @@ export const useDraftManager = ({
     console.log('💾 [useDraftManager] Salvando rascunho com campos dinâmicos:', camposDinamicosParaSalvar);
     
     const formDataWithDynamicFields = {
-      ...formData,
+      ...dataToSave,
       dynamicFields: camposDinamicosParaSalvar
     };
 
@@ -172,50 +176,28 @@ export const useDraftManager = ({
         console.log('✅ Paciente já existe na tabela patients');
       }
 
-      // Verificar se já existe um rascunho para este paciente e profissional
-      console.log('🔍 Verificando se já existe rascunho...');
-      const { data: existingDraft } = await supabase
+      // Gerar título automático se não fornecido
+      const draftTitle = title || `Rascunho - ${new Date().toLocaleDateString('pt-BR', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })}`;
+
+      // SEMPRE criar novo rascunho (não sobrescrever)
+      console.log('💾 Criando novo rascunho...');
+      const { data, error } = await supabase
         .from('medical_record_drafts')
-        .select('id')
-        .eq('patient_id', pacienteSelecionado.id)
-        .eq('professional_id', profissionalAtual.id)
+        .insert({
+          patient_id: pacienteSelecionado.id,
+          professional_id: profissionalAtual.id,
+          title: draftTitle,
+          form_data: formDataWithDynamicFields as any,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        } as any)
+        .select()
         .single();
-
-      let data, error;
-
-      if (existingDraft) {
-        console.log('📝 Atualizando rascunho existente...');
-        // Atualizar rascunho existente
-        const result = await supabase
-          .from('medical_record_drafts')
-          .update({
-            form_data: formDataWithDynamicFields as any,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingDraft.id)
-          .select()
-          .single();
-        
-        data = result.data;
-        error = result.error;
-      } else {
-        console.log('💾 Criando novo rascunho...');
-        // Criar novo rascunho
-        const result = await supabase
-          .from('medical_record_drafts')
-          .insert({
-            patient_id: pacienteSelecionado.id,
-            professional_id: profissionalAtual.id,
-            form_data: formDataWithDynamicFields as any,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          } as any)
-          .select()
-          .single();
-        
-        data = result.data;
-        error = result.error;
-      }
 
       if (error) {
         console.error('❌ Erro ao salvar rascunho:', error);
@@ -224,7 +206,7 @@ export const useDraftManager = ({
       }
 
       console.log('✅ Rascunho salvo com sucesso:', data);
-      toast.success('Rascunho salvo com sucesso!');
+      toast.success(`Rascunho "${draftTitle}" salvo com sucesso!`);
       
       // Recarregar a lista de rascunhos
       await loadDrafts();
