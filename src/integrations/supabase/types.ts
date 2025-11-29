@@ -330,6 +330,7 @@ export type Database = {
           id: string
           patient_id: string
           professional_id: string
+          title: string | null
           updated_at: string
         }
         Insert: {
@@ -338,6 +339,7 @@ export type Database = {
           id?: string
           patient_id: string
           professional_id: string
+          title?: string | null
           updated_at?: string
         }
         Update: {
@@ -346,6 +348,7 @@ export type Database = {
           id?: string
           patient_id?: string
           professional_id?: string
+          title?: string | null
           updated_at?: string
         }
         Relationships: [
