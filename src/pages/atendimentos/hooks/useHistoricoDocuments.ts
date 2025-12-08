@@ -16,12 +16,42 @@ export interface HistoricoDocument {
   attendance_end_at: string | null;
   created_at: string;
   status: 'ready' | 'processing' | 'error';
-  // Informações obstétricas
-  dum?: string | null; // Data da Última Menstruação
-  appointment?: {
-    dum?: string | null;
+  // Informações obstétricas extraídas do exam_results
+  obstetricInfo?: {
+    ig?: string | null;
+    dpp?: string | null;
   } | null;
 }
+
+// Função para extrair IG e DPP do texto do exam_results
+const extractObstetricInfoFromExamResults = (examResults: string | null): { ig?: string | null; dpp?: string | null } | null => {
+  if (!examResults) return null;
+  
+  // Verificar se é um exame obstétrico
+  const isObstetricExam = examResults.includes('ULTRASSONOGRAFIA OBSTÉTRICA') || 
+                          examResults.includes('ULTRASSONOGRAFIA TRANSVAGINAL');
+  
+  if (!isObstetricExam) return null;
+  
+  let ig: string | null = null;
+  let dpp: string | null = null;
+  
+  // Extrair IG - padrões como "IG: 25s0d" ou "IG: 12s3d"
+  const igMatch = examResults.match(/IG:\s*(\d{1,2}s\d{1,2}d)/i);
+  if (igMatch) {
+    ig = igMatch[1];
+  }
+  
+  // Extrair DPP - padrões como "DPP: 13/03/2026" ou "DPP: 25/12/2025"
+  const dppMatch = examResults.match(/DPP:\s*(\d{2}\/\d{2}\/\d{4})/i);
+  if (dppMatch) {
+    dpp = dppMatch[1];
+  }
+  
+  if (!ig && !dpp) return null;
+  
+  return { ig, dpp };
+};
 
 export const useHistoricoDocuments = () => {
   // Usar o hook de atualização automática
@@ -44,17 +74,12 @@ export const useHistoricoDocuments = () => {
             attendance_start_at,
             attendance_end_at,
             created_at,
-            dum,
-            appointment_id,
+            exam_results,
             patients!inner(
               id,
               name,
               phone,
               sus
-            ),
-            appointments(
-              id,
-              dum
             )
           `)
           .not('file_url_storage', 'is', null)
@@ -75,17 +100,12 @@ export const useHistoricoDocuments = () => {
             attendance_start_at,
             attendance_end_at,
             created_at,
-            dum,
-            appointment_id,
+            exam_results,
             patients!inner(
               id,
               name,
               phone,
               sus
-            ),
-            appointments(
-              id,
-              dum
             )
           `)
           .or('file_url_storage.is.null,file_url_storage.eq."",file_url_storage.eq."processing_error"')
@@ -103,6 +123,7 @@ export const useHistoricoDocuments = () => {
           for (const record of readyRecords) {
             try {
               const filename = `${(record as any).patients.name}_${(record as any).id}.pdf`;
+              const obstetricInfo = extractObstetricInfoFromExamResults((record as any).exam_results);
 
               documentsWithData.push({
                 id: (record as any).id,
@@ -117,11 +138,7 @@ export const useHistoricoDocuments = () => {
                 attendance_end_at: (record as any).attendance_end_at,
                 created_at: (record as any).created_at,
                 status: 'ready' as const,
-                // DUM do atendimento (medical_records) - prioridade sobre o agendamento
-                dum: (record as any).dum || null,
-                appointment: (record as any).appointments ? {
-                  dum: (record as any).appointments.dum
-                } : null
+                obstetricInfo
               });
             } catch (error) {
               console.error('Erro ao processar prontuário pronto:', (record as any).id, error);
@@ -139,6 +156,7 @@ export const useHistoricoDocuments = () => {
               }
 
               const filename = `${(record as any).patients.name}_${(record as any).id}.pdf`;
+              const obstetricInfo = extractObstetricInfoFromExamResults((record as any).exam_results);
 
               documentsWithData.push({
                 id: (record as any).id,
@@ -153,11 +171,7 @@ export const useHistoricoDocuments = () => {
                 attendance_end_at: (record as any).attendance_end_at,
                 created_at: (record as any).created_at,
                 status,
-                // DUM do atendimento (medical_records) - prioridade sobre o agendamento
-                dum: (record as any).dum || null,
-                appointment: (record as any).appointments ? {
-                  dum: (record as any).appointments.dum
-                } : null
+                obstetricInfo
               });
             } catch (error) {
               console.error('Erro ao processar prontuário em processamento:', (record as any).id, error);
