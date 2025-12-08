@@ -61,7 +61,16 @@ interface AppointmentFormData {
   notes: string;
 }
 
-type BookingStep = 'cpf_input' | 'welcome_update' | 'attendant_selection' | 'service_selection' | 'obstetric_data' | 'datetime_selection' | 'confirmation';
+type BookingStep = 'cpf_input' | 'active_appointments' | 'welcome_update' | 'attendant_selection' | 'service_selection' | 'obstetric_data' | 'datetime_selection' | 'confirmation' | 'success';
+
+interface ActiveAppointment {
+  id: string;
+  appointment_date: string;
+  appointment_time: string;
+  service_name: string;
+  attendant_name: string;
+  status: string;
+}
 
 export const PublicAppointmentBooking: React.FC = () => {
   const { user } = useSimpleAuth();
@@ -107,6 +116,14 @@ export const PublicAppointmentBooking: React.FC = () => {
   const [greeting, setGreeting] = useState('');
   const [showRegistrationButton, setShowRegistrationButton] = useState(false);
   const [dynamicMessage, setDynamicMessage] = useState('');
+  
+  // Estados para agendamentos ativos
+  const [activeAppointments, setActiveAppointments] = useState<ActiveAppointment[]>([]);
+  const [selectedAppointmentsToCancel, setSelectedAppointmentsToCancel] = useState<string[]>([]);
+  const [isCancellingAppointments, setIsCancellingAppointments] = useState(false);
+  
+  // Estado para URLs de links públicos
+  const [siteUrl, setSiteUrl] = useState('');
 
   // Estado para dados obstétricos
   const [obstetricData, setObstetricData] = useState({
@@ -351,6 +368,9 @@ export const PublicAppointmentBooking: React.FC = () => {
         
         console.log('✅ Links configurados:', newLinks);
         setPublicLinks(newLinks);
+        
+        // Salvar URL do site separadamente
+        setSiteUrl(siteData.medical_record_webhook_url || '');
       } else {
         console.log('⚠️ Nenhum dado encontrado, usando valores padrão');
         setPublicLinks({
@@ -719,8 +739,18 @@ export const PublicAppointmentBooking: React.FC = () => {
         const firstName = data.name.split(' ')[0];
         const timeGreeting = getTimeGreeting();
         
-        setCurrentStep('welcome_update');
-        toast.success(`${timeGreeting}, ${firstName}! Vamos agendar sua consulta.`);
+        // Verificar agendamentos ativos do paciente
+        const activeAppts = await checkActiveAppointments(data.id);
+        
+        if (activeAppts.length > 0) {
+          setActiveAppointments(activeAppts);
+          setSelectedAppointmentsToCancel([]);
+          setCurrentStep('active_appointments');
+          toast.success(`${timeGreeting}, ${firstName}! Você tem ${activeAppts.length} agendamento(s) ativo(s).`);
+        } else {
+          setCurrentStep('welcome_update');
+          toast.success(`${timeGreeting}, ${firstName}! Vamos agendar sua consulta.`);
+        }
       } else {
         // Paciente não encontrado - mostrar botões de cadastro
         const documentType = cleanNumber.length === 11 ? 'CPF' : 'SUS';
@@ -734,6 +764,103 @@ export const PublicAppointmentBooking: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Função para verificar agendamentos ativos do paciente
+  const checkActiveAppointments = async (patientId: string): Promise<ActiveAppointment[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('id, appointment_date, appointment_time, service_name, attendant_name, status')
+        .eq('patient_id', patientId)
+        .eq('status', 'scheduled')
+        .order('appointment_date', { ascending: true });
+
+      if (error) {
+        console.error('Erro ao verificar agendamentos ativos:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao verificar agendamentos ativos:', error);
+      return [];
+    }
+  };
+
+  // Função para cancelar agendamentos selecionados
+  const cancelSelectedAppointments = async () => {
+    if (selectedAppointmentsToCancel.length === 0) {
+      toast.error('Selecione pelo menos um agendamento para cancelar.');
+      return;
+    }
+
+    try {
+      setIsCancellingAppointments(true);
+
+      for (const appointmentId of selectedAppointmentsToCancel) {
+        // Atualizar status para 'cancelled' (será tratado como "Cancelado User")
+        const { error } = await supabase
+          .from('appointments')
+          .update({ 
+            status: 'cancelled',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', appointmentId);
+
+        if (error) {
+          console.error('Erro ao cancelar agendamento:', error);
+          toast.error('Erro ao cancelar agendamento.');
+          continue;
+        }
+
+        // Buscar dados do agendamento para enviar ao n8n
+        const { data: appointment } = await supabase
+          .from('appointments')
+          .select('*')
+          .eq('id', appointmentId)
+          .single();
+
+        if (appointment) {
+          // Enviar ao n8n com reminder_type 'cancelled-user'
+          supabase.functions.invoke('whatsapp-reminder', {
+            body: {
+              appointment_id: appointment.id,
+              patient_name: appointment.patient_name || 'Paciente',
+              patient_phone: appointment.patient_phone,
+              appointment_date: appointment.appointment_date || '',
+              appointment_time: appointment.appointment_time || '',
+              service_name: appointment.service_name || 'Consulta',
+              attendant_name: appointment.attendant_name || 'Profissional',
+              status: 'cancelled',
+              reminder_type: 'cancelled-user',
+              partner_username: appointment.partner_username || null
+            }
+          }).then(() => {
+            console.log('✅ Notificação de cancelled-user enviada ao N8N');
+          }).catch((err) => {
+            console.error('❌ Erro ao enviar notificação:', err);
+          });
+        }
+      }
+
+      toast.success(`${selectedAppointmentsToCancel.length} agendamento(s) cancelado(s) com sucesso!`);
+      setActiveAppointments([]);
+      setSelectedAppointmentsToCancel([]);
+      setCurrentStep('cpf_input');
+      setCpfSusInput('');
+      setPatient(null);
+    } catch (error) {
+      console.error('Erro ao cancelar agendamentos:', error);
+      toast.error('Erro ao cancelar agendamentos.');
+    } finally {
+      setIsCancellingAppointments(false);
+    }
+  };
+
+  // Função para prosseguir com novo agendamento após ver agendamentos ativos
+  const proceedWithNewAppointment = () => {
+    setCurrentStep('welcome_update');
   };
 
   const updatePatientPhone = async () => {
@@ -1156,14 +1283,9 @@ export const PublicAppointmentBooking: React.FC = () => {
         return;
       }
 
-      // Sucesso
+      // Sucesso - ir para página de sucesso
       toast.success('Agendamento criado com sucesso!');
-      
-      // Resetar formulário e redirecionar para a primeira etapa após sucesso
-      setTimeout(() => {
-        resetForm();
-        setCurrentStep('cpf_input');
-      }, 2000);
+      setCurrentStep('success');
       
     } catch (error) {
       console.error('Erro ao criar agendamento:', error);
@@ -2164,6 +2286,224 @@ export const PublicAppointmentBooking: React.FC = () => {
                   >
                     {isLoading ? 'AGENDANDO...' : 'CONFIRMAR AGENDAMENTO'}
                   </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Etapa: Agendamentos Ativos */}
+            {currentStep === 'active_appointments' && patient && (
+              <div className="space-y-6">
+                <div className="text-center space-y-4">
+                  <div className="flex justify-center mb-4">
+                    <div className="relative animate-float">
+                      <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
+                      <div className="relative bg-gradient-to-r from-amber-500 to-orange-500 p-3 rounded-full gradient-button">
+                        <Calendar className="h-8 w-8 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">
+                    {getTimeGreeting()}, {patient.name.split(' ')[0]}!
+                  </h3>
+                  
+                  <p className="text-slate-300 text-sm sm:text-base">
+                    Você possui <span className="text-amber-400 font-bold">{activeAppointments.length}</span> agendamento(s) ativo(s)
+                  </p>
+                </div>
+
+                {/* Lista de agendamentos ativos */}
+                <div className="space-y-3">
+                  {activeAppointments.map((appt) => (
+                    <div 
+                      key={appt.id}
+                      className={`bg-slate-700/50 border rounded-lg p-4 transition-all duration-300 cursor-pointer ${
+                        selectedAppointmentsToCancel.includes(appt.id) 
+                          ? 'border-red-500 bg-red-500/10' 
+                          : 'border-slate-600/50 hover:border-amber-500/50'
+                      }`}
+                      onClick={() => {
+                        if (selectedAppointmentsToCancel.includes(appt.id)) {
+                          setSelectedAppointmentsToCancel(prev => prev.filter(id => id !== appt.id));
+                        } else {
+                          setSelectedAppointmentsToCancel(prev => [...prev, appt.id]);
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                          selectedAppointmentsToCancel.includes(appt.id) 
+                            ? 'bg-red-500 border-red-500' 
+                            : 'border-slate-400'
+                        }`}>
+                          {selectedAppointmentsToCancel.includes(appt.id) && (
+                            <CheckCircle className="h-3 w-3 text-white" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-white font-semibold">{appt.service_name}</p>
+                          <p className="text-slate-300 text-sm">
+                            📅 {new Date(appt.appointment_date + 'T12:00:00').toLocaleDateString('pt-BR')} às {appt.appointment_time}
+                          </p>
+                          <p className="text-slate-400 text-xs">
+                            👨‍⚕️ {appt.attendant_name}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {selectedAppointmentsToCancel.length > 0 && (
+                  <Alert className="bg-red-500/10 border-red-500/30 text-red-300">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      <p className="font-semibold">
+                        {selectedAppointmentsToCancel.length} agendamento(s) selecionado(s) para cancelamento
+                      </p>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="flex flex-col gap-3">
+                  <Button 
+                    onClick={proceedWithNewAppointment}
+                    className="w-full h-12 sm:h-14 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white font-bold text-sm sm:text-base tracking-wide transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-purple-500/25"
+                  >
+                    <Calendar className="mr-2 h-5 w-5" />
+                    FAZER NOVO AGENDAMENTO
+                  </Button>
+                  
+                  {selectedAppointmentsToCancel.length > 0 && (
+                    <Button 
+                      onClick={cancelSelectedAppointments}
+                      disabled={isCancellingAppointments}
+                      variant="destructive"
+                      className="w-full h-12 sm:h-14 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold text-sm sm:text-base tracking-wide transition-all duration-300"
+                    >
+                      {isCancellingAppointments ? (
+                        <>
+                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-r-transparent" />
+                          CANCELANDO...
+                        </>
+                      ) : (
+                        <>
+                          ❌ CANCELAR SELECIONADOS ({selectedAppointmentsToCancel.length})
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  
+                  <Button 
+                    onClick={() => {
+                      setCurrentStep('cpf_input');
+                      setCpfSusInput('');
+                      setPatient(null);
+                      setActiveAppointments([]);
+                    }}
+                    variant="outline"
+                    className="w-full h-10 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white font-semibold text-sm tracking-wide transition-all duration-300"
+                  >
+                    VOLTAR
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Etapa: Sucesso */}
+            {currentStep === 'success' && (
+              <div className="space-y-6">
+                <div className="text-center space-y-4">
+                  <div className="flex justify-center mb-4">
+                    <div className="relative animate-float">
+                      <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
+                      <div className="relative bg-gradient-to-r from-green-500 to-emerald-500 p-4 rounded-full gradient-button">
+                        <CheckCircle className="h-12 w-12 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+                    🎉 Agendamento Confirmado!
+                  </h3>
+                  
+                  <p className="text-slate-300 text-sm sm:text-base">
+                    Seu agendamento foi realizado com sucesso.
+                  </p>
+                </div>
+
+                {/* Resumo do Agendamento */}
+                <div className="bg-slate-700/50 border border-green-500/30 rounded-lg p-4 space-y-3">
+                  <div className="text-center">
+                    <p className="text-green-400 font-bold text-lg mb-2">📋 Resumo</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Serviço:</span>
+                      <span className="text-white font-semibold">{formData.service_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Profissional:</span>
+                      <span className="text-white font-semibold">{formData.attendant_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Data:</span>
+                      <span className="text-white font-semibold">
+                        {selectedDate?.toLocaleDateString('pt-BR')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Horário:</span>
+                      <span className="text-purple-400 font-bold">{selectedTime}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Valor:</span>
+                      <span className="text-green-400 font-bold">
+                        R$ {formData.service_price.toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botões de Ação */}
+                <div className="flex flex-col gap-3">
+                  <Button 
+                    onClick={() => {
+                      window.location.href = `${window.location.origin}/pix`;
+                    }}
+                    className="w-full h-12 sm:h-14 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold text-sm sm:text-base tracking-wide transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-green-500/25"
+                  >
+                    💰 ADIANTAR PAGAMENTO
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => {
+                      // Resetar formulário e voltar para o início
+                      resetForm();
+                      setCpfSusInput('');
+                      setPatient(null);
+                      setSelectedDate(null);
+                      setSelectedTime('');
+                      setObstetricData({ dum: '', gestationalAge: '', dpp: '', isValid: false });
+                      setCurrentStep('cpf_input');
+                    }}
+                    className="w-full h-12 sm:h-14 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white font-bold text-sm sm:text-base tracking-wide transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-purple-500/25"
+                  >
+                    <Calendar className="mr-2 h-5 w-5" />
+                    NOVO AGENDAMENTO
+                  </Button>
+                  
+                  {siteUrl && (
+                    <Button 
+                      onClick={() => {
+                        window.location.href = siteUrl;
+                      }}
+                      variant="outline"
+                      className="w-full h-12 sm:h-14 border-slate-600 text-slate-200 hover:bg-slate-700 hover:text-white font-semibold text-sm sm:text-base tracking-wide transition-all duration-300"
+                    >
+                      🌐 ACESSAR SITE
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
