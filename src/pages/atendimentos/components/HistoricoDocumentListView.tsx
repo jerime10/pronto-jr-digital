@@ -156,24 +156,25 @@ export const HistoricoDocumentListView: React.FC<HistoricoDocumentListViewProps>
                   )}
                 </TableCell>
                 <TableCell>
-                  {document.obstetricInfo ? (
-                    <div className="flex flex-col gap-1 text-pink-600">
+                  {document.obstetricInfo && (document.obstetricInfo.ig || document.obstetricInfo.dpp) ? (
+                    <div className="inline-flex flex-col gap-1.5 px-3 py-2 rounded-lg bg-pink-50 border border-pink-200">
                       {document.obstetricInfo.ig && (
                         <div className="flex items-center gap-2">
-                          <Baby className="w-4 h-4" />
-                          <span className="text-sm font-medium">
-                            IG: {document.obstetricInfo.ig}
-                          </span>
+                          <Baby className="w-4 h-4 text-pink-500" />
+                          <span className="text-xs text-muted-foreground">IG:</span>
+                          <span className="text-sm font-semibold text-pink-600">{document.obstetricInfo.ig}</span>
                         </div>
                       )}
                       {document.obstetricInfo.dpp && (
-                        <span className="text-sm font-medium text-pink-500">
-                          DPP: {document.obstetricInfo.dpp}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-pink-400" />
+                          <span className="text-xs text-muted-foreground">DPP:</span>
+                          <span className="text-sm font-semibold text-pink-600">{document.obstetricInfo.dpp}</span>
+                        </div>
                       )}
                     </div>
                   ) : (
-                    <span className="text-sm text-gray-500">-</span>
+                    <span className="text-sm text-muted-foreground">-</span>
                   )}
                 </TableCell>
                 <TableCell>
