@@ -334,6 +334,30 @@ export const useSaveActions = ({
       console.log('🔍 patientIdToUse antes da inserção:', patientIdToUse);
       console.log('🔍 professionalIdToUse antes da inserção:', professionalIdToUse);
       
+      // Extrair DUM dos campos dinâmicos (modelos obstétricos)
+      // A DUM pode vir como campo 'dum' ou 'dataultimamenstruacao'
+      let dumValue: string | null = null;
+      if (dynamicFields) {
+        const dumKey = Object.keys(dynamicFields).find(k => 
+          k.toLowerCase() === 'dum' || 
+          k.toLowerCase().includes('ultimamenstruacao') ||
+          k.toLowerCase().includes('ultima_menstruacao')
+        );
+        if (dumKey && dynamicFields[dumKey]) {
+          let rawDum = dynamicFields[dumKey];
+          // Converter de DD/MM/AAAA para YYYY-MM-DD (formato do banco)
+          if (rawDum.includes('/')) {
+            const parts = rawDum.split('/');
+            if (parts.length === 3) {
+              const [day, month, year] = parts;
+              rawDum = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
+          }
+          dumValue = rawDum;
+          console.log('🔍 DUM extraída dos campos dinâmicos:', dumValue);
+        }
+      }
+      
       const { data: savedRecord, error: saveError } = await supabase
         .from('medical_records')
         .insert({
@@ -351,7 +375,8 @@ export const useSaveActions = ({
           exam_results: form.resultadoExames,
           images_data: imagesDataJson as any,
           attendance_start_at: attendanceStartAt,
-          attendance_end_at: attendanceEndAt
+          attendance_end_at: attendanceEndAt,
+          dum: dumValue
         })
         .select(`
           *,

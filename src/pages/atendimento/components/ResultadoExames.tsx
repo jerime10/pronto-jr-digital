@@ -1461,15 +1461,37 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
               });
               return field.type === 'date' ? <div key={field.key} className="space-y-2">
                       <Label htmlFor={field.key}>{field.label}</Label>
-                      <Input id={field.key} type="date" value={fieldValue} onChange={e => {
-                  console.log('🎯 [DATE] Campo alterado:', field.key, 'Valor:', e.target.value);
+                      <Input id={field.key} type="date" value={(() => {
+                        // Se o valor está em formato DD/MM/AAAA, converter para YYYY-MM-DD para o input
+                        if (fieldValue && fieldValue.includes('/')) {
+                          const parts = fieldValue.split('/');
+                          if (parts.length === 3) {
+                            const [day, month, year] = parts;
+                            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                          }
+                        }
+                        return fieldValue;
+                      })()} onChange={e => {
+                  console.log('🎯 [DATE] Campo alterado:', field.key, 'Valor HTML:', e.target.value);
+                  // Converter de YYYY-MM-DD para DD/MM/AAAA para armazenamento e envio ao n8n
+                  let formattedValue = e.target.value;
+                  if (e.target.value && e.target.value.includes('-') && e.target.value.length === 10) {
+                    const [year, month, day] = e.target.value.split('-');
+                    formattedValue = `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
+                  }
+                  console.log('🎯 [DATE] Valor convertido para DD/MM/AAAA:', formattedValue);
                   const newFields = {
                     ...dynamicFields,
-                    [field.key]: e.target.value
+                    [field.key]: formattedValue
                   };
                   console.log('🎯 [DATE] Novos campos:', newFields);
                   setDynamicFields(newFields);
                   updateExamResults(newFields);
+                  
+                  // Notificar componente pai
+                  if (onDynamicFieldsChange) {
+                    onDynamicFieldsChange(newFields);
+                  }
                 }} className="w-full" />
                     </div> : <div key={field.key} className="space-y-4">
                       {/* Seção de Modelos - Fundo mais escuro e destacado */}
