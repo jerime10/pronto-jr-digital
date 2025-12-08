@@ -55,12 +55,13 @@ export function DateTimePicker({
     const newTime = e.target.value
     setTimeValue(newTime)
     
-    if (value && onChange) {
+    if (onChange) {
       const [hours, minutes] = newTime.split(':').map(Number)
-      if (hours !== undefined && minutes !== undefined) {
-        const newDate = new Date(value)
-        newDate.setHours(hours, minutes)
-        onChange(newDate)
+      if (!isNaN(hours) && !isNaN(minutes)) {
+        // Se não houver data selecionada, usar a data atual
+        const baseDate = value ? new Date(value) : new Date()
+        baseDate.setHours(hours, minutes, 0, 0)
+        onChange(baseDate)
       }
     }
   }
