@@ -70,12 +70,12 @@ const getActionOptions = (status: AppointmentStatus) => {
     case 'aguardando_atendimento':
       return [
         { action: 'atendimento_iniciado', label: 'Iniciar Atendimento', icon: Clock },
-        { action: 'agendamento_cancelado', label: 'Cancelar', icon: Trash2 },
+        { action: 'cancelled', label: 'Cancelar', icon: Trash2 },
       ];
     case 'atendimento_iniciado':
       return [
-        { action: 'atendimento_finalizado', label: 'Finalizar Atendimento', icon: CheckCircle },
-        { action: 'agendamento_cancelado', label: 'Cancelar', icon: Trash2 },
+        { action: 'completed', label: 'Finalizar Atendimento', icon: CheckCircle },
+        { action: 'cancelled', label: 'Cancelar', icon: Trash2 },
       ];
     case 'atendimento_finalizado':
     case 'completed':
@@ -440,7 +440,7 @@ const Agendamentos: React.FC = () => {
         
 
       }
-    } else if (action === 'atendimento_finalizado') {
+    } else if (action === 'completed') {
       // Para finalizar atendimento - buscar paciente no banco e iniciar novo atendimento
       try {
         const appointment = appointments.find(app => app.id === appointmentId);
@@ -457,9 +457,9 @@ const Agendamentos: React.FC = () => {
           return;
         }
 
-        // Atualizar status do agendamento para finalizado
-        console.log('🔄 Atualizando status para atendimento_finalizado...');
-        await handleStatusChange(appointmentId, 'atendimento_finalizado' as AppointmentStatus);
+        // Atualizar status do agendamento para completed (padronizado)
+        console.log('🔄 Atualizando status para completed...');
+        await handleStatusChange(appointmentId, 'completed' as AppointmentStatus);
         console.log('✅ Status atualizado com sucesso');
         
         // Enviar notificação ao N8N (sem bloquear a navegação)
@@ -471,7 +471,7 @@ const Agendamentos: React.FC = () => {
           appointment_time: appointment.appointment_time || '',
           service_name: appointment.service_name || 'Consulta',
           attendant_name: appointment.attendant_name || 'Profissional',
-          status: 'atendimento_finalizado',
+          status: 'completed',
           reminder_type: 'attendance_finished',
           partner_username: appointment.partner_username || null
         };
@@ -497,13 +497,13 @@ const Agendamentos: React.FC = () => {
         console.error('Erro ao finalizar atendimento:', error);
         toast.error('Erro ao finalizar atendimento');
       }
-    } else if (action === 'agendamento_cancelado') {
+    } else if (action === 'cancelled') {
       // Buscar dados do agendamento antes de cancelar
       const appointment = appointments.find(app => app.id === appointmentId);
       
       try {
-        // Atualizar status para cancelado
-        await handleStatusChange(appointmentId, 'agendamento_cancelado' as AppointmentStatus);
+        // Atualizar status para cancelled (padronizado)
+        await handleStatusChange(appointmentId, 'cancelled' as AppointmentStatus);
         
         // Enviar notificação ao n8n (não bloqueia o fluxo)
         if (appointment) {
