@@ -68,6 +68,7 @@ export const PublicAppointmentBooking: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<BookingStep>('cpf_input');
   const [susNumber, setSusNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingTimeSlots, setIsLoadingTimeSlots] = useState(false);
   const [patient, setPatient] = useState<Patient | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [attendants, setAttendants] = useState<Attendant[]>([]);
@@ -855,6 +856,7 @@ export const PublicAppointmentBooking: React.FC = () => {
   const checkAvailableTimeSlots = async (date: Date) => {
     const timerName = `checkAvailableTimeSlots_${Date.now()}`;
     startTimer(timerName);
+    setIsLoadingTimeSlots(true);
 
     debugLogger.info('Frontend', 'checkAvailableTimeSlots_start', {
       date: date.toISOString(),
@@ -962,6 +964,8 @@ export const PublicAppointmentBooking: React.FC = () => {
       
       setAvailableTimeSlots([]);
       endTimer('Frontend', 'checkAvailableTimeSlots_error', timerName, { error: String(error) });
+    } finally {
+      setIsLoadingTimeSlots(false);
     }
   };
 
@@ -1396,36 +1400,6 @@ export const PublicAppointmentBooking: React.FC = () => {
             {/* Etapa 1: Entrada CPF/SUS */}
             {currentStep === 'cpf_input' && (
               <div className="space-y-3">
-                {/* Seção PIX */}
-                <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-3 space-y-2">
-                  <div className="text-center">
-                    <h3 className="text-green-400 font-bold text-lg mb-1">💰 PIX para Pagamento</h3>
-                    <p className="text-slate-300 text-sm mb-2">
-                      <strong>Favorecido:</strong> JERIME R SOARES
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2 bg-slate-700/50 rounded-lg p-2">
-                    <div className="flex-1">
-                      <p className="text-slate-400 text-xs mb-1">Chave PIX:</p>
-                      <p className="text-white font-mono text-sm break-all">
-                        {pixKey || 'Chave PIX não configurada'}
-                      </p>
-                    </div>
-                    {pixKey && (
-                      <Button
-                        onClick={copyPixKey}
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 transition-all duration-300 transform hover:scale-105"
-                        aria-label="Copiar chave PIX"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                
                 <div className="space-y-3">
                   <Label htmlFor="cpf-sus" className="text-slate-200 font-semibold text-sm sm:text-base tracking-wide">
                     CPF OU SUS <span className="text-pink-400">*</span>
@@ -1970,7 +1944,12 @@ export const PublicAppointmentBooking: React.FC = () => {
                       HORÁRIOS DISPONÍVEIS - {selectedDate.toLocaleDateString('pt-BR')}
                     </h4>
                     
-                    {availableTimeSlots.length > 0 ? (
+                    {isLoadingTimeSlots ? (
+                      <div className="text-center py-8">
+                        <div className="h-8 w-8 animate-spin rounded-full border-2 border-purple-500 border-r-transparent mx-auto mb-4" />
+                        <p className="text-slate-300">Carregando horários disponíveis...</p>
+                      </div>
+                    ) : availableTimeSlots.length > 0 ? (
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                         {availableTimeSlots.map((time, index) => (
                           <button
