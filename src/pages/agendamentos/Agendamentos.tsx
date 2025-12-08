@@ -23,7 +23,7 @@ import { isObstetricService } from '@/utils/obstetricUtils';
 import { supabase } from '@/integrations/supabase/client';
 
 // Tipos de status de agendamento
-type AppointmentStatus = 'aguardando_atendimento' | 'atendimento_iniciado' | 'atendimento_finalizado' | 'agendamento_cancelado' | 'scheduled' | 'completed' | 'canceled' | 'cancelled' | 'archived';
+type AppointmentStatus = 'aguardando_atendimento' | 'atendimento_iniciado' | 'atendimento_finalizado' | 'agendamento_cancelado' | 'scheduled' | 'completed' | 'canceled' | 'cancelled' | 'archived' | 'finalizado';
 
 // Mapeamento de status para exibição
 const statusLabels: Record<AppointmentStatus, string> = {
@@ -33,6 +33,7 @@ const statusLabels: Record<AppointmentStatus, string> = {
   agendamento_cancelado: 'Agendamento Cancelado',
   scheduled: 'Agendado',
   completed: 'Finalizado',
+  finalizado: 'Finalizado',
   canceled: 'Cancelado',
   cancelled: 'Cancelado',
   archived: 'Arquivado'
@@ -46,14 +47,19 @@ const statusColors: Record<AppointmentStatus, string> = {
   agendamento_cancelado: 'bg-red-100 text-red-800',
   scheduled: 'bg-yellow-100 text-yellow-800',
   completed: 'bg-green-100 text-green-800',
+  finalizado: 'bg-green-100 text-green-800',
   canceled: 'bg-red-100 text-red-800',
   cancelled: 'bg-red-100 text-red-800',
   archived: 'bg-gray-100 text-gray-800'
 };
 const getStatusBadge = (status: AppointmentStatus) => {
+  // Fallback para status desconhecidos evitando tarja preta
+  const colorClass = statusColors[status] || 'bg-gray-100 text-gray-800';
+  const labelText = statusLabels[status] || status || 'Desconhecido';
+  
   return (
-    <Badge className={`${statusColors[status]} border-0`}>
-      {statusLabels[status]}
+    <Badge className={`${colorClass} border-0`}>
+      {labelText}
     </Badge>
   );
 };
@@ -73,6 +79,7 @@ const getActionOptions = (status: AppointmentStatus) => {
       ];
     case 'atendimento_finalizado':
     case 'completed':
+    case 'finalizado':
       return [
         { action: 'delete', label: 'Excluir', icon: Trash2 },
       ];
@@ -84,7 +91,9 @@ const getActionOptions = (status: AppointmentStatus) => {
         { action: 'delete', label: 'Excluir', icon: Trash2 },
       ];
     default:
-      return [];
+      return [
+        { action: 'delete', label: 'Excluir', icon: Trash2 },
+      ];
   }
 };
 
