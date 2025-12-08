@@ -35,10 +35,10 @@ export function calculatePregnancyInfo(dum: string, referenceDate?: Date): Pregn
   const dppDate = new Date(dumDate);
   dppDate.setDate(dppDate.getDate() + 280);
   
-  // Formatar DPP como DD/MM/YY
+  // Formatar DPP como DD/MM/AAAA
   const day = String(dppDate.getDate()).padStart(2, '0');
   const month = String(dppDate.getMonth() + 1).padStart(2, '0');
-  const year = String(dppDate.getFullYear()).slice(-2);
+  const year = String(dppDate.getFullYear());
   const dpp = `${day}/${month}/${year}`;
   
   return {

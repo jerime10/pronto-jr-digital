@@ -117,7 +117,8 @@ export const useHistoricoDocuments = () => {
                 attendance_end_at: (record as any).attendance_end_at,
                 created_at: (record as any).created_at,
                 status: 'ready' as const,
-                dum: (record as any).appointments?.dum || null,
+                // DUM do atendimento (medical_records) - prioridade sobre o agendamento
+                dum: (record as any).dum || null,
                 appointment: (record as any).appointments ? {
                   dum: (record as any).appointments.dum
                 } : null
@@ -152,7 +153,8 @@ export const useHistoricoDocuments = () => {
                 attendance_end_at: (record as any).attendance_end_at,
                 created_at: (record as any).created_at,
                 status,
-                dum: (record as any).appointments?.dum || null,
+                // DUM do atendimento (medical_records) - prioridade sobre o agendamento
+                dum: (record as any).dum || null,
                 appointment: (record as any).appointments ? {
                   dum: (record as any).appointments.dum
                 } : null

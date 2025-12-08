@@ -7,7 +7,7 @@ import { Calendar, Download, Eye, FileText, Phone, User, AlertCircle, Loader2, T
 import { HistoricoDocument } from '../hooks/useHistoricoDocuments';
 import { format, differenceInMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { formatPregnancyDisplay } from '@/utils/pregnancyUtils';
+import { calculateGestationalAge, calculateDPP } from '@/utils/obstetricUtils';
 import {
   downloadHistoricoDocument,
   viewHistoricoDocument,
@@ -50,6 +50,28 @@ export const HistoricoDocumentListView: React.FC<HistoricoDocumentListViewProps>
     } catch {
       return null;
     }
+  };
+
+  // Formatar informações obstétricas a partir da DUM do atendimento
+  const formatObstetricInfo = (dum: string | null | undefined) => {
+    if (!dum) return null;
+    
+    // Se a DUM está no formato YYYY-MM-DD (do banco), converter para DD/MM/AAAA
+    let dumFormatted = dum;
+    if (dum.includes('-')) {
+      const [year, month, day] = dum.split('-');
+      dumFormatted = `${day}/${month}/${year}`;
+    }
+    
+    const ig = calculateGestationalAge(dumFormatted);
+    const dpp = calculateDPP(dumFormatted);
+    
+    if (!ig && !dpp) return null;
+    
+    return {
+      ig: ig?.formatted || null,
+      dpp: dpp || null
+    };
   };
 
   const handleDownload = (document: HistoricoDocument) => downloadHistoricoDocument(document.file_url, document.filename);
@@ -155,16 +177,27 @@ export const HistoricoDocumentListView: React.FC<HistoricoDocumentListViewProps>
                   )}
                 </TableCell>
                 <TableCell>
-                  {document.dum ? (
-                    <div className="flex items-center gap-2 text-pink-600">
-                      <Baby className="w-4 h-4" />
-                      <span className="text-sm font-medium">
-                        {formatPregnancyDisplay(document.dum)}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-sm text-gray-500">-</span>
-                  )}
+                  {(() => {
+                    const obstetricInfo = formatObstetricInfo(document.dum);
+                    if (obstetricInfo) {
+                      return (
+                        <div className="flex flex-col gap-1 text-pink-600">
+                          <div className="flex items-center gap-2">
+                            <Baby className="w-4 h-4" />
+                            <span className="text-sm font-medium">
+                              IG: {obstetricInfo.ig}
+                            </span>
+                          </div>
+                          {obstetricInfo.dpp && (
+                            <span className="text-sm font-medium text-pink-500">
+                              DPP: {obstetricInfo.dpp}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    }
+                    return <span className="text-sm text-gray-500">-</span>;
+                  })()}
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
