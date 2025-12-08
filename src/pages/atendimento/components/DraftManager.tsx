@@ -50,7 +50,8 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
     isSavingDraft,
     saveDraft,
     loadDraft,
-    deleteDraft
+    deleteDraft,
+    loadDrafts
   } = useDraftManager({
     pacienteSelecionado,
     profissionalAtual,
@@ -60,6 +61,14 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
     dynamicFields,
     onDynamicFieldsChange
   });
+
+  // Recarregar rascunhos quando o diálogo de gerenciamento é aberto
+  const handleOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (open && profissionalAtual?.id) {
+      loadDrafts();
+    }
+  };
 
   const handleLoadDraft = async (draft: Draft) => {
     console.log('📂 [DraftManager] Carregando rascunho:', draft);
@@ -157,7 +166,7 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
       </Dialog>
 
       {/* Dialog para Gerenciar Rascunhos */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
           <Button variant="outline" size="sm" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
