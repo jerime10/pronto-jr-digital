@@ -48,6 +48,7 @@ export const UserManagement: React.FC = () => {
     email: '',
     phone: '',
     commission_percentage: 10,
+    partner_code: '',
     is_active: true
   });
 
@@ -100,6 +101,7 @@ export const UserManagement: React.FC = () => {
       email: user.email || '',
       phone: user.phone || '',
       commission_percentage: user.commission_percentage,
+      partner_code: user.partner_code || '',
       is_active: user.is_active || false
     });
     setIsDialogOpen(true);
@@ -147,6 +149,7 @@ export const UserManagement: React.FC = () => {
       email: '',
       phone: '',
       commission_percentage: 10,
+      partner_code: '',
       is_active: true
     });
   };
@@ -514,20 +517,40 @@ export const UserManagement: React.FC = () => {
                 
                 <TabsContent value="partnership" className="space-y-4">
                   {formData.user_type === 'partner' && (
-                    <div>
-                      <Label htmlFor="commission_percentage">Percentual de Comissão (%)</Label>
-                      <Input
-                        id="commission_percentage"
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={formData.commission_percentage}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
-                          commission_percentage: parseFloat(e.target.value) || 0 
-                        }))}
-                      />
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="partner_code">Código do Parceiro</Label>
+                        <Input
+                          id="partner_code"
+                          value={formData.partner_code || ''}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            partner_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+                          }))}
+                          placeholder="Ex: UBSFLU"
+                          className="font-mono uppercase"
+                          maxLength={20}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Código único usado nos links de parceria (apenas letras e números)
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="commission_percentage">Percentual de Comissão (%)</Label>
+                        <Input
+                          id="commission_percentage"
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          value={formData.commission_percentage}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            commission_percentage: parseFloat(e.target.value) || 0 
+                          }))}
+                        />
+                      </div>
                     </div>
                   )}
                   
