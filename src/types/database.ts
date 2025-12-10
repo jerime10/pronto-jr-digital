@@ -386,6 +386,7 @@ export type UsuarioFormData = {
   email?: string;
   phone?: string;
   commission_percentage?: number;
+  partner_code?: string;
   is_active?: boolean;
 };
 

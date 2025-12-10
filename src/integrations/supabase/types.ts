@@ -1155,7 +1155,6 @@ export type Database = {
               p_appointment_time: string
               p_attendant_id: string
               p_attendant_name: string
-              p_created_by_user_id?: string
               p_dum: string
               p_end_time: string
               p_estimated_due_date: string
@@ -1181,6 +1180,7 @@ export type Database = {
               p_appointment_time: string
               p_attendant_id: string
               p_attendant_name: string
+              p_created_by_user_id?: string
               p_dum: string
               p_end_time: string
               p_estimated_due_date: string
