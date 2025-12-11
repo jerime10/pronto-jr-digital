@@ -90,8 +90,8 @@ export const HistoricoDocumentListView: React.FC<HistoricoDocumentListViewProps>
   };
 
   return (
-    <div className="rounded-md border">
-      <Table className="table-fixed w-full">
+    <div className="rounded-md border overflow-x-auto">
+      <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-[90px]">Status</TableHead>
@@ -101,7 +101,7 @@ export const HistoricoDocumentListView: React.FC<HistoricoDocumentListViewProps>
             <TableHead className="w-[140px]">Início Atendimento</TableHead>
             <TableHead className="w-[140px]">Término Atendimento</TableHead>
             <TableHead className="w-[70px]">Duração</TableHead>
-            <TableHead className="w-[130px]">Informações Obstétricas</TableHead>
+            <TableHead className="w-[150px]">Informações Obstétricas</TableHead>
             <TableHead className="w-[100px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
@@ -155,18 +155,18 @@ export const HistoricoDocumentListView: React.FC<HistoricoDocumentListViewProps>
                     </div>
                   )}
                 </TableCell>
-                <TableCell className="overflow-hidden">
+                <TableCell>
                   {document.obstetricInfo && (document.obstetricInfo.ig || document.obstetricInfo.dpp) ? (
-                    <div className="flex flex-col gap-0.5 px-1.5 py-1 rounded bg-pink-50 border border-pink-200 text-xs max-w-full">
+                    <div className="flex flex-col gap-0.5 px-2 py-1.5 rounded bg-pink-50 border border-pink-200 text-xs w-fit">
                       {document.obstetricInfo.ig && (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 whitespace-nowrap">
                           <Baby className="w-3 h-3 text-pink-500 shrink-0" />
                           <span className="text-muted-foreground">IG:</span>
                           <span className="font-semibold text-pink-600">{document.obstetricInfo.ig}</span>
                         </div>
                       )}
                       {document.obstetricInfo.dpp && (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 whitespace-nowrap">
                           <Calendar className="w-3 h-3 text-pink-400 shrink-0" />
                           <span className="text-muted-foreground">DPP:</span>
                           <span className="font-semibold text-pink-600">{document.obstetricInfo.dpp}</span>
