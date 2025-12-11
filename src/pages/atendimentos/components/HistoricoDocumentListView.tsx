@@ -91,18 +91,18 @@ export const HistoricoDocumentListView: React.FC<HistoricoDocumentListViewProps>
 
   return (
     <div className="rounded-md border">
-      <Table>
+      <Table className="table-fixed w-full">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[100px]">Status</TableHead>
-            <TableHead className="w-[140px]">Paciente</TableHead>
-            <TableHead>Telefone</TableHead>
-            <TableHead>SUS</TableHead>
-            <TableHead>Início Atendimento</TableHead>
-            <TableHead>Término Atendimento</TableHead>
-            <TableHead className="w-[80px]">Duração</TableHead>
-            <TableHead className="w-[140px]">Informações Obstétricas</TableHead>
-            <TableHead className="w-[120px]">Ações</TableHead>
+            <TableHead className="w-[90px]">Status</TableHead>
+            <TableHead className="w-[130px]">Paciente</TableHead>
+            <TableHead className="w-[120px]">Telefone</TableHead>
+            <TableHead className="w-[130px]">SUS</TableHead>
+            <TableHead className="w-[140px]">Início Atendimento</TableHead>
+            <TableHead className="w-[140px]">Término Atendimento</TableHead>
+            <TableHead className="w-[70px]">Duração</TableHead>
+            <TableHead className="w-[130px]">Informações Obstétricas</TableHead>
+            <TableHead className="w-[100px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
