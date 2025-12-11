@@ -94,15 +94,15 @@ export const HistoricoDocumentListView: React.FC<HistoricoDocumentListViewProps>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Status</TableHead>
-            <TableHead>Paciente</TableHead>
+            <TableHead className="w-[100px]">Status</TableHead>
+            <TableHead className="w-[140px]">Paciente</TableHead>
             <TableHead>Telefone</TableHead>
             <TableHead>SUS</TableHead>
             <TableHead>Início Atendimento</TableHead>
             <TableHead>Término Atendimento</TableHead>
-            <TableHead>Duração</TableHead>
-            <TableHead>Informações Obstétricas</TableHead>
-            <TableHead>Ações</TableHead>
+            <TableHead className="w-[80px]">Duração</TableHead>
+            <TableHead className="w-[140px]">Informações Obstétricas</TableHead>
+            <TableHead className="w-[120px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
