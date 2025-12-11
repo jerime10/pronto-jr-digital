@@ -155,21 +155,21 @@ export const HistoricoDocumentListView: React.FC<HistoricoDocumentListViewProps>
                     </div>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="overflow-hidden">
                   {document.obstetricInfo && (document.obstetricInfo.ig || document.obstetricInfo.dpp) ? (
-                    <div className="inline-flex flex-col gap-1.5 px-3 py-2 rounded-lg bg-pink-50 border border-pink-200">
+                    <div className="flex flex-col gap-0.5 px-1.5 py-1 rounded bg-pink-50 border border-pink-200 text-xs max-w-full">
                       {document.obstetricInfo.ig && (
-                        <div className="flex items-center gap-2">
-                          <Baby className="w-4 h-4 text-pink-500" />
-                          <span className="text-xs text-muted-foreground">IG:</span>
-                          <span className="text-sm font-semibold text-pink-600">{document.obstetricInfo.ig}</span>
+                        <div className="flex items-center gap-1">
+                          <Baby className="w-3 h-3 text-pink-500 shrink-0" />
+                          <span className="text-muted-foreground">IG:</span>
+                          <span className="font-semibold text-pink-600">{document.obstetricInfo.ig}</span>
                         </div>
                       )}
                       {document.obstetricInfo.dpp && (
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-pink-400" />
-                          <span className="text-xs text-muted-foreground">DPP:</span>
-                          <span className="text-sm font-semibold text-pink-600">{document.obstetricInfo.dpp}</span>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3 text-pink-400 shrink-0" />
+                          <span className="text-muted-foreground">DPP:</span>
+                          <span className="font-semibold text-pink-600">{document.obstetricInfo.dpp}</span>
                         </div>
                       )}
                     </div>
