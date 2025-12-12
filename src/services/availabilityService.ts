@@ -9,6 +9,7 @@ import {
 } from '../types/database';
 import { scheduleAssignmentService, appointmentService } from './scheduleService';
 import { debugLogger, startTimer, endTimer } from '@/utils/debugLogger';
+import { fetchGoogleCalendarAvailability } from './googleCalendarService';
 
 // ============================================
 // UTILITÁRIOS DE TEMPO
@@ -107,6 +108,78 @@ export const availabilityService = {
     });
 
     try {
+      // Primeiro, verificar se o atendente tem Google Calendar configurado
+      const { data: attendant } = await supabase
+        .from('attendants')
+        .select('id, name, google_calendar_id')
+        .eq('id', attendantId)
+        .single();
+      
+      if (attendant?.google_calendar_id) {
+        debugLogger.info('AvailabilityService', 'using_google_calendar', {
+          attendantId,
+          attendantName: attendant.name,
+          googleCalendarId: attendant.google_calendar_id
+        });
+        
+        // Buscar duração do serviço
+        let serviceDuration = 30;
+        if (serviceId) {
+          const { data: service } = await supabase
+            .from('services')
+            .select('duration')
+            .eq('id', serviceId)
+            .single();
+          if (service?.duration) {
+            serviceDuration = service.duration;
+          }
+        }
+        
+        try {
+          // Usar Google Calendar para disponibilidade
+          const googleSlots = await fetchGoogleCalendarAvailability({
+            attendant_id: attendantId,
+            date,
+            service_duration: serviceDuration,
+            start_hour: 7,
+            end_hour: 20
+          });
+          
+          if (googleSlots && googleSlots.length > 0) {
+            const [year, month, day] = date.split('-').map(Number);
+            const dateObj = new Date(year, month - 1, day);
+            const jsDay = dateObj.getDay();
+            const dayOfWeek = jsDay === 0 ? 7 : jsDay;
+            
+            debugLogger.info('AvailabilityService', 'google_calendar_slots_found', {
+              slotsCount: googleSlots.length,
+              slots: googleSlots
+            });
+            
+            const response = {
+              success: true,
+              available_slots: googleSlots.map(slot => ({
+                start_time: slot.start_time,
+                end_time: slot.end_time,
+                duration_minutes: slot.duration_minutes
+              })),
+              date,
+              day_of_week: dayOfWeek
+            };
+            
+            endTimer('AvailabilityService', 'checkAvailability_google_calendar', timerName, response);
+            return response;
+          }
+        } catch (googleError) {
+          debugLogger.warn('AvailabilityService', 'google_calendar_fallback', {
+            error: googleError instanceof Error ? googleError.message : String(googleError),
+            message: 'Usando sistema local como fallback'
+          });
+          // Continuar com o sistema local como fallback
+        }
+      }
+      
+      // Sistema local (fallback ou quando não há Google Calendar)
       // Validar parâmetros obrigatórios
       if (!attendantId || !date) {
         throw new Error('Parâmetros obrigatórios não fornecidos: attendantId e date são necessários');
