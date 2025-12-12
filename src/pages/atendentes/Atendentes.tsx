@@ -25,6 +25,7 @@ import { supabase } from '@/integrations/supabase/client';
 import ImageUploader from '@/components/ui/ImageUploader';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ActionButtonGuard } from '@/components/PermissionGuard';
+import { GoogleCalendarTab } from '@/components/attendant/GoogleCalendarTab';
 
 
 
@@ -287,39 +288,11 @@ const AttendantForm: React.FC<AttendantFormProps> = ({ attendant, onClose }) => 
         </TabsContent>
 
         <TabsContent value="google-calendar" className="space-y-4 mt-6">
-          <div className="space-y-4">
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start space-x-2">
-                <Calendar className="w-5 h-5 text-blue-500 mt-0.5" />
-                <div className="text-sm text-blue-700">
-                  <p className="font-medium">Integração com Google Calendar</p>
-                  <p>Cole o ID da agenda do Google Calendar para sincronizar os horários automaticamente.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="google_calendar_id">ID da Agenda Google Calendar</Label>
-              <Input
-                id="google_calendar_id"
-                value={formData.google_calendar_id || ''}
-                onChange={(e) => setFormData({ ...formData, google_calendar_id: e.target.value })}
-                placeholder="exemplo@group.calendar.google.com"
-              />
-              <p className="text-xs text-muted-foreground">
-                Encontre o ID em: Google Calendar → Configurações da Agenda → Integrar agenda → ID da agenda
-              </p>
-            </div>
-
-            {formData.google_calendar_id && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-green-700 font-medium">Google Calendar configurado</span>
-                </div>
-              </div>
-            )}
-          </div>
+          <GoogleCalendarTab 
+            calendarId={formData.google_calendar_id || ''}
+            onCalendarIdChange={(value) => setFormData({ ...formData, google_calendar_id: value })}
+            attendantId={attendant?.id}
+          />
         </TabsContent>
         
         <TabsContent value="compartilhar" className="space-y-4 mt-6">

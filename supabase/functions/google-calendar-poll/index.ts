@@ -136,9 +136,9 @@ serve(async (req) => {
   }
 
   try {
-    const { days_ahead = 30 } = await req.json().catch(() => ({}));
+    const { attendant_id, days_ahead = 30 } = await req.json().catch(() => ({}));
     
-    console.log('🔄 Iniciando polling do Google Calendar...');
+    console.log('🔄 Iniciando polling do Google Calendar...', { attendant_id, days_ahead });
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -152,12 +152,19 @@ serve(async (req) => {
     const serviceAccountJson = JSON.parse(serviceAccountJsonStr);
     const accessToken = await getAccessToken(serviceAccountJson);
     
-    // Buscar todos os atendentes com google_calendar_id configurado
-    const { data: attendants, error: attendantsError } = await supabase
+    // Se attendant_id foi fornecido, buscar apenas esse atendente
+    // Caso contrário, buscar todos os atendentes com google_calendar_id configurado
+    let attendantsQuery = supabase
       .from('attendants')
       .select('id, name, google_calendar_id')
       .not('google_calendar_id', 'is', null)
       .eq('is_active', true);
+    
+    if (attendant_id) {
+      attendantsQuery = attendantsQuery.eq('id', attendant_id);
+    }
+    
+    const { data: attendants, error: attendantsError } = await attendantsQuery;
     
     if (attendantsError) {
       throw new Error(`Erro ao buscar atendentes: ${attendantsError.message}`);
@@ -168,7 +175,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         success: true, 
         message: 'Nenhum atendente com Google Calendar configurado',
-        synced: 0
+        eventsProcessed: 0
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -318,6 +325,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       message: 'Polling concluído',
+      eventsProcessed: totalEventsCreated,
       events_checked: totalEventsSynced,
       events_created: totalEventsCreated,
       attendants_processed: attendants.length
