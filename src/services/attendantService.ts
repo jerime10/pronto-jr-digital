@@ -76,6 +76,7 @@ export async function createAttendant(attendantData: AttendantFormData): Promise
         photo_url: attendantData.photo_url || null,
         working_days: attendantData.working_days || null,
         share_link: attendantData.share_link || null,
+        google_calendar_id: attendantData.google_calendar_id || null,
         is_active: attendantData.is_active ?? true,
       })
       .select()
@@ -107,6 +108,7 @@ export async function updateAttendant(id: string, attendantData: Partial<Attenda
     if (attendantData.photo_url !== undefined) updateData.photo_url = attendantData.photo_url || null;
     if (attendantData.working_days !== undefined) updateData.working_days = attendantData.working_days || null;
     if (attendantData.share_link !== undefined) updateData.share_link = attendantData.share_link || null;
+    if (attendantData.google_calendar_id !== undefined) updateData.google_calendar_id = attendantData.google_calendar_id || null;
     if (attendantData.is_active !== undefined) updateData.is_active = attendantData.is_active;
     
     const { data, error } = await supabase

@@ -96,6 +96,7 @@ export type Attendant = {
   working_days: number[] | null; // 0=Domingo, 1=Segunda, ..., 6=Sábado
   share_link: string | null;
   is_active: boolean;
+  google_calendar_id: string | null; // ID do calendário do Google Calendar
   created_at: string;
   updated_at: string;
 };
@@ -144,6 +145,7 @@ export type AttendantFormData = {
   working_days?: number[];
   share_link?: string;
   is_active?: boolean;
+  google_calendar_id?: string; // ID do calendário do Google Calendar
   working_hours?: Omit<AttendantWorkingHours, 'id' | 'attendant_id' | 'created_at' | 'updated_at'>[];
   service_ids?: string[];
 };
