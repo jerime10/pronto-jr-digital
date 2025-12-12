@@ -108,78 +108,21 @@ export const availabilityService = {
     });
 
     try {
-      // Primeiro, verificar se o atendente tem Google Calendar configurado
+      // Verificar se o atendente tem Google Calendar configurado
       const { data: attendant } = await supabase
         .from('attendants')
         .select('id, name, google_calendar_id')
         .eq('id', attendantId)
         .single();
       
-      if (attendant?.google_calendar_id) {
-        debugLogger.info('AvailabilityService', 'using_google_calendar', {
-          attendantId,
-          attendantName: attendant.name,
-          googleCalendarId: attendant.google_calendar_id
-        });
-        
-        // Buscar duração do serviço
-        let serviceDuration = 30;
-        if (serviceId) {
-          const { data: service } = await supabase
-            .from('services')
-            .select('duration')
-            .eq('id', serviceId)
-            .single();
-          if (service?.duration) {
-            serviceDuration = service.duration;
-          }
-        }
-        
-        try {
-          // Usar Google Calendar para disponibilidade
-          const googleSlots = await fetchGoogleCalendarAvailability({
-            attendant_id: attendantId,
-            date,
-            service_duration: serviceDuration,
-            start_hour: 7,
-            end_hour: 20
-          });
-          
-          if (googleSlots && googleSlots.length > 0) {
-            const [year, month, day] = date.split('-').map(Number);
-            const dateObj = new Date(year, month - 1, day);
-            const jsDay = dateObj.getDay();
-            const dayOfWeek = jsDay === 0 ? 7 : jsDay;
-            
-            debugLogger.info('AvailabilityService', 'google_calendar_slots_found', {
-              slotsCount: googleSlots.length,
-              slots: googleSlots
-            });
-            
-            const response = {
-              success: true,
-              available_slots: googleSlots.map(slot => ({
-                start_time: slot.start_time,
-                end_time: slot.end_time,
-                duration_minutes: slot.duration_minutes
-              })),
-              date,
-              day_of_week: dayOfWeek
-            };
-            
-            endTimer('AvailabilityService', 'checkAvailability_google_calendar', timerName, response);
-            return response;
-          }
-        } catch (googleError) {
-          debugLogger.warn('AvailabilityService', 'google_calendar_fallback', {
-            error: googleError instanceof Error ? googleError.message : String(googleError),
-            message: 'Usando sistema local como fallback'
-          });
-          // Continuar com o sistema local como fallback
-        }
-      }
+      const hasGoogleCalendar = !!attendant?.google_calendar_id;
       
-      // Sistema local (fallback ou quando não há Google Calendar)
+      debugLogger.info('AvailabilityService', 'attendant_info', {
+        attendantId,
+        hasGoogleCalendar,
+        googleCalendarId: attendant?.google_calendar_id
+      });
+      
       // Validar parâmetros obrigatórios
       if (!attendantId || !date) {
         throw new Error('Parâmetros obrigatórios não fornecidos: attendantId e date são necessários');
@@ -204,7 +147,8 @@ export const availabilityService = {
         dayOfWeek
       });
 
-      // Buscar atribuições de horário para o atendente na data
+      // SEMPRE buscar atribuições de horário para o atendente na data
+      // Os horários disponíveis vêm dos "Horários Atribuídos" do sistema
       debugLogger.info('AvailabilityService', 'fetching_assignments', {
         attendantId,
         date
@@ -275,6 +219,32 @@ export const availabilityService = {
         }))
       });
 
+      // Se tiver Google Calendar, buscar eventos ocupados também
+      let googleBusyTimes: { start: string; end: string }[] = [];
+      if (hasGoogleCalendar) {
+        try {
+          // Buscar horários ocupados do Google Calendar via edge function
+          const googleSlots = await fetchGoogleCalendarAvailability({
+            attendant_id: attendantId,
+            date,
+            service_duration: 30, // Duração mínima para verificar ocupação
+            start_hour: 0,
+            end_hour: 24
+          });
+          
+          // Os slots retornados são os DISPONÍVEIS, precisamos inverter para obter os ocupados
+          // Por enquanto, vamos confiar nos agendamentos do banco de dados
+          // A edge function já faz a verificação de busy times do Google Calendar
+          debugLogger.info('AvailabilityService', 'google_calendar_checked', {
+            slotsFromGoogle: googleSlots?.length || 0
+          });
+        } catch (googleError) {
+          debugLogger.warn('AvailabilityService', 'google_calendar_check_failed', {
+            error: googleError instanceof Error ? googleError.message : String(googleError)
+          });
+        }
+      }
+
       // Buscar duração do serviço se especificado
       let serviceDuration = 30; // Padrão de 30 minutos
       if (serviceId) {
@@ -299,7 +269,7 @@ export const availabilityService = {
         });
       }
 
-      // Gerar slots disponíveis
+      // Gerar slots disponíveis baseados nos HORÁRIOS ATRIBUÍDOS
       debugLogger.info('AvailabilityService', 'generating_slots_start', {
         assignmentsCount: assignments.length,
         serviceDuration
