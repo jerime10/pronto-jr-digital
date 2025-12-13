@@ -16,6 +16,7 @@ const PublicConsultarAgendaPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectOpen, setSelectOpen] = useState(false);
 
   const { data: assignments } = useAttendantServices(attendantId);
   const dateStr = useMemo(() => selectedDate ? selectedDate.toISOString().split('T')[0] : undefined, [selectedDate]);
@@ -88,6 +89,7 @@ const PublicConsultarAgendaPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+      {selectOpen && <div className="fixed inset-0 bg-black/50 z-[900]" />}
       <div className="w-full max-w-4xl relative z-10">
         <Card className="bg-slate-800/90 backdrop-blur-xl border-slate-700/50 shadow-2xl shadow-purple-500/10">
           <CardHeader className="text-center pb-4 pt-6">
@@ -136,6 +138,8 @@ const PublicConsultarAgendaPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Select
+                      open={selectOpen}
+                      onOpenChange={setSelectOpen}
                       value={serviceId}
                       onValueChange={(v) => {
                         setServiceId(v);
@@ -145,10 +149,10 @@ const PublicConsultarAgendaPage: React.FC = () => {
                         setSelectedTime('');
                       }}
                     >
-                      <SelectTrigger className="bg-slate-700/50 border-slate-600/50 text-white">
+                      <SelectTrigger className="bg-slate-700/70 border-slate-600/70 text-white placeholder:text-slate-300 h-12 rounded-lg">
                         <SelectValue placeholder="Selecione um serviço" />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800/90 border-slate-700">
+                      <SelectContent className="bg-slate-900 text-slate-100 border-slate-700 shadow-2xl z-[1000]">
                         {servicesOptions.map(svc => (
                           <SelectItem key={svc.id} value={svc.id}>
                             {svc.name}
@@ -250,15 +254,17 @@ const PublicConsultarAgendaPage: React.FC = () => {
                   </div>
                 )}
 
-                <div className="flex gap-4">
-                  <Button 
-                    onClick={handleAgendar}
-                    disabled={!attendantId || !serviceId || !selectedDate || !selectedTime}
-                    className="flex-1 h-12 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold"
-                  >
-                    AGENDAR
-                    <Sparkles className="ml-2 h-5 w-5" />
-                  </Button>
+                <div className="sticky bottom-0 z-20 bg-slate-800/80 backdrop-blur-sm p-2 rounded-b-lg">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button 
+                      onClick={handleAgendar}
+                      disabled={!attendantId || !serviceId || !selectedDate || !selectedTime}
+                      className="flex-1 h-14 rounded-xl text-base font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                    >
+                      AGENDAR
+                      <Sparkles className="ml-2 h-5 w-5" />
+                    </Button>
+                  </div>
                 </div>
               </>
             )}
