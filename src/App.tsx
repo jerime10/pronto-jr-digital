@@ -21,6 +21,7 @@ import DiagnosticPage from './pages/DiagnosticPage';
 import SimpleAuthGuard from './components/SimpleAuthGuard';
 import PublicPatientRegistration from './pages/public/PublicPatientRegistration';
 import PublicAppointmentBooking from './pages/public/PublicAppointmentBooking';
+import PublicConsultarAgendaPage from './pages/public/PublicConsultarAgendaPage';
 import Agendamentos from './pages/agendamentos/Agendamentos';
 import Atendentes from './pages/atendentes/Atendentes';
 import Horarios from './pages/horarios/Horarios';
@@ -67,6 +68,9 @@ function App() {
           
           {/* Public Appointment Booking - Accessible without auth */}
           <Route path="/public/agendamento" element={<PublicAppointmentBooking />} />
+          
+          {/* Public Schedule Consultation - Accessible without auth */}
+          <Route path="/public/consultaragenda" element={<PublicConsultarAgendaPage />} />
           
           {/* Alias for public appointment booking */}
           <Route path="/agendamento" element={<PublicAppointmentBooking />} />

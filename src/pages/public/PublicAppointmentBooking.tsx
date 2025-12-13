@@ -139,9 +139,26 @@ export const PublicAppointmentBooking: React.FC = () => {
   // Hook para acessar a chave PIX
   const { pixKey } = usePixKey();
 
+  const [prefillParams, setPrefillParams] = useState<{
+    attendantId?: string;
+    serviceId?: string;
+    date?: string;
+    time?: string;
+  }>({});
+
   useEffect(() => {
     loadInitialData();
     extractPartnerFromURL();
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const attendantId = urlParams.get('professionalId') || undefined;
+      const serviceId = urlParams.get('serviceId') || undefined;
+      const date = urlParams.get('date') || undefined;
+      const time = urlParams.get('time') || undefined;
+      if (attendantId || serviceId || date || time) {
+        setPrefillParams({ attendantId, serviceId, date, time });
+      }
+    } catch {}
   }, []);
 
   // Função para extrair informações do parceiro da URL
@@ -463,6 +480,8 @@ export const PublicAppointmentBooking: React.FC = () => {
         retryCount,
         servicesCount: servicesData.length
       });
+
+      return servicesData;
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -891,9 +910,94 @@ export const PublicAppointmentBooking: React.FC = () => {
     }
   };
 
-  const proceedToAttendantSelection = () => {
+  const proceedToAttendantSelection = async () => {
     setAvailableAttendants(attendants);
     setCurrentStep('attendant_selection');
+    
+    // Lógica de pré-preenchimento robusta
+    if (prefillParams.attendantId) {
+      const selectedAttendant = attendants.find(a => a.id === prefillParams.attendantId);
+      
+      if (selectedAttendant) {
+        // 1. Atualizar dados do atendente
+        setFormData(prev => ({
+          ...prev,
+          attendant_id: selectedAttendant.id,
+          attendant_name: selectedAttendant.name
+        }));
+        
+        // 2. Carregar serviços e aguardar
+        const loadedServices = await loadAttendantServices(selectedAttendant.id);
+        
+        if (prefillParams.serviceId && loadedServices) {
+          const selectedService = loadedServices.find((s: Service) => s.id === prefillParams.serviceId);
+          
+          if (selectedService) {
+            // 3. Atualizar dados do serviço
+            setFormData(prev => ({
+              ...prev,
+              service_id: selectedService.id,
+              service_name: selectedService.name,
+              service_price: selectedService.price,
+              service_duration: selectedService.duration
+            }));
+
+            // 4. Verificar data e hora
+            if (prefillParams.date && prefillParams.time) {
+              const parts = prefillParams.date.split('-').map(Number);
+              const prefillDate = new Date(parts[0], parts[1] - 1, parts[2]); // Mês é 0-indexed
+              const dateString = prefillParams.date;
+              const timeString = prefillParams.time;
+              const dateTimeString = `${dateString} ${timeString}:00`;
+              
+              setSelectedDate(prefillDate);
+              setSelectedTime(timeString);
+              
+              setFormData(prev => ({
+                ...prev,
+                appointment_date: dateString,
+                appointment_datetime: dateTimeString
+              }));
+
+              // Decidir próximo passo
+              if (isObstetricService(selectedService.name)) {
+                setCurrentStep('obstetric_data');
+              } else {
+                setCurrentStep('confirmation');
+              }
+            } else if (prefillParams.date) {
+              // Só tem data, vai para seleção de horário
+              const parts = prefillParams.date.split('-').map(Number);
+              const prefillDate = new Date(parts[0], parts[1] - 1, parts[2]);
+              setSelectedDate(prefillDate);
+              
+              // Se for obstétrico, passa antes por lá
+              if (isObstetricService(selectedService.name)) {
+                setCurrentStep('obstetric_data');
+              } else {
+                setCurrentStep('datetime_selection');
+                await checkAvailableTimeSlots(prefillDate);
+              }
+            } else {
+              // Tem serviço mas não tem data
+              setCurrentStep('service_selection'); // Tecnicamente já selecionou, mas deixa o usuário confirmar ou ir pra data
+              
+               if (isObstetricService(selectedService.name)) {
+                setCurrentStep('obstetric_data');
+              } else {
+                setCurrentStep('datetime_selection');
+              }
+            }
+          } else {
+             // Serviço não encontrado, fica na seleção de serviço
+             setCurrentStep('service_selection');
+          }
+        } else {
+          // Sem serviço pré-selecionado
+          setCurrentStep('service_selection');
+        }
+      }
+    }
   };
 
   const handleServiceSelection = (serviceId: string) => {
@@ -1472,8 +1576,8 @@ export const PublicAppointmentBooking: React.FC = () => {
       
       <div className="w-full max-w-2xl relative z-10 animate-fade-in-up">
         <Card className="bg-slate-800/90 backdrop-blur-xl border-slate-700/50 shadow-2xl shadow-purple-500/10 card-glow glass-effect">
-          <CardHeader className="text-center pb-4 pt-4">
-            <div className="flex justify-center mb-1">
+          <CardHeader className="text-center pb-0 pt-2 relative z-10">
+            <div className="flex justify-center mb-0 relative z-20">
               <div className="relative animate-float">
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
                 <div className="relative bg-gradient-to-r from-purple-500 to-cyan-500 p-4 rounded-full gradient-button">
@@ -1490,7 +1594,7 @@ export const PublicAppointmentBooking: React.FC = () => {
               </div>
             </div>
             {/* Logo AGENDA ABERTA */}
-            <div className="flex justify-center mb-2 mt-1 px-4">
+            <div className="flex justify-center -mt-20 -mb-16 px-4 relative z-10 pointer-events-none">
               <img 
                 src="/LOGO_AGENDA_ABERTA-removebg-preview.png" 
                 alt="Agenda Aberta" 
@@ -1499,7 +1603,7 @@ export const PublicAppointmentBooking: React.FC = () => {
             </div>
           </CardHeader>
           
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0 relative z-20">
             {/* Seção de informações do parceiro */}
             {partnerInfo && (
               <div className="mb-4 p-3 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-purple-500/20 rounded-lg">
@@ -1635,7 +1739,7 @@ export const PublicAppointmentBooking: React.FC = () => {
             {currentStep === 'welcome_update' && patient && (
               <div className="space-y-6">
                 <div className="text-center space-y-4">
-                  <div className="flex justify-center mb-4">
+                  <div className="flex justify-center mb-1">
                     <div className="relative animate-float">
                       <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
                       <div className="relative bg-gradient-to-r from-green-500 to-emerald-500 p-3 rounded-full gradient-button">
@@ -1704,7 +1808,7 @@ export const PublicAppointmentBooking: React.FC = () => {
             {currentStep === 'service_selection' && (
               <div className="space-y-6">
                 <div className="text-center space-y-4">
-                  <div className="flex justify-center mb-4">
+                  <div className="flex justify-center mb-1">
                     <div className="relative animate-float">
                       <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
                       <div className="relative bg-gradient-to-r from-green-500 to-emerald-500 p-3 rounded-full gradient-button">
@@ -1790,7 +1894,7 @@ export const PublicAppointmentBooking: React.FC = () => {
             {currentStep === 'attendant_selection' && (
               <div className="space-y-6">
                 <div className="text-center space-y-4">
-                  <div className="flex justify-center mb-4">
+                  <div className="flex justify-center mb-1">
                     <div className="relative animate-float">
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
                       <div className="relative bg-gradient-to-r from-blue-500 to-indigo-500 p-3 rounded-full gradient-button">
@@ -1865,7 +1969,7 @@ export const PublicAppointmentBooking: React.FC = () => {
             {currentStep === 'obstetric_data' && (
               <div className="space-y-6">
                 <div className="text-center space-y-4">
-                  <div className="flex justify-center mb-4">
+                  <div className="flex justify-center mb-1">
                     <div className="relative animate-float">
                       <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
                       <div className="relative bg-gradient-to-r from-pink-500 to-rose-500 p-3 rounded-full gradient-button">
@@ -1979,7 +2083,7 @@ export const PublicAppointmentBooking: React.FC = () => {
             {currentStep === 'datetime_selection' && (
               <div className="space-y-6">
                 <div className="text-center space-y-4">
-                  <div className="flex justify-center mb-4">
+                  <div className="flex justify-center mb-1">
                     <div className="relative animate-float">
                       <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
                       <div className="relative bg-gradient-to-r from-purple-500 to-pink-500 p-3 rounded-full gradient-button">
@@ -2123,7 +2227,7 @@ export const PublicAppointmentBooking: React.FC = () => {
             {currentStep === 'confirmation' && (
               <div className="space-y-6">
                 <div className="text-center space-y-4">
-                  <div className="flex justify-center mb-4">
+                  <div className="flex justify-center mb-1">
                     <div className="relative animate-float">
                       <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
                       <div className="relative bg-gradient-to-r from-green-500 to-emerald-500 p-3 rounded-full gradient-button">
@@ -2294,7 +2398,7 @@ export const PublicAppointmentBooking: React.FC = () => {
             {currentStep === 'active_appointments' && patient && (
               <div className="space-y-6">
                 <div className="text-center space-y-4">
-                  <div className="flex justify-center mb-4">
+                  <div className="flex justify-center mb-1">
                     <div className="relative animate-float">
                       <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
                       <div className="relative bg-gradient-to-r from-amber-500 to-orange-500 p-3 rounded-full gradient-button">
@@ -2414,7 +2518,7 @@ export const PublicAppointmentBooking: React.FC = () => {
             {currentStep === 'success' && (
               <div className="space-y-6">
                 <div className="text-center space-y-4">
-                  <div className="flex justify-center mb-4">
+                  <div className="flex justify-center mb-1">
                     <div className="relative animate-float">
                       <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full blur-lg opacity-75 animate-pulse-glow"></div>
                       <div className="relative bg-gradient-to-r from-green-500 to-emerald-500 p-4 rounded-full gradient-button">

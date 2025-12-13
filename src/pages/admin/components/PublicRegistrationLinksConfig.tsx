@@ -299,6 +299,35 @@ const PublicRegistrationLinksConfig: React.FC = () => {
               </div>
             </div>
 
+            {/* Link de Consulta de Agenda Pública */}
+            <div className="space-y-2">
+              <p className="text-xs text-blue-600 font-medium">Link de Consulta de Agenda Pública:</p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  value={`${window.location.origin}/public/consultaragenda`}
+                  readOnly
+                  className="bg-white border-blue-300 text-blue-800 font-mono text-xs flex-1 shadow-sm"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/public/consultaragenda`);
+                    toast({
+                      title: "Copiado!",
+                      description: "Link de consulta de agenda copiado para a área de transferência.",
+                      variant: "default"
+                    });
+                  }}
+                  className="border-blue-300 text-blue-700 hover:bg-blue-200 px-4 text-xs"
+                >
+                  Copiar
+                </Button>
+              </div>
+              <p className="text-xs text-blue-700">
+                Página pública para consultar dias e horários disponíveis, sem necessidade de login.
+              </p>
+            </div>
+
             {/* Link de Agendamento do Administrador */}
             <div className="space-y-2">
               <p className="text-xs text-amber-600 font-medium">🔐 Link de Agendamento do Administrador:</p>
