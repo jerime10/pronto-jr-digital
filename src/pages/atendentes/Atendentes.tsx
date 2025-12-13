@@ -25,7 +25,6 @@ import { supabase } from '@/integrations/supabase/client';
 import ImageUploader from '@/components/ui/ImageUploader';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ActionButtonGuard } from '@/components/PermissionGuard';
-import { GoogleCalendarTab } from '@/components/attendant/GoogleCalendarTab';
 
 
 
@@ -86,7 +85,6 @@ const AttendantForm: React.FC<AttendantFormProps> = ({ attendant, onClose }) => 
     photo_url: attendant?.photo_url || '',
     working_days: attendant?.working_days || [],
     share_link: attendant?.share_link || '',
-    google_calendar_id: (attendant as any)?.google_calendar_id || '',
     is_active: attendant?.is_active ?? true
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -155,11 +153,10 @@ const AttendantForm: React.FC<AttendantFormProps> = ({ attendant, onClose }) => 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Tabs defaultValue="informacoes" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="informacoes">Informações</TabsTrigger>
           <TabsTrigger value="contato">Contato</TabsTrigger>
-          <TabsTrigger value="google-calendar">Google Calendar</TabsTrigger>
-          <TabsTrigger value="compartilhar">Compartilhar</TabsTrigger>
+          <TabsTrigger value="compartilhar">Compartilhar Agenda</TabsTrigger>
         </TabsList>
         
         <TabsContent value="informacoes" className="space-y-6 mt-6">
@@ -285,14 +282,6 @@ const AttendantForm: React.FC<AttendantFormProps> = ({ attendant, onClose }) => 
               />
             </div>
           </div>
-        </TabsContent>
-
-        <TabsContent value="google-calendar" className="space-y-4 mt-6">
-          <GoogleCalendarTab 
-            calendarId={formData.google_calendar_id || ''}
-            onCalendarIdChange={(value) => setFormData({ ...formData, google_calendar_id: value })}
-            attendantId={attendant?.id}
-          />
         </TabsContent>
         
         <TabsContent value="compartilhar" className="space-y-4 mt-6">

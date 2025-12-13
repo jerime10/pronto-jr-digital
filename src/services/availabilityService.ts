@@ -9,7 +9,6 @@ import {
 } from '../types/database';
 import { scheduleAssignmentService, appointmentService } from './scheduleService';
 import { debugLogger, startTimer, endTimer } from '@/utils/debugLogger';
-import { fetchGoogleCalendarAvailability } from './googleCalendarService';
 
 // ============================================
 // UTILITÁRIOS DE TEMPO
@@ -108,21 +107,6 @@ export const availabilityService = {
     });
 
     try {
-      // Verificar se o atendente tem Google Calendar configurado
-      const { data: attendant } = await supabase
-        .from('attendants')
-        .select('id, name, google_calendar_id')
-        .eq('id', attendantId)
-        .single();
-      
-      const hasGoogleCalendar = !!attendant?.google_calendar_id;
-      
-      debugLogger.info('AvailabilityService', 'attendant_info', {
-        attendantId,
-        hasGoogleCalendar,
-        googleCalendarId: attendant?.google_calendar_id
-      });
-      
       // Validar parâmetros obrigatórios
       if (!attendantId || !date) {
         throw new Error('Parâmetros obrigatórios não fornecidos: attendantId e date são necessários');
@@ -147,8 +131,7 @@ export const availabilityService = {
         dayOfWeek
       });
 
-      // SEMPRE buscar atribuições de horário para o atendente na data
-      // Os horários disponíveis vêm dos "Horários Atribuídos" do sistema
+      // Buscar atribuições de horário para o atendente na data
       debugLogger.info('AvailabilityService', 'fetching_assignments', {
         attendantId,
         date
@@ -219,32 +202,6 @@ export const availabilityService = {
         }))
       });
 
-      // Se tiver Google Calendar, buscar eventos ocupados também
-      let googleBusyTimes: { start: string; end: string }[] = [];
-      if (hasGoogleCalendar) {
-        try {
-          // Buscar horários ocupados do Google Calendar via edge function
-          const googleSlots = await fetchGoogleCalendarAvailability({
-            attendant_id: attendantId,
-            date,
-            service_duration: 30, // Duração mínima para verificar ocupação
-            start_hour: 0,
-            end_hour: 24
-          });
-          
-          // Os slots retornados são os DISPONÍVEIS, precisamos inverter para obter os ocupados
-          // Por enquanto, vamos confiar nos agendamentos do banco de dados
-          // A edge function já faz a verificação de busy times do Google Calendar
-          debugLogger.info('AvailabilityService', 'google_calendar_checked', {
-            slotsFromGoogle: googleSlots?.length || 0
-          });
-        } catch (googleError) {
-          debugLogger.warn('AvailabilityService', 'google_calendar_check_failed', {
-            error: googleError instanceof Error ? googleError.message : String(googleError)
-          });
-        }
-      }
-
       // Buscar duração do serviço se especificado
       let serviceDuration = 30; // Padrão de 30 minutos
       if (serviceId) {
@@ -269,7 +226,7 @@ export const availabilityService = {
         });
       }
 
-      // Gerar slots disponíveis baseados nos HORÁRIOS ATRIBUÍDOS
+      // Gerar slots disponíveis
       debugLogger.info('AvailabilityService', 'generating_slots_start', {
         assignmentsCount: assignments.length,
         serviceDuration

@@ -65,7 +65,6 @@ export type Database = {
           end_time: string | null
           estimated_due_date: string | null
           gestational_age: string | null
-          google_event_id: string | null
           id: string
           notes: string | null
           partner_code: string | null
@@ -92,7 +91,6 @@ export type Database = {
           end_time?: string | null
           estimated_due_date?: string | null
           gestational_age?: string | null
-          google_event_id?: string | null
           id?: string
           notes?: string | null
           partner_code?: string | null
@@ -119,7 +117,6 @@ export type Database = {
           end_time?: string | null
           estimated_due_date?: string | null
           gestational_age?: string | null
-          google_event_id?: string | null
           id?: string
           notes?: string | null
           partner_code?: string | null
@@ -164,7 +161,6 @@ export type Database = {
           bio: string | null
           created_at: string | null
           email: string | null
-          google_calendar_id: string | null
           id: string
           is_active: boolean | null
           name: string
@@ -182,7 +178,6 @@ export type Database = {
           bio?: string | null
           created_at?: string | null
           email?: string | null
-          google_calendar_id?: string | null
           id?: string
           is_active?: boolean | null
           name: string
@@ -200,7 +195,6 @@ export type Database = {
           bio?: string | null
           created_at?: string | null
           email?: string | null
-          google_calendar_id?: string | null
           id?: string
           is_active?: boolean | null
           name?: string
@@ -295,44 +289,6 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      google_calendar_sync_log: {
-        Row: {
-          attendant_id: string | null
-          created_at: string | null
-          error_message: string | null
-          events_synced: number | null
-          id: string
-          status: string
-          sync_type: string
-        }
-        Insert: {
-          attendant_id?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          events_synced?: number | null
-          id?: string
-          status: string
-          sync_type: string
-        }
-        Update: {
-          attendant_id?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          events_synced?: number | null
-          id?: string
-          status?: string
-          sync_type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "google_calendar_sync_log_attendant_id_fkey"
-            columns: ["attendant_id"]
-            isOneToOne: false
-            referencedRelation: "attendants"
             referencedColumns: ["id"]
           },
         ]
