@@ -26,6 +26,29 @@ const PublicConsultarAgendaPage: React.FC = () => {
     serviceId,
   });
 
+  // Filter out past time slots when selected date is today
+  const filteredAvailableSlots = useMemo(() => {
+    if (!availability?.available_slots || !selectedDate) return [];
+    
+    const today = new Date();
+    const isToday = selectedDate.toDateString() === today.toDateString();
+    
+    if (!isToday) {
+      return availability.available_slots;
+    }
+    
+    // For today, filter out past slots (with 15 min buffer)
+    const currentTime = new Date();
+    currentTime.setMinutes(currentTime.getMinutes() + 15);
+    
+    return availability.available_slots.filter(slot => {
+      const [hours, minutes] = slot.start_time.split(':').map(Number);
+      const slotTime = new Date(selectedDate);
+      slotTime.setHours(hours, minutes, 0, 0);
+      return slotTime > currentTime;
+    });
+  }, [availability?.available_slots, selectedDate]);
+
   const servicesOptions = useMemo(() => {
     return (assignments || []).map(a => ({
       id: a.service_id,
@@ -228,9 +251,9 @@ const PublicConsultarAgendaPage: React.FC = () => {
                         <div className="h-8 w-8 animate-spin rounded-full border-2 border-purple-500 border-r-transparent mx-auto mb-4" />
                         <p className="text-slate-300">Carregando horários disponíveis...</p>
                       </div>
-                    ) : availability && availability.available_slots && availability.available_slots.length > 0 ? (
+                    ) : filteredAvailableSlots.length > 0 ? (
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                        {availability.available_slots.map((slot, index) => (
+                        {filteredAvailableSlots.map((slot, index) => (
                           <button
                             key={`${slot.start_time}-${index}`}
                             onClick={() => setSelectedTime(slot.start_time)}
