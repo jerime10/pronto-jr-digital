@@ -65,6 +65,7 @@ export type Database = {
           end_time: string | null
           estimated_due_date: string | null
           gestational_age: string | null
+          google_event_id: string | null
           id: string
           notes: string | null
           partner_code: string | null
@@ -91,6 +92,7 @@ export type Database = {
           end_time?: string | null
           estimated_due_date?: string | null
           gestational_age?: string | null
+          google_event_id?: string | null
           id?: string
           notes?: string | null
           partner_code?: string | null
@@ -117,6 +119,7 @@ export type Database = {
           end_time?: string | null
           estimated_due_date?: string | null
           gestational_age?: string | null
+          google_event_id?: string | null
           id?: string
           notes?: string | null
           partner_code?: string | null
@@ -161,6 +164,7 @@ export type Database = {
           bio: string | null
           created_at: string | null
           email: string | null
+          google_calendar_id: string | null
           id: string
           is_active: boolean | null
           name: string
@@ -178,6 +182,7 @@ export type Database = {
           bio?: string | null
           created_at?: string | null
           email?: string | null
+          google_calendar_id?: string | null
           id?: string
           is_active?: boolean | null
           name: string
@@ -195,6 +200,7 @@ export type Database = {
           bio?: string | null
           created_at?: string | null
           email?: string | null
+          google_calendar_id?: string | null
           id?: string
           is_active?: boolean | null
           name?: string
