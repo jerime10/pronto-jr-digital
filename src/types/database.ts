@@ -3,10 +3,11 @@ export type Patient = {
   id: string;
   sus: string;
   name: string;
-  age: number;
-  gender: string;
+  age: number | null;
+  gender: string | null;
   phone: string;
   address: string;
+  bairro: string | null;
   date_of_birth: string | null;
   created_at: string;
   updated_at: string;

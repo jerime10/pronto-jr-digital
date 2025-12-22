@@ -13,8 +13,9 @@ interface Patient {
   phone: string;
   address: string;
   date_of_birth: string | null;
-  age: number;
-  gender: string;
+  age: number | null;
+  gender: string | null;
+  bairro: string | null;
   created_at: string;
   updated_at: string;
 }

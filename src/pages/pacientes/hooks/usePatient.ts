@@ -33,6 +33,7 @@ export const usePatient = (patientId: string | undefined) => {
         age: rawPatientData.age,
         gender: rawPatientData.gender || 'Não informado',
         address: rawPatientData.address,
+        bairro: rawPatientData.bairro || '',
         created_at: rawPatientData.created_at || new Date().toISOString(),
         updated_at: rawPatientData.updated_at || new Date().toISOString()
       };
