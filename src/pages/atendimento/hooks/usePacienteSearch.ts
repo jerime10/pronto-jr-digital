@@ -68,13 +68,14 @@ export const usePacienteSearch = (initialPatient?: Patient | null) => {
         id: p.id,
         name: p.name,
         sus: p.sus,
-        age: p.age || 0,
-        gender: p.gender || 'não informado',
+        age: p.age || null,
+        gender: p.gender || null,
         phone: p.phone || '',
         address: p.address || '',
+        bairro: p.bairro || null,
         date_of_birth: p.date_of_birth,
-        created_at: p.created_at,
-        updated_at: p.updated_at
+        created_at: p.created_at || new Date().toISOString(),
+        updated_at: p.updated_at || new Date().toISOString()
       })) || [];
     },
     enabled: true,
