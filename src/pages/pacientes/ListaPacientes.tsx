@@ -1,61 +1,85 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Plus, Edit, Trash } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { Patient } from '@/types/database';
 import { toast } from 'sonner';
 import { usePatients } from '@/hooks/useEnhancedQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ActionButtonGuard } from '@/components/PermissionGuard';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const ListaPacientes = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { permissions, isAdmin, hasPermission } = usePermissions();
-  
   const { data: patients, isLoading, error, refetch } = usePatients();
-  
-  const handleDeletePatient = async (id: string) => {
+  usePermissions();
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const openDeleteDialog = (patient: { id: string; name: string }) => {
+    setDeleteTarget(patient);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+
     try {
-      const { error } = await supabase
-        .from('patients')
-        .delete()
-        .eq('id', id);
-      
+      setIsDeleting(true);
+      const { error } = await supabase.from('patients').delete().eq('id', deleteTarget.id);
       if (error) throw error;
-      
-      toast.success("Paciente excluído com sucesso!");
+
+      toast.success('Paciente excluído com sucesso!');
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
       refetch();
     } catch (error) {
       console.error('Error deleting patient:', error);
-      toast.error("Erro ao excluir paciente.");
+      toast.error('Erro ao excluir paciente.');
+    } finally {
+      setIsDeleting(false);
     }
   };
-  
-  const filteredPatients = patients?.filter(
-    patient => 
-      patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.sus.includes(searchQuery)
-  ) || [];
-  
+
+  const filteredPatients = useMemo(() => {
+    if (!patients) return [];
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return patients;
+
+    return patients.filter(
+      (patient) => patient.name.toLowerCase().includes(q) || patient.sus.includes(searchQuery.trim())
+    );
+  }, [patients, searchQuery]);
+
   if (isLoading) {
     return <div className="flex justify-center p-10">Carregando pacientes...</div>;
   }
-  
+
   if (error) {
     return <div className="text-red-500 p-10">Erro ao carregar pacientes: {(error as Error).message}</div>;
   }
-  
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
@@ -63,7 +87,7 @@ const ListaPacientes = () => {
           <h1 className="text-3xl font-bold text-gray-800">Pacientes</h1>
           <p className="text-gray-500 mt-1">Gestão de cadastros de pacientes</p>
         </div>
-        
+
         <ActionButtonGuard permission="pacientes_criar">
           <Button asChild>
             <Link to="/pacientes/novo" className="inline-flex items-center">
@@ -73,7 +97,7 @@ const ListaPacientes = () => {
           </Button>
         </ActionButtonGuard>
       </div>
-      
+
       <div className="relative w-full max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
         <Input
@@ -83,7 +107,36 @@ const ListaPacientes = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
-      
+
+      <AlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Você está prestes a excluir permanentemente o paciente:</p>
+              <p className="font-bold text-foreground">{deleteTarget?.name}</p>
+              <p className="text-destructive font-medium">Esta ação não pode ser desfeita.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Excluindo...' : 'Sim, excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="border rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
@@ -117,10 +170,10 @@ const ListaPacientes = () => {
                       </Button>
                     </ActionButtonGuard>
                     <ActionButtonGuard permission="pacientes_excluir">
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="icon"
-                        onClick={() => handleDeletePatient(patient.id)}
+                        onClick={() => openDeleteDialog({ id: patient.id, name: patient.name })}
                       >
                         <Trash className="h-4 w-4" />
                         <span className="sr-only">Excluir</span>
@@ -144,3 +197,4 @@ const ListaPacientes = () => {
 };
 
 export default ListaPacientes;
+
