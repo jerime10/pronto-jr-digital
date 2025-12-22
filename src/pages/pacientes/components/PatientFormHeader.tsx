@@ -29,7 +29,7 @@ export const PatientFormHeader: React.FC<PatientFormHeaderProps> = ({
         </p>
       </div>
       
-      <div className="flex space-x-3">
+      <div className="flex items-center gap-4">
         <Button variant="outline" onClick={() => navigate('/pacientes')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
@@ -37,7 +37,12 @@ export const PatientFormHeader: React.FC<PatientFormHeaderProps> = ({
         
         {isEditMode && (
           <ActionButtonGuard permission="pacientes_excluir">
-            <Button variant="destructive" onClick={onDelete} disabled={loading}>
+            <Button 
+              variant="destructive" 
+              onClick={onDelete} 
+              disabled={loading}
+              className="ml-4"
+            >
               <Trash className="mr-2 h-4 w-4" />
               Excluir
             </Button>
