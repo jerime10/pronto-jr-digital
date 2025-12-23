@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,9 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData
   const navigate = useNavigate();
   const isEditMode = !!patientId;
   
+  // Usar ref para rastrear se já inicializamos com os dados corretos
+  const initializedRef = useRef<string | null>(null);
+  
   const [formData, setFormData] = useState({
     name: '',
     sus: '',
@@ -31,26 +34,54 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData
   
   const [loading, setLoading] = useState(false);
   
+  // CORREÇÃO CRÍTICA: Usar patientId + initialData.id para garantir consistência
   useEffect(() => {
-    if (initialData) {
-      setFormData({
-        name: initialData.name || '',
-        sus: initialData.sus || '',
-        gender: initialData.gender || '',
-        date_of_birth: initialData.date_of_birth || null,
-        age: initialData.age || 0,
-        phone: initialData.phone || '',
-        address: initialData.address || '',
-        bairro: initialData.bairro || ''
-      });
+    // Só atualizar se temos initialData E o ID corresponde ao patientId atual
+    if (initialData && patientId) {
+      // Verificar se o initialData corresponde ao patientId correto
+      if (initialData.id === patientId && initializedRef.current !== patientId) {
+        console.log('🔄 [PatientForm] Inicializando com dados do paciente:', patientId, initialData.name);
+        initializedRef.current = patientId;
+        
+        setFormData({
+          name: initialData.name || '',
+          sus: initialData.sus || '',
+          gender: initialData.gender || '',
+          date_of_birth: initialData.date_of_birth || null,
+          age: initialData.age || 0,
+          phone: initialData.phone || '',
+          address: initialData.address || '',
+          bairro: initialData.bairro || ''
+        });
+      } else if (initialData.id !== patientId) {
+        console.warn('⚠️ [PatientForm] ALERTA: initialData.id não corresponde ao patientId!', {
+          initialDataId: initialData.id,
+          patientId: patientId
+        });
+      }
+    } else if (!patientId) {
+      // Modo cadastro novo - resetar o formulário
+      if (initializedRef.current !== 'new') {
+        initializedRef.current = 'new';
+        setFormData({
+          name: '',
+          sus: '',
+          gender: '',
+          date_of_birth: null,
+          age: 0,
+          phone: '',
+          address: '',
+          bairro: ''
+        });
+      }
     }
-  }, [initialData]);
+  }, [initialData, patientId]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
     // Campos que devem ser convertidos para maiúsculo
-    const upperCaseFields = ['name', 'phone', 'address', 'bairro'];
+    const upperCaseFields = ['name', 'address'];
     const processedValue = upperCaseFields.includes(name) ? value.toUpperCase() : value;
     
     setFormData(prev => ({ ...prev, [name]: processedValue }));
@@ -72,10 +103,21 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('🔍 [PatientForm] Iniciando salvamento:', formData);
+    console.log('🔍 [PatientForm] Iniciando salvamento:', {
+      patientId,
+      isEditMode,
+      formData: formData.name
+    });
     
     if (!formData.name || !formData.sus) {
       toast.error("Nome e número SUS são obrigatórios.");
+      return;
+    }
+    
+    // PROTEÇÃO CRÍTICA: Verificar se temos patientId válido em modo edição
+    if (isEditMode && !patientId) {
+      toast.error("Erro: ID do paciente não encontrado. Não é possível salvar.");
+      console.error('❌ [PatientForm] Tentativa de update sem patientId!');
       return;
     }
     
@@ -88,12 +130,17 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData
         date_of_birth: formatDateForDB(formData.date_of_birth)
       };
       
-      console.log('📝 [PatientForm] Dados formatados:', formattedData);
+      console.log('📝 [PatientForm] Dados formatados para salvar:', {
+        patientId,
+        name: formattedData.name,
+        sus: formattedData.sus
+      });
       
-      if (isEditMode) {
-        console.log('✏️ [PatientForm] Modo edição - ID:', patientId);
+      if (isEditMode && patientId) {
+        console.log('✏️ [PatientForm] Modo edição - Atualizando ID:', patientId);
+        
         const { data, error } = await supabase
-        .from('patients')
+          .from('patients')
           .update({
             name: formattedData.name,
             phone: formattedData.phone,
@@ -112,10 +159,15 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData
           throw error;
         }
         
-        console.log('✅ [PatientForm] Paciente atualizado:', data);
+        if (!data || data.length === 0) {
+          throw new Error('Nenhum registro foi atualizado. O paciente pode não existir.');
+        }
+        
+        console.log('✅ [PatientForm] Paciente atualizado com sucesso:', data[0]?.name);
         toast.success("Paciente atualizado com sucesso!");
       } else {
-        console.log('➕ [PatientForm] Modo cadastro');
+        console.log('➕ [PatientForm] Modo cadastro - Criando novo paciente');
+        
         const { data, error } = await supabase
           .from('patients')
           .insert([{
@@ -135,12 +187,12 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData
           throw error;
         }
         
-        console.log('✅ [PatientForm] Paciente cadastrado:', data);
+        console.log('✅ [PatientForm] Paciente cadastrado:', data?.[0]?.name);
         toast.success("Paciente cadastrado com sucesso!");
       }
       
       navigate('/pacientes');
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ [PatientForm] Erro geral:', error);
       toast.error(`Erro ao salvar paciente: ${error.message || 'Erro desconhecido'}`);
     } finally {
