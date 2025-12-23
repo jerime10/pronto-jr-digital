@@ -376,7 +376,10 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
             id="bairro"
             name="bairro"
             value={formData.bairro || ''}
-            onChange={(e) => !readOnlyFields.includes('bairro') && handleBairroChange(e, handleChange)}
+            onChange={(e) => {
+              if (readOnlyFields.includes('bairro')) return;
+              handleBairroChange(e, handleChange);
+            }}
             placeholder="BAIRRO"
             readOnly={readOnlyFields.includes('bairro')}
             className={`h-11 sm:h-12 text-base font-medium transition-all duration-200 ${

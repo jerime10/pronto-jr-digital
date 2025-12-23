@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
@@ -16,6 +17,7 @@ interface PatientFormProps {
 
 export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData }) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isEditMode = !!patientId;
   
   // Usar ref para rastrear se já inicializamos com os dados corretos
@@ -164,6 +166,11 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData
         }
         
         console.log('✅ [PatientForm] Paciente atualizado com sucesso:', data[0]?.name);
+
+        // Garantir que as telas (lista e formulário) não fiquem com cache antigo
+        await queryClient.invalidateQueries({ queryKey: ['patients'] });
+        await queryClient.invalidateQueries({ queryKey: ['patients', patientId] });
+
         toast.success("Paciente atualizado com sucesso!");
       } else {
         console.log('➕ [PatientForm] Modo cadastro - Criando novo paciente');
@@ -188,6 +195,10 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patientId, initialData
         }
         
         console.log('✅ [PatientForm] Paciente cadastrado:', data?.[0]?.name);
+
+        // Recarregar lista de pacientes após cadastrar
+        await queryClient.invalidateQueries({ queryKey: ['patients'] });
+
         toast.success("Paciente cadastrado com sucesso!");
       }
       
