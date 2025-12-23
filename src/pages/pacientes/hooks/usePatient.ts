@@ -8,7 +8,7 @@ import { calculateAgeInYears, parseDate } from '@/utils/dateUtils';
 
 export const usePatient = (patientId: string | undefined) => {
   // Use enhanced query hook for better data fetching
-  const { data: rawPatientData, isLoading: loading, error: queryError } = useEnhancedPatient(patientId);
+  const { data: rawPatientData, isLoading: loading, error: queryError, refetch } = useEnhancedPatient(patientId);
   
   const [patient, setPatient] = useState<Patient | null>(null);
   const [formattedPatient, setFormattedPatient] = useState<any>(null);
@@ -21,6 +21,13 @@ export const usePatient = (patientId: string | undefined) => {
     }
     
     if (rawPatientData) {
+      // PROTEÇÃO: Verificar se o ID retornado corresponde ao patientId solicitado
+      if (patientId && rawPatientData.id !== patientId) {
+        console.error('⚠️ [usePatient] ID mismatch! Solicitado:', patientId, 'Recebido:', rawPatientData.id);
+        setError(new Error('Dados do paciente não correspondem ao ID solicitado'));
+        return;
+      }
+      
       // Parse date_of_birth if it exists
       const birthDate = rawPatientData.date_of_birth ? parseDate(rawPatientData.date_of_birth) : null;
       
@@ -38,17 +45,27 @@ export const usePatient = (patientId: string | undefined) => {
         updated_at: rawPatientData.updated_at || new Date().toISOString()
       };
       
+      // CRÍTICO: Incluir o ID nos dados formatados para validação no formulário
       const formatted = {
         ...patientData,
+        id: rawPatientData.id, // Garantir que o ID está presente
         date_of_birth: birthDate,
         // Recalculate age from date of birth to ensure consistency
         age: birthDate ? calculateAgeInYears(birthDate) : (rawPatientData.age || 0)
       };
       
+      console.log('📋 [usePatient] Paciente carregado:', {
+        id: formatted.id,
+        name: formatted.name
+      });
+      
       setPatient(patientData);
       setFormattedPatient(formatted);
+    } else if (!loading && patientId) {
+      // Paciente não encontrado
+      console.warn('⚠️ [usePatient] Paciente não encontrado para ID:', patientId);
     }
-  }, [rawPatientData, queryError]);
+  }, [rawPatientData, queryError, patientId, loading]);
   
   const deletePatient = async (): Promise<boolean> => {
     if (!patientId) return false;
@@ -75,6 +92,7 @@ export const usePatient = (patientId: string | undefined) => {
     formattedPatient,
     loading,
     error,
-    deletePatient
+    deletePatient,
+    refetch
   };
 };

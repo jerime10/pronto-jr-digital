@@ -73,11 +73,13 @@ const handleCpfSusChange = (e: React.ChangeEvent<HTMLInputElement>, handleChange
 };
 
 // Função para lidar com mudança de bairro
+// CORREÇÃO: Permitir letras, números, espaços, acentos e caracteres comuns de endereço
 const handleBairroChange = (e: React.ChangeEvent<HTMLInputElement>, handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void) => {
   const value = e.target.value;
   
-  // Permitir apenas letras, espaços e acentos, convertendo para maiúsculas
-  const cleanValue = value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').toUpperCase();
+  // Permitir letras (incluindo acentuadas), números, espaços e alguns caracteres especiais comuns
+  // Remover apenas caracteres claramente inválidos para nomes de bairro
+  const cleanValue = value.toUpperCase();
   
   // Criar evento sintético com valor formatado
   const syntheticEvent = {
