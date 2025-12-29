@@ -47,8 +47,16 @@ const ListaPacientes = () => {
 
     try {
       setIsDeleting(true);
-      const { error } = await supabase.from('patients').delete().eq('id', deleteTarget.id);
+      // Usar função SECURITY DEFINER para bypass RLS
+      const { data, error } = await supabase.rpc('delete_patient_by_id', {
+        patient_id: deleteTarget.id
+      });
+      
       if (error) throw error;
+      
+      if (!data) {
+        throw new Error('Paciente não encontrado');
+      }
 
       toast.success('Paciente excluído com sucesso!');
       setDeleteDialogOpen(false);
@@ -73,19 +81,19 @@ const ListaPacientes = () => {
   }, [patients, searchQuery]);
 
   if (isLoading) {
-    return <div className="flex justify-center p-10">Carregando pacientes...</div>;
+    return <div className="flex justify-center p-10 text-muted-foreground">Carregando pacientes...</div>;
   }
 
   if (error) {
-    return <div className="text-red-500 p-10">Erro ao carregar pacientes: {(error as Error).message}</div>;
+    return <div className="text-destructive p-10">Erro ao carregar pacientes: {(error as Error).message}</div>;
   }
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Pacientes</h1>
-          <p className="text-gray-500 mt-1">Gestão de cadastros de pacientes</p>
+          <h1 className="text-3xl font-bold text-foreground">Pacientes</h1>
+          <p className="text-muted-foreground mt-1">Gestão de cadastros de pacientes</p>
         </div>
 
         <ActionButtonGuard permission="pacientes_criar">
@@ -99,7 +107,7 @@ const ListaPacientes = () => {
       </div>
 
       <div className="relative w-full max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground peer-focus:text-foreground" />
         <Input
           placeholder="Buscar por nome ou SUS..."
           className="pl-10"

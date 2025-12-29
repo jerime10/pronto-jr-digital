@@ -1117,6 +1117,7 @@ export type Database = {
         Args: { appointment_id: string }
         Returns: boolean
       }
+      delete_patient_by_id: { Args: { patient_id: string }; Returns: boolean }
       generate_partner_code: {
         Args: { username_input: string }
         Returns: string
