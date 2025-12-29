@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MenuItemGuard } from '@/components/PermissionGuard';
 import { usePermissions } from '@/hooks/usePermissions';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 interface SidebarLinkProps {
   to: string;
   icon: React.ElementType;
@@ -140,23 +141,26 @@ const MainLayout: React.FC = () => {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top navigation */}
-        <header className="bg-white border-b border-gray-200 shadow-sm">
+        <header className="bg-background border-b border-border shadow-sm">
           <div className="px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <button className="p-2 rounded-md text-gray-500 md:hidden" onClick={toggleSidebar}>
+            <button className="p-2 rounded-md text-muted-foreground md:hidden" onClick={toggleSidebar}>
               <Menu size={24} />
             </button>
             
-            <div className="font-semibold text-lg hidden md:block">
+            <div className="font-semibold text-lg hidden md:block text-foreground">
               Prontuário Eletrônico
             </div>
             
-            <div className="flex items-center space-x-4">
-              <button className="relative p-1 text-gray-500 hover:text-gray-700 focus:outline-none">
+            <div className="flex items-center space-x-2">
+              {/* Theme Toggle */}
+              <ThemeToggle />
+              
+              <button className="relative p-1 text-muted-foreground hover:text-foreground focus:outline-none">
                 <span className="sr-only">Notificações</span>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
-                <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500"></span>
+                <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-destructive"></span>
               </button>
               
               <DropdownMenu>
@@ -185,13 +189,13 @@ const MainLayout: React.FC = () => {
         </header>
         
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
+        <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
           <Outlet />
         </main>
       </div>
       
       {/* Overlay for mobile sidebar */}
-      {isSidebarOpen && <div className="fixed inset-0 bg-gray-600 bg-opacity-75 z-10 md:hidden" onClick={toggleSidebar}></div>}
+      {isSidebarOpen && <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-10 md:hidden" onClick={toggleSidebar}></div>}
     </div>;
 };
 export default MainLayout;

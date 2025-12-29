@@ -3,6 +3,7 @@ import {
   Route,
   Routes,
 } from 'react-router-dom';
+import { ThemeProvider } from 'next-themes';
 import { SimpleAuthProvider } from './contexts/SimpleAuthContext';
 import SimpleLogin from './pages/auth/SimpleLogin';
 import Dashboard from './pages/Dashboard';
@@ -47,7 +48,9 @@ function LoadingFallback() {
 function App() {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <SimpleAuthProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <SimpleAuthProvider>
+          <Toaster position="top-right" richColors />
         <Toaster position="top-right" />
         <Routes>
           {/* Public Routes */}
@@ -240,6 +243,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
             </Routes>
           </SimpleAuthProvider>
+        </ThemeProvider>
     </Suspense>
   );
 }
