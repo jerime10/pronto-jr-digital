@@ -58,11 +58,13 @@ export const useDraftManager = ({
     setIsLoadingDrafts(true);
     try {
       // Carregar rascunhos usando type assertion para contornar problemas de tipagem
+      // Limitando a 50 rascunhos para evitar timeout
       const { data: draftsData, error: draftsError } = await (supabase as any)
         .from('medical_record_drafts')
-        .select('*')
+        .select('id, patient_id, professional_id, title, form_data, created_at, updated_at')
         .eq('professional_id', profissionalAtual.id)
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+        .limit(50);
 
       if (draftsError) throw draftsError;
 
