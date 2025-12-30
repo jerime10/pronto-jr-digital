@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { FormState } from './useFormData';
@@ -51,11 +51,19 @@ export const useDraftManager = ({
   const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
 
+  // Evita race-condition: se houver 2 loadDrafts simultâneos, só o último pode setar estado/toast.
+  const loadDraftsRequestIdRef = useRef(0);
+  // Mantém o último resultado bom para evitar toast/limpeza quando falhar apenas um "refresh".
+  const lastSuccessfulDraftsRef = useRef<Draft[]>([]);
+
   // Carregar rascunhos do profissional atual
-  const loadDrafts = async () => {
+  const loadDrafts = async (options?: { silent?: boolean }) => {
     if (!profissionalAtual?.id) return;
 
+    const silent = options?.silent ?? false;
+    const requestId = ++loadDraftsRequestIdRef.current;
     setIsLoadingDrafts(true);
+
     try {
       // Carregar rascunhos usando type assertion para contornar problemas de tipagem
       // Limitando a 50 rascunhos para evitar timeout
@@ -69,7 +77,10 @@ export const useDraftManager = ({
       if (draftsError) throw draftsError;
 
       if (!draftsData || draftsData.length === 0) {
-        setDrafts([]);
+        if (requestId === loadDraftsRequestIdRef.current) {
+          lastSuccessfulDraftsRef.current = [];
+          setDrafts([]);
+        }
         return;
       }
 
@@ -84,7 +95,7 @@ export const useDraftManager = ({
 
       // Combinar os dados
       const mappedDrafts = draftsData.map((draft: any) => {
-        const patientData = patientsData?.find(p => p.id === draft.patient_id);
+        const patientData = patientsData?.find((p) => p.id === draft.patient_id);
         return {
           id: draft.id,
           patient_id: draft.patient_id,
@@ -97,13 +108,30 @@ export const useDraftManager = ({
         };
       });
 
-      setDrafts(mappedDrafts);
+      if (requestId === loadDraftsRequestIdRef.current) {
+        lastSuccessfulDraftsRef.current = mappedDrafts;
+        setDrafts(mappedDrafts);
+      }
     } catch (error) {
+      // Se esse request já não é o mais recente, ignora completamente (evita toast “fantasma”).
+      if (requestId !== loadDraftsRequestIdRef.current) return;
+
       console.error('Erro ao carregar rascunhos:', error);
-      toast.error('Erro ao carregar rascunhos');
+
+      // Se já temos rascunhos carregados, não exibir toast de erro (apenas falha de refresh).
+      if (lastSuccessfulDraftsRef.current.length > 0) {
+        setDrafts(lastSuccessfulDraftsRef.current);
+        return;
+      }
+
+      if (!silent) {
+        toast.error('Erro ao carregar rascunhos');
+      }
       setDrafts([]);
     } finally {
-      setIsLoadingDrafts(false);
+      if (requestId === loadDraftsRequestIdRef.current) {
+        setIsLoadingDrafts(false);
+      }
     }
   };
 
@@ -280,7 +308,8 @@ export const useDraftManager = ({
   // Carregar rascunhos quando o profissional for definido
   useEffect(() => {
     if (profissionalAtual?.id) {
-      loadDrafts();
+      // Carregamento inicial silencioso para evitar toast “fantasma” durante a inicialização/auth.
+      loadDrafts({ silent: true });
     }
   }, [profissionalAtual?.id]);
 
