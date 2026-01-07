@@ -73,11 +73,19 @@ export const useDraftManager = ({
     setIsLoadingDrafts(true);
 
     try {
-      // Carregar rascunhos usando type assertion para contornar problemas de tipagem
-      // Limitando a 50 rascunhos para evitar timeout
+      // Carregar rascunhos (lista) sem trazer o JSON completo do form_data (evita statement timeout)
+      // Limitando a 50 rascunhos
       const { data: draftsData, error: draftsError } = await (supabase as any)
         .from('medical_record_drafts')
-        .select('id, patient_id, professional_id, title, form_data, created_at, updated_at')
+        .select(
+          'id, patient_id, professional_id, title, created_at, updated_at, ' +
+            'queixa_principal:form_data->>queixaPrincipal, ' +
+            'antecedentes:form_data->>antecedentes, ' +
+            'alergias:form_data->>alergias, ' +
+            'evolucao:form_data->>evolucao, ' +
+            'prescricao_personalizada:form_data->>prescricaoPersonalizada, ' +
+            'data_inicio_atendimento:form_data->>dataInicioAtendimento'
+        )
         .eq('professional_id', profissionalAtual.id)
         .order('updated_at', { ascending: false })
         .limit(50);
@@ -96,7 +104,7 @@ export const useDraftManager = ({
       const patientIds = draftsData.map((draft: any) => draft.patient_id);
       const { data: patientsData, error: patientsError } = await supabase
         .from('patients')
-        .select('*')
+        .select('id, name, sus, phone, address, date_of_birth, age, gender, created_at, updated_at')
         .in('id', patientIds);
 
       if (patientsError) throw patientsError;
@@ -104,12 +112,24 @@ export const useDraftManager = ({
       // Combinar os dados
       const mappedDrafts = draftsData.map((draft: any) => {
         const patientData = patientsData?.find((p) => p.id === draft.patient_id);
+
+        // Monta um "form_data" mínimo só para exibição na lista.
+        // O form_data completo é carregado sob demanda ao clicar em "Carregar".
+        const minimalFormData: Partial<FormState> = {
+          queixaPrincipal: draft.queixa_principal ?? '',
+          antecedentes: draft.antecedentes ?? '',
+          alergias: draft.alergias ?? '',
+          evolucao: draft.evolucao ?? '',
+          prescricaoPersonalizada: draft.prescricao_personalizada ?? '',
+          dataInicioAtendimento: draft.data_inicio_atendimento ?? undefined
+        };
+
         return {
           id: draft.id,
           patient_id: draft.patient_id,
           professional_id: draft.professional_id,
           title: draft.title || 'Rascunho sem título',
-          form_data: draft.form_data as FormState,
+          form_data: minimalFormData as FormState,
           patient_data: patientData as Patient,
           created_at: draft.created_at,
           updated_at: draft.updated_at
@@ -270,17 +290,28 @@ export const useDraftManager = ({
     }
   };
 
-  // Carregar rascunho
+  // Carregar rascunho (form_data completo sob demanda)
   const loadDraft = async (draft: Draft) => {
     try {
       console.log('📂 [useDraftManager] Carregando rascunho:', draft);
-      
+
+      // Buscar o form_data completo do rascunho (evita carregar JSON pesado na listagem)
+      const { data: fullDraft, error: fullDraftError } = await (supabase as any)
+        .from('medical_record_drafts')
+        .select('id, patient_id, professional_id, title, form_data, created_at, updated_at')
+        .eq('id', draft.id)
+        .single();
+
+      if (fullDraftError) throw fullDraftError;
+
+      const fullFormData = (fullDraft?.form_data ?? {}) as FormState;
+
       // Separar dynamicFields do form_data
-      const { dynamicFields: loadedDynamicFields, ...formDataWithoutDynamicFields } = draft.form_data;
-      
+      const { dynamicFields: loadedDynamicFields, ...formDataWithoutDynamicFields } = fullFormData as any;
+
       console.log('📂 [useDraftManager] Campos dinâmicos do rascunho:', loadedDynamicFields);
       console.log('📂 [useDraftManager] Dados do formulário (sem campos dinâmicos):', formDataWithoutDynamicFields);
-      
+
       // PRIMEIRO: Carregar campos dinâmicos se existirem e o callback estiver disponível
       if (loadedDynamicFields && onDynamicFieldsChange) {
         console.log('📂 [useDraftManager] Chamando onDynamicFieldsChange com:', loadedDynamicFields);
@@ -292,13 +323,13 @@ export const useDraftManager = ({
           campos: loadedDynamicFields
         });
       }
-      
+
       // DEPOIS: Carregar dados do formulário
       setFormData(formDataWithoutDynamicFields);
-      
+
       // POR ÚLTIMO: Selecionar o paciente
       handleSelectPaciente(draft.patient_data);
-      
+
       toast.success(`Rascunho de ${draft.patient_data.name} carregado!`);
     } catch (error) {
       console.error('❌ [useDraftManager] Erro ao carregar rascunho:', error);
