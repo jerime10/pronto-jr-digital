@@ -55,10 +55,18 @@ export const useDraftManager = ({
   const loadDraftsRequestIdRef = useRef(0);
   // Mantém o último resultado bom para evitar toast/limpeza quando falhar apenas um "refresh".
   const lastSuccessfulDraftsRef = useRef<Draft[]>([]);
+  // Evita exibir toast “falso positivo” quando uma tentativa falha mas outra (logo em seguida) funciona.
+  const errorToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Carregar rascunhos do profissional atual
   const loadDrafts = async (options?: { silent?: boolean }) => {
     if (!profissionalAtual?.id) return;
+
+    // Cancela qualquer toast de erro pendente de uma execução anterior
+    if (errorToastTimeoutRef.current) {
+      clearTimeout(errorToastTimeoutRef.current);
+      errorToastTimeoutRef.current = null;
+    }
 
     const silent = options?.silent ?? false;
     const requestId = ++loadDraftsRequestIdRef.current;
@@ -109,6 +117,12 @@ export const useDraftManager = ({
       });
 
       if (requestId === loadDraftsRequestIdRef.current) {
+        // Se chegou até aqui, deu certo: cancela qualquer toast pendente
+        if (errorToastTimeoutRef.current) {
+          clearTimeout(errorToastTimeoutRef.current);
+          errorToastTimeoutRef.current = null;
+        }
+
         lastSuccessfulDraftsRef.current = mappedDrafts;
         setDrafts(mappedDrafts);
       }
@@ -124,9 +138,16 @@ export const useDraftManager = ({
         return;
       }
 
+      // Não exibir toast imediatamente: em ambientes instáveis, uma segunda chamada logo em seguida
+      // pode carregar corretamente (e o usuário vê os rascunhos). Então atrasamos o toast.
       if (!silent) {
-        toast.error('Erro ao carregar rascunhos');
+        errorToastTimeoutRef.current = setTimeout(() => {
+          // Só mostra se este ainda for o request mais recente (nenhuma nova tentativa venceu)
+          if (requestId !== loadDraftsRequestIdRef.current) return;
+          toast.error('Erro ao carregar rascunhos');
+        }, 1200);
       }
+
       setDrafts([]);
     } finally {
       if (requestId === loadDraftsRequestIdRef.current) {

@@ -66,7 +66,8 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
     if (open && profissionalAtual?.id) {
-      loadDrafts();
+      // Carregamento silencioso: evita toast “falso positivo” quando a lista acaba carregando.
+      loadDrafts({ silent: true });
     }
   };
 
