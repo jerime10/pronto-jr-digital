@@ -1,143 +1,134 @@
 
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-
-interface DocumentToUpdate {
-  id: string;
-  patient_name: string;
-  patient_sus: string;
-  created_at: string;
-}
 
 /**
- * Hook para atualizar automaticamente documentos com status "processing"
- * Busca no storage por arquivos correspondentes e atualiza a URL
+ * Hook para atualizar automaticamente documentos com status "processing" ou URLs incorretas
+ * Busca no storage por arquivos correspondentes e atualiza a URL correta
  */
 export const useDocumentStatusUpdater = () => {
-  const updateProcessingDocuments = async () => {
+  const updateDocumentsWithStorageUrls = async () => {
     try {
-      console.log('Verificando documentos em processamento...');
+      console.log('[StatusUpdater] Verificando documentos para atualização de URL...');
       
-      // Mock - generated_documents table doesn't exist
-      const processingDocs: any[] = [];
-      const queryError = null;
+      // Buscar prontuários que estão em processamento (sem URL ou com URL vazia)
+      const { data: processingDocs, error: processingError } = await supabase
+        .from('medical_records')
+        .select('id, file_url_storage, created_at, patients!inner(id, name, phone, sus)')
+        .or('file_url_storage.is.null,file_url_storage.eq.""')
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-      if (queryError) {
-        console.error('Erro ao buscar documentos em processamento:', queryError);
+      if (processingError) {
+        console.error('[StatusUpdater] Erro ao buscar documentos em processamento:', processingError);
         return;
       }
 
-      if (!processingDocs || processingDocs.length === 0) {
-        console.log('Nenhum documento em processamento encontrado');
+      // Buscar também prontuários que podem ter URL incorreta (contêm número sem formatação)
+      const { data: potentiallyIncorrectDocs, error: incorrectError } = await supabase
+        .from('medical_records')
+        .select('id, file_url_storage, created_at, patients!inner(id, name, phone, sus)')
+        .not('file_url_storage', 'is', null)
+        .neq('file_url_storage', '')
+        .neq('file_url_storage', 'processing_error')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (incorrectError) {
+        console.log('[StatusUpdater] Aviso ao buscar docs potencialmente incorretos:', incorrectError);
+      }
+
+      // Combinar as listas
+      const allDocs = [...(processingDocs || []), ...(potentiallyIncorrectDocs || [])];
+      
+      if (allDocs.length === 0) {
+        console.log('[StatusUpdater] Nenhum documento para verificar');
         return;
       }
 
-      console.log(`Encontrados ${processingDocs.length} documentos em processamento`);
+      console.log(`[StatusUpdater] Verificando ${allDocs.length} documentos`);
 
-      // 2. Para cada documento, tentar encontrar o arquivo no storage
-      for (const doc of processingDocs) {
+      // Buscar todos os arquivos do storage uma vez
+      const { data: storageFiles, error: storageError } = await supabase.storage
+        .from('documents')
+        .list('prontuarios', {
+          limit: 500,
+          sortBy: { column: 'created_at', order: 'desc' }
+        });
+
+      if (storageError || !storageFiles) {
+        console.error('[StatusUpdater] Erro ao listar arquivos do storage:', storageError);
+        return;
+      }
+
+      console.log(`[StatusUpdater] ${storageFiles.length} arquivos encontrados no storage`);
+
+      // Para cada documento, verificar se existe arquivo correspondente
+      for (const doc of allDocs) {
         try {
-          const patient = doc.patients;
-          if (!patient) continue;
-
-          // Gerar possíveis nomes de arquivo
-          const patientNameFormatted = patient.name.replace(/[^a-zA-Z0-9]/g, '_');
-          const possibleFilenames = [
-            `${patientNameFormatted}-${patient.sus}`,
-            `${patient.name}-${patient.sus}`,
-            `prontuario_${patientNameFormatted}_${patient.sus}`,
-            `prontuario-${patientNameFormatted}-${patient.sus}`
-          ];
-
-          console.log(`Buscando arquivo para documento ${doc.id}:`, possibleFilenames);
-
-          // Buscar arquivos no storage
-          const { data: storageFiles, error: storageError } = await supabase.storage
-            .from('documents')
-            .list('prontuarios', {
-              limit: 100,
-              sortBy: { column: 'created_at', order: 'desc' }
-            });
-
-          if (storageError) {
-            console.error('Erro ao buscar arquivos no storage:', storageError);
-            continue;
-          }
-
-          if (!storageFiles || storageFiles.length === 0) {
-            console.log('Nenhum arquivo encontrado no storage');
-            continue;
-          }
-
-          // Procurar arquivo correspondente
-          let foundFile = null;
+          const docId = (doc as any).id;
+          const currentUrl = (doc as any).file_url_storage || '';
           
-          for (const file of storageFiles) {
-            const fileName = file.name;
-            
-            // Verificar se o nome do arquivo contém algum dos padrões esperados
-            const matchesPattern = possibleFilenames.some(pattern => 
-              fileName.toLowerCase().includes(pattern.toLowerCase())
-            );
-
-            // Verificar se o arquivo foi criado após o documento (com margem de 5 minutos)
-            const fileCreatedAt = new Date(file.created_at);
-            const docCreatedAt = new Date(doc.created_at);
-            const timeDiff = fileCreatedAt.getTime() - docCreatedAt.getTime();
-            
-            if (matchesPattern && timeDiff > -300000 && timeDiff < 600000) { // Entre -5min e +10min
-              foundFile = file;
-              console.log(`Arquivo correspondente encontrado: ${fileName}`);
-              break;
-            }
-          }
+          // Procurar arquivo que contenha o ID do documento
+          const foundFile = storageFiles.find(file => 
+            file.name.includes(docId) && file.name.endsWith('.pdf')
+          );
 
           if (foundFile) {
-            // Gerar URL pública do arquivo
+            // Gerar URL pública correta
             const { data: urlData } = supabase.storage
               .from('documents')
               .getPublicUrl(`prontuarios/${foundFile.name}`);
 
             if (urlData?.publicUrl) {
-              console.log(`Atualizando documento ${doc.id} com URL: ${urlData.publicUrl}`);
+              const correctUrl = urlData.publicUrl;
               
-              // Mock update - generated_documents table doesn't exist
-              console.log('Mock updating document with URL:', doc.id, urlData.publicUrl);
-              console.log(`Documento ${doc.id} atualizado com sucesso`);
+              // Verificar se a URL atual é diferente da correta
+              if (currentUrl !== correctUrl) {
+                console.log(`[StatusUpdater] Corrigindo URL para doc ${docId}:`);
+                console.log(`  De: ${currentUrl || '(vazio)'}`);
+                console.log(`  Para: ${correctUrl}`);
+
+                const { error: updateError } = await supabase
+                  .from('medical_records')
+                  .update({ file_url_storage: correctUrl })
+                  .eq('id', docId);
+
+                if (updateError) {
+                  console.error(`[StatusUpdater] Erro ao atualizar doc ${docId}:`, updateError);
+                } else {
+                  console.log(`[StatusUpdater] Doc ${docId} atualizado com sucesso!`);
+                }
+              }
             }
           } else {
-            console.log(`Nenhum arquivo correspondente encontrado para documento ${doc.id}`);
-            
-            // Se o documento tem mais de 5 minutos e não encontrou arquivo, marcar como erro
-            const docAge = Date.now() - new Date(doc.created_at).getTime();
-            if (docAge > 300000) { // 5 minutos
-              console.log(`Marcando documento ${doc.id} como erro (muito tempo em processamento)`);
-              
-              // Mock update - generated_documents table doesn't exist
-              console.log('Mock marking document as error:', doc.id);
+            // Se não encontrou arquivo e o documento está em processamento há mais de 5 minutos
+            if (!currentUrl || currentUrl === '') {
+              const docAge = Date.now() - new Date((doc as any).created_at).getTime();
+              if (docAge > 300000) { // 5 minutos
+                console.log(`[StatusUpdater] Doc ${docId} em processamento há mais de 5 min sem arquivo`);
+              }
             }
           }
-
-        } catch (error) {
-          console.error(`Erro ao processar documento ${doc.id}:`, error);
+        } catch (docError) {
+          console.error(`[StatusUpdater] Erro ao processar documento:`, docError);
         }
       }
 
     } catch (error) {
-      console.error('Erro geral ao atualizar documentos:', error);
+      console.error('[StatusUpdater] Erro geral:', error);
     }
   };
 
   useEffect(() => {
     // Executar imediatamente
-    updateProcessingDocuments();
+    updateDocumentsWithStorageUrls();
 
     // Executar a cada 30 segundos
-    const interval = setInterval(updateProcessingDocuments, 30000);
+    const interval = setInterval(updateDocumentsWithStorageUrls, 30000);
 
     return () => clearInterval(interval);
   }, []);
 
-  return { updateProcessingDocuments };
+  return { updateDocumentsWithStorageUrls };
 };
