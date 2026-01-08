@@ -137,10 +137,6 @@ export async function submitMedicalRecordToWebhook(params: SubmitMedicalRecordPa
 
     // Determinar a URL correta do documento
     const medicalRecordId = params.medicalRecord.id;
-    const patientName = params.medicalRecord.patient.name || '';
-    const encodedPatientName = encodeURIComponent(patientName);
-    const phoneDigits = String(params.medicalRecord.patient.phone || '').replace(/\D/g, '');
-    const susDigits = String(params.medicalRecord.patient.sus || '').replace(/\D/g, '');
     
     // Preferir URL retornada pelo webhook quando disponível
     const webhookFileUrl = (webhookData && (
@@ -150,45 +146,46 @@ export async function submitMedicalRecordToWebhook(params: SubmitMedicalRecordPa
       (webhookData as any).url
     )) as string | undefined;
     
-    // Fallback para padrão real do Storage (ex.: SAMILA DOS SANTOS RODRIGUES-91985556733-6e72f2db-bb7d-4c58-b094-9399b7b04c38.pdf)
-    const fallbackFilename = `${encodedPatientName}-${phoneDigits || susDigits}-${medicalRecordId}.pdf`;
-    const fallbackUrl = `https://vtthxoovjswtrwfrdlha.supabase.co/storage/v1/object/public/documents/prontuarios/${fallbackFilename}`;
-    
-    // Se o webhook não retornou URL, tentar obter a URL real do arquivo no Storage
+    // Inicializar storageUrl com URL do webhook se disponível e válida
     let storageUrl = webhookFileUrl && typeof webhookFileUrl === 'string' && webhookFileUrl.includes('/storage/')
       ? webhookFileUrl
-      : fallbackUrl;
+      : '';
     
-    // Se não há URL do webhook, tentar buscar o arquivo real no Storage
-    if (!webhookFileUrl) {
-      try {
-        const { data: files, error: listError } = await supabase.storage
-          .from('documents')
-          .list('prontuarios', {
-            limit: 100,
-            sortBy: { column: 'created_at', order: 'desc' }
-          });
+    // SEMPRE buscar o arquivo REAL no Storage para obter a URL correta
+    // Isso evita problemas de formatação de telefone (ex: 91986209143 vs (91)98620-9143)
+    try {
+      const { data: files, error: listError } = await supabase.storage
+        .from('documents')
+        .list('prontuarios', {
+          limit: 100,
+          sortBy: { column: 'created_at', order: 'desc' }
+        });
+      
+      if (!listError && files && files.length > 0) {
+        // Procurar arquivo que contenha o medicalRecordId no nome
+        const foundFile = files.find(file => 
+          file.name.includes(medicalRecordId) && file.name.endsWith('.pdf')
+        );
         
-        if (!listError && files && files.length > 0) {
-          // Procurar arquivo que contenha o medicalRecordId no nome
-          const foundFile = files.find(file => 
-            file.name.includes(medicalRecordId) && file.name.endsWith('.pdf')
-          );
+        if (foundFile) {
+          const { data: urlData } = supabase.storage
+            .from('documents')
+            .getPublicUrl(`prontuarios/${foundFile.name}`);
           
-          if (foundFile) {
-            const { data: urlData } = supabase.storage
-              .from('documents')
-              .getPublicUrl(`prontuarios/${foundFile.name}`);
-            
-            if (urlData?.publicUrl) {
-              storageUrl = urlData.publicUrl;
-              console.log('URL real do arquivo encontrada no Storage:', storageUrl);
-            }
+          if (urlData?.publicUrl) {
+            storageUrl = urlData.publicUrl;
+            console.log('URL real do arquivo encontrada no Storage:', storageUrl);
+          }
+        } else {
+          console.log('Arquivo não encontrado no storage ainda para ID:', medicalRecordId);
+          // Se não encontrou, deixar vazio para tentar novamente depois
+          if (!storageUrl) {
+            storageUrl = '';
           }
         }
-      } catch (storageError) {
-        console.error('Erro ao buscar arquivo no Storage:', storageError);
       }
+    } catch (storageError) {
+      console.error('Erro ao buscar arquivo no Storage:', storageError);
     }
     
     console.log('URL do documento definida para persistência:', storageUrl);
