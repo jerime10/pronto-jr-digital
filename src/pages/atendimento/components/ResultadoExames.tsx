@@ -539,25 +539,39 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   // Usar o processAIContent customizado
   const processAIContent = processAIContentWithCallback;
 
+  // Ref para rastrear o último modelo selecionado e evitar duplicação de dados
+  const lastSelectedModelIdRef = React.useRef<string | null>(null);
+
   // useEffect para adicionar título do modelo ao Resultado Final quando modelo é selecionado
   useEffect(() => {
     if (selectedModel && selectedModel.name) {
       console.log('🎯 [EFFECT] Modelo selecionado mudou, verificando título:', selectedModel.name);
       console.log('🎯 [EFFECT] examResults atual:', examResults);
+      console.log('🎯 [EFFECT] Último modelo:', lastSelectedModelIdRef.current);
+      console.log('🎯 [EFFECT] Modelo atual:', selectedModel.id);
 
-      // Verificar se o título já não está presente
-      if (!examResults.includes(selectedModel.name)) {
+      // Verificar se o modelo realmente mudou (para evitar mesclar dados de modelos diferentes)
+      const modelChanged = lastSelectedModelIdRef.current !== selectedModel.id;
+      
+      if (modelChanged) {
+        console.log('🔄 [EFFECT] Modelo mudou! Limpando dados anteriores...');
+        lastSelectedModelIdRef.current = selectedModel.id;
+        
+        // Quando o modelo muda, NÃO preservar conteúdo existente
+        // Apenas adicionar o título do novo modelo
+        const examTitle = `${selectedModel.name}\n\n`;
+        if (onExamResultsChange) {
+          onExamResultsChange(examTitle);
+          console.log('🎯 [EFFECT] Título do novo modelo adicionado (dados anteriores limpos)!');
+        }
+      } else if (!examResults.includes(selectedModel.name)) {
+        // Mesmo modelo, mas título ausente - adicionar título preservando conteúdo
         console.log('🎯 [EFFECT] Título não presente, adicionando...');
-
-        // Preservar conteúdo existente e adicionar título no início
         const examTitle = `${selectedModel.name}\n\n`;
         const newContent = examTitle + (examResults || '');
-        console.log('🎯 [EFFECT] Novo conteúdo:', newContent);
         if (onExamResultsChange) {
           onExamResultsChange(newContent);
           console.log('🎯 [EFFECT] Título adicionado preservando conteúdo existente!');
-        } else {
-          console.error('❌ [EFFECT] onExamResultsChange não disponível');
         }
       } else {
         console.log('🎯 [EFFECT] Título já presente no Resultado Final');
