@@ -541,32 +541,37 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
 
   // Ref para rastrear o último modelo selecionado e evitar duplicação de dados
   const lastSelectedModelIdRef = React.useRef<string | null>(null);
+  // Flag para controlar quando o modelo acabou de ser selecionado (evita interferência com updateExamResults)
+  const modelJustSelectedRef = React.useRef<boolean>(false);
 
   // useEffect para adicionar título do modelo ao Resultado Final quando modelo é selecionado
+  // IMPORTANTE: Este efeito NÃO deve sobrescrever o resultado quando o modelo acabou de ser selecionado,
+  // pois o handleModelSelect e updateExamResults já cuidam disso
   useEffect(() => {
     if (selectedModel && selectedModel.name) {
-      console.log('🎯 [EFFECT] Modelo selecionado mudou, verificando título:', selectedModel.name);
+      console.log('🎯 [EFFECT] Verificando título do modelo:', selectedModel.name);
       console.log('🎯 [EFFECT] examResults atual:', examResults);
       console.log('🎯 [EFFECT] Último modelo:', lastSelectedModelIdRef.current);
       console.log('🎯 [EFFECT] Modelo atual:', selectedModel.id);
 
-      // Verificar se o modelo realmente mudou (para evitar mesclar dados de modelos diferentes)
-      const modelChanged = lastSelectedModelIdRef.current !== selectedModel.id;
+      // Verificar se o modelo realmente mudou
+      const modelChanged = lastSelectedModelIdRef.current !== null && lastSelectedModelIdRef.current !== selectedModel.id;
       
       if (modelChanged) {
-        console.log('🔄 [EFFECT] Modelo mudou! Limpando dados anteriores...');
+        console.log('🔄 [EFFECT] Modelo mudou de', lastSelectedModelIdRef.current, 'para', selectedModel.id);
+        // Apenas atualizar a referência - NÃO limpar o examResults aqui!
+        // O handleModelSelect já cuida de limpar e o updateExamResults vai adicionar os dados
         lastSelectedModelIdRef.current = selectedModel.id;
-        
-        // Quando o modelo muda, NÃO preservar conteúdo existente
-        // Apenas adicionar o título do novo modelo
-        const examTitle = `${selectedModel.name}\n\n`;
-        if (onExamResultsChange) {
-          onExamResultsChange(examTitle);
-          console.log('🎯 [EFFECT] Título do novo modelo adicionado (dados anteriores limpos)!');
-        }
-      } else if (!examResults.includes(selectedModel.name)) {
-        // Mesmo modelo, mas título ausente - adicionar título preservando conteúdo
-        console.log('🎯 [EFFECT] Título não presente, adicionando...');
+        modelJustSelectedRef.current = true;
+        console.log('🎯 [EFFECT] Referência atualizada, aguardando updateExamResults...');
+      } else if (lastSelectedModelIdRef.current === null) {
+        // Primeira vez selecionando um modelo
+        console.log('🎯 [EFFECT] Primeira seleção de modelo');
+        lastSelectedModelIdRef.current = selectedModel.id;
+        modelJustSelectedRef.current = true;
+      } else if (!examResults.includes(selectedModel.name) && !modelJustSelectedRef.current) {
+        // Mesmo modelo, título ausente, e não acabou de ser selecionado - adicionar título
+        console.log('🎯 [EFFECT] Título não presente e modelo não acabou de ser selecionado, adicionando...');
         const examTitle = `${selectedModel.name}\n\n`;
         const newContent = examTitle + (examResults || '');
         if (onExamResultsChange) {
@@ -574,10 +579,18 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
           console.log('🎯 [EFFECT] Título adicionado preservando conteúdo existente!');
         }
       } else {
-        console.log('🎯 [EFFECT] Título já presente no Resultado Final');
+        console.log('🎯 [EFFECT] Título já presente ou modelo acabou de ser selecionado');
       }
     }
   }, [selectedModel, onExamResultsChange]);
+
+  // useEffect para resetar a flag quando examResults muda (indica que updateExamResults rodou)
+  useEffect(() => {
+    if (modelJustSelectedRef.current && examResults) {
+      console.log('🎯 [RESET-FLAG] examResults atualizado, resetando flag modelJustSelected');
+      modelJustSelectedRef.current = false;
+    }
+  }, [examResults]);
 
   // Ref para rastrear se os campos dinâmicos foram atualizados externamente
   const externalFieldsRef = React.useRef<Record<string, string>>({});
