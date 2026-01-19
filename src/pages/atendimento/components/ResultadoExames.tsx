@@ -541,56 +541,20 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
 
   // Ref para rastrear o último modelo selecionado e evitar duplicação de dados
   const lastSelectedModelIdRef = React.useRef<string | null>(null);
-  // Flag para controlar quando o modelo acabou de ser selecionado (evita interferência com updateExamResults)
-  const modelJustSelectedRef = React.useRef<boolean>(false);
 
-  // useEffect para adicionar título do modelo ao Resultado Final quando modelo é selecionado
-  // IMPORTANTE: Este efeito NÃO deve sobrescrever o resultado quando o modelo acabou de ser selecionado,
-  // pois o handleModelSelect e updateExamResults já cuidam disso
+  // useEffect para rastrear mudanças de modelo - NÃO interfere no examResults
+  // O updateExamResults é responsável por gerar o resultado APENAS com campos preenchidos
   useEffect(() => {
-    if (selectedModel && selectedModel.name) {
-      console.log('🎯 [EFFECT] Verificando título do modelo:', selectedModel.name);
-      console.log('🎯 [EFFECT] examResults atual:', examResults);
-      console.log('🎯 [EFFECT] Último modelo:', lastSelectedModelIdRef.current);
-      console.log('🎯 [EFFECT] Modelo atual:', selectedModel.id);
-
-      // Verificar se o modelo realmente mudou
-      const modelChanged = lastSelectedModelIdRef.current !== null && lastSelectedModelIdRef.current !== selectedModel.id;
+    if (selectedModel && selectedModel.id) {
+      console.log('🎯 [EFFECT] Modelo selecionado:', selectedModel.name);
       
-      if (modelChanged) {
+      // Apenas atualizar a referência para rastrear mudanças
+      if (lastSelectedModelIdRef.current !== selectedModel.id) {
         console.log('🔄 [EFFECT] Modelo mudou de', lastSelectedModelIdRef.current, 'para', selectedModel.id);
-        // Apenas atualizar a referência - NÃO limpar o examResults aqui!
-        // O handleModelSelect já cuida de limpar e o updateExamResults vai adicionar os dados
         lastSelectedModelIdRef.current = selectedModel.id;
-        modelJustSelectedRef.current = true;
-        console.log('🎯 [EFFECT] Referência atualizada, aguardando updateExamResults...');
-      } else if (lastSelectedModelIdRef.current === null) {
-        // Primeira vez selecionando um modelo
-        console.log('🎯 [EFFECT] Primeira seleção de modelo');
-        lastSelectedModelIdRef.current = selectedModel.id;
-        modelJustSelectedRef.current = true;
-      } else if (!examResults.includes(selectedModel.name) && !modelJustSelectedRef.current) {
-        // Mesmo modelo, título ausente, e não acabou de ser selecionado - adicionar título
-        console.log('🎯 [EFFECT] Título não presente e modelo não acabou de ser selecionado, adicionando...');
-        const examTitle = `${selectedModel.name}\n\n`;
-        const newContent = examTitle + (examResults || '');
-        if (onExamResultsChange) {
-          onExamResultsChange(newContent);
-          console.log('🎯 [EFFECT] Título adicionado preservando conteúdo existente!');
-        }
-      } else {
-        console.log('🎯 [EFFECT] Título já presente ou modelo acabou de ser selecionado');
       }
     }
-  }, [selectedModel, onExamResultsChange]);
-
-  // useEffect para resetar a flag quando examResults muda (indica que updateExamResults rodou)
-  useEffect(() => {
-    if (modelJustSelectedRef.current && examResults) {
-      console.log('🎯 [RESET-FLAG] examResults atualizado, resetando flag modelJustSelected');
-      modelJustSelectedRef.current = false;
-    }
-  }, [examResults]);
+  }, [selectedModel]);
 
   // Ref para rastrear se os campos dinâmicos foram atualizados externamente
   const externalFieldsRef = React.useRef<Record<string, string>>({});
@@ -1107,50 +1071,6 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       }
     }
 
-    // Preservar o título do modelo se já estiver presente no examResults
-    const currentExamResults = examResults || '';
-    const modelTitle = selectedModel?.name || '';
-    console.log('🔄 [UPDATE] examResults atual:', currentExamResults);
-    console.log('🔄 [UPDATE] Título do modelo:', modelTitle);
-
-    // Verificar se o título já está presente no início do examResults
-    const titleAlreadyPresent = currentExamResults.startsWith(modelTitle);
-    console.log('🔄 [UPDATE] Título já presente:', titleAlreadyPresent);
-
-    // Usar o template atualizado (customTemplate ou selectedTemplate) em vez do template original do banco
-    // Isso garante que campos excluídos não apareçam no resultado
-    let result = templateToUse.template || selectedModel.result_template || '';
-
-    // Se o título já está presente no examResults, preservá-lo
-    if (titleAlreadyPresent && modelTitle) {
-      result = `${modelTitle}\n\n${result}`;
-      console.log('🔄 [UPDATE] Título preservado no resultado');
-    }
-    console.log('🔄 [UPDATE] Template inicial (com título preservado):', result);
-    console.log('🔄 [UPDATE] Template original do banco:', selectedModel.result_template);
-
-    // Log específico para modelo obstétrico
-    if (selectedModel?.name?.includes('OBSTÉTRICA')) {
-      console.log('🎯 [UPDATE-OBSTÉTRICO] Template obstétrico detectado');
-      console.log('🎯 [UPDATE-OBSTÉTRICO] Linhas do template:', result.split('\n').map((line, idx) => `${idx}: "${line}"`));
-
-      // Verificar se há problema de formatação entre SITUAÇÃO e IG
-      const lines = result.split('\n');
-      lines.forEach((line, idx) => {
-        if (line.includes('SITUAÇÃO') && line.includes('IG')) {
-          console.log(`🚨 [UPDATE-OBSTÉTRICO] PROBLEMA ENCONTRADO na linha ${idx}: "${line}"`);
-          console.log(`🚨 [UPDATE-OBSTÉTRICO] Caracteres:`, line.split('').map((char, charIdx) => `${charIdx}: '${char}'`));
-        }
-      });
-    }
-
-    // Usar os campos aprimorados (com DUM calculada se aplicável)
-    const fieldsToProcess = enhancedFields;
-
-    // Como agora usamos o template já atualizado (sem campos excluídos),
-    // não precisamos mais filtrar linhas aqui
-    console.log('🔄 [UPDATE] Usando template já filtrado:', result);
-
     // Função auxiliar para formatar data
     const formatDate = (dateValue: string): string => {
       if (!dateValue) return '';
@@ -1166,138 +1086,51 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       return dateValue;
     };
 
-    // Substituir campos pelos valores preenchidos
-    templateToUse.fields.forEach((field, index) => {
-      const value = fields[field.key] || '';
-      console.log(`🔍 [UPDATE] Processando campo ${index + 1}:`, {
-        key: field.key,
-        label: field.label,
-        type: field.type,
-        value: value,
-        hasValue: !!value.trim()
-      });
-      if (!value.trim()) {
-        console.log(`⚠️ [UPDATE] Valor vazio para ${field.key}, pulando...`);
-        return;
-      }
+    // ========== NOVA LÓGICA: Gerar resultado APENAS com campos preenchidos ==========
+    // Em vez de usar o template e substituir placeholders, vamos construir o resultado
+    // apenas com os campos que foram efetivamente preenchidos
 
-      // Escapar caracteres especiais para regex
-      const escapedLabel = field.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      console.log(`🔍 [UPDATE] Label escapado: "${escapedLabel}"`);
+    const resultLines: string[] = [];
+    
+    // Adicionar título do modelo
+    const modelTitle = selectedModel?.name || '';
+    if (modelTitle) {
+      resultLines.push(modelTitle);
+      resultLines.push(''); // Linha vazia após o título
+    }
 
-      // Para campos input e date
+    console.log('🔄 [UPDATE] Gerando resultado apenas com campos preenchidos...');
+
+    // Iterar sobre os campos do template e adicionar apenas os preenchidos
+    templateToUse.fields.forEach((field: any) => {
+      const value = enhancedFields[field.key] || '';
       const formattedValue = field.type === 'date' ? formatDate(value) : value;
-      console.log('🔍 [UPDATE] Valor formatado:', formattedValue);
 
-      // Lista de padrões para tentar substituir (em ordem de prioridade)
-      const patterns = [
-      // Padrão para textarea: CAMPO (Campo de texto multilinha (textarea))
-      new RegExp(`${escapedLabel}\\s*\\(Campo de texto multilinha \\(textarea\\)\\)`, 'gi'),
-      // Padrão para texto longo: CAMPO (texto longo)
-      new RegExp(`${escapedLabel}\\s*\\(texto longo\\)`, 'gi'),
-      // Padrão para texto curto: CAMPO (texto curto)
-      new RegExp(`${escapedLabel}\\s*\\(texto curto\\)`, 'gi'),
-      // Padrão simples: CAMPO: ___
-      new RegExp(`${escapedLabel}:\\s*_{2,}`, 'gi'),
-      // Campos simples com underscores: CAMPO ___
-      new RegExp(`${escapedLabel}\\s+_{2,}`, 'gi'),
-      // Campos de data específicos: CAMPO: __/__/____
-      new RegExp(`${escapedLabel}:\\s*__\\/__\\/____`, 'gi'),
-      // Padrão específico para IG: IG (IDADE GESTACIONAL) (texto curto)
-      new RegExp(`IG\\s*\\(IDADE GESTACIONAL\\)\\s*\\(texto curto\\)`, 'gi'),
-      // Padrão para campos com dois pontos sem underscores: CAMPO: (texto curto)
-      new RegExp(`${escapedLabel}:\\s*\\(texto curto\\)`, 'gi'),
-      // Padrão para campos sem dois pontos: CAMPO (texto curto)
-      new RegExp(`${escapedLabel}\\s+\\(texto curto\\)`, 'gi'),
-      // Padrão específico para AF: AF (MAIOR BOLSÃO VERTICAL): (texto curto)
-      new RegExp(`AF\\s*\\(MAIOR BOLSÃO VERTICAL\\):\\s*\\(texto curto\\)`, 'gi'),
-      // Padrão para DPP: DPP (formato data "dd/mm/aaaa")
-      new RegExp(`DPP\\s*\\(formato data "dd/mm/aaaa"\\)`, 'gi'),
-      // Padrão genérico para qualquer campo: QUALQUER_COISA: (texto curto)
-      new RegExp(`([A-ZÀ-ÿ\\s\\(\\)]+):\\s*\\(texto curto\\)`, 'gi'),
-      // Padrão genérico para qualquer campo sem dois pontos: QUALQUER_COISA (texto curto)
-      new RegExp(`([A-ZÀ-ÿ\\s\\(\\)]+)\\s+\\(texto curto\\)`, 'gi')];
-      let substituted = false;
-      for (let i = 0; i < patterns.length; i++) {
-        const pattern = patterns[i];
-        console.log(`🔍 [UPDATE] Testando padrão ${i + 1}:`, pattern);
-
-        // Reset regex lastIndex
-        pattern.lastIndex = 0;
-        const testMatch = result.match(pattern);
-        console.log(`🔍 [UPDATE] Match padrão ${i + 1}:`, testMatch);
-        if (testMatch) {
-          // Tratamento especial para IG
-          if (i === 6 && (field.key === 'ig' || field.key === 'idadegestacional')) {
-            result = result.replace(pattern, `IG (IDADE GESTACIONAL): ${formattedValue}`);
-          }
-          // Tratamento especial para AF
-          else if (i === 9 && (field.key === 'af' || field.key === 'maiorbolsaovertical')) {
-            result = result.replace(pattern, `AF (MAIOR BOLSÃO VERTICAL): ${formattedValue}`);
-          }
-          // Tratamento especial para DPP
-          else if (i === 10 && (field.key === 'dpp' || field.key === 'dataprovavelparto')) {
-            result = result.replace(pattern, `DPP: ${formattedValue}`);
-          }
-          // Para textarea, usar formatação especial
-          else if (i === 0 && field.type === 'textarea') {
-            result = result.replace(pattern, `${field.label}:\n${formattedValue}`);
-          }
-          // Para padrões genéricos (últimos dois), usar o grupo capturado
-          else if (i >= 11) {
-            const match = testMatch[0];
-            const capturedLabel = testMatch[1] || field.label;
-            result = result.replace(pattern, `${capturedLabel}: ${formattedValue}`);
-          } else {
-            result = result.replace(pattern, `${field.label}: ${formattedValue}`);
-          }
-          console.log(`✅ [UPDATE] Substituição com padrão ${i + 1} realizada`);
-          substituted = true;
-          break;
+      // Só adicionar se o campo tiver valor
+      if (formattedValue && formattedValue.trim()) {
+        console.log(`✅ [UPDATE] Campo preenchido: ${field.label} = ${formattedValue}`);
+        
+        // Formatar a linha conforme o tipo de campo
+        if (field.type === 'textarea') {
+          // Para textarea, colocar o valor em nova linha
+          resultLines.push(`${field.label}:`);
+          resultLines.push(formattedValue);
+        } else {
+          // Para outros campos, formato "LABEL: valor"
+          resultLines.push(`${field.label}: ${formattedValue}`);
         }
-      }
-      if (!substituted) {
-        console.log(`❌ [UPDATE] Nenhum padrão funcionou para o campo: ${field.label}`);
+      } else {
+        console.log(`⚠️ [UPDATE] Campo vazio (ignorado): ${field.label}`);
       }
     });
 
-    // Correção final: garantir que nenhum campo seja separado por vírgulas
-    if (selectedModel?.name?.includes('OBSTÉTRICA')) {
-      console.log('🔧 [UPDATE] Aplicando correção final para modelo obstétrico...');
-
-      // Separar linhas que contenham vírgulas entre campos conhecidos
-      const lines = result.split('\n');
-      const finalCorrectedLines = [];
-      for (let line of lines) {
-        // Verificar se a linha contém vírgulas entre campos obstétricos
-        if (line.includes(',') && (line.includes('SITUAÇÃO') || line.includes('DPP') || line.includes('IG') || line.includes('BCF') || line.includes('BPD') || line.includes('CC'))) {
-          console.log(`🔧 [UPDATE] Linha com vírgulas encontrada: "${line}"`);
-
-          // Separar por vírgulas e limpar cada parte
-          const parts = line.split(',').map(part => part.trim()).filter(part => part.length > 0);
-          if (parts.length > 1) {
-            console.log(`🔧 [UPDATE] Separando ${parts.length} partes:`, parts);
-            finalCorrectedLines.push(...parts);
-          } else {
-            finalCorrectedLines.push(line);
-          }
-        } else {
-          finalCorrectedLines.push(line);
-        }
-      }
-      result = finalCorrectedLines.join('\n');
-      console.log('🔧 [UPDATE] Resultado final corrigido (sem vírgulas):', result);
-    }
-    console.log('🔄 [UPDATE] Resultado final gerado:', result);
-    console.log('🔄 [UPDATE] Ainda contém placeholders?', result.includes('(texto') || result.includes('(Campo de texto'));
-    if (result.includes('(texto') || result.includes('(Campo de texto')) {
-      console.log('❌ [UPDATE] PROBLEMA: Ainda há placeholders não substituídos!');
-      const remainingPlaceholders = result.match(/\((texto [^)]+|Campo de texto[^)]+)\)/g);
-      console.log('❌ [UPDATE] Placeholders restantes:', remainingPlaceholders);
-    } else {
-      console.log('✅ [UPDATE] SUCESSO: Todos os placeholders foram substituídos!');
-    }
+    // Montar resultado final
+    const result = resultLines.join('\n');
+    
+    console.log('🔄 [UPDATE] Resultado final gerado (apenas campos preenchidos):', result);
+    console.log('🔄 [UPDATE] Total de linhas no resultado:', resultLines.length);
     console.log('🔄 [UPDATE] ===== FIM updateExamResults =====');
+    
     onExamResultsChange(result);
 
     // Notificar o componente pai sobre os campos dinâmicos
