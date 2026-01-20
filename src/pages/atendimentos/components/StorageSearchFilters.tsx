@@ -46,92 +46,99 @@ export const StorageSearchFilters: React.FC<SearchFiltersProps> = ({
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-2 items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+    <div className="space-y-3 sm:space-y-4 w-full overflow-hidden">
+      <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Buscar por nome do paciente, SUS ou telefone..."
+            placeholder="Buscar por nome..."
             value={searchTerm}
             onChange={(e) => onSearch(e.target.value)}
-            className="pl-10"
+            className="pl-10 w-full text-sm"
           />
         </div>
         
-        <Button
-          variant="outline"
-          onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2"
-        >
-          <Filter className="h-4 w-4" />
-          Filtros
-        </Button>
-
-        {(searchTerm || startDate || endDate) && (
+        <div className="flex gap-2 flex-shrink-0">
           <Button
-            variant="ghost"
-            onClick={handleClearAll}
-            className="flex items-center gap-2 text-red-600 hover:text-red-700"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-1 sm:gap-2"
           >
-            <X className="h-4 w-4" />
-            Limpar
+            <Filter className="h-4 w-4" />
+            <span className="text-sm">Filtros</span>
           </Button>
-        )}
+
+          {(searchTerm || startDate || endDate) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearAll}
+              className="flex items-center gap-1 text-destructive hover:text-destructive"
+            >
+              <X className="h-4 w-4" />
+              <span className="hidden sm:inline text-sm">Limpar</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* View Format Controls */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-gray-700">Visualização:</span>
-        <div className="flex gap-1">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <span className="text-xs sm:text-sm font-medium text-muted-foreground whitespace-nowrap">Visualização:</span>
+        <div className="flex gap-1 flex-shrink-0">
           {viewOptions.map(({ value, icon: Icon, label }) => (
             <Button
               key={value}
               variant={viewFormat === value ? 'default' : 'outline'}
               size="sm"
               onClick={() => onViewFormatChange(value)}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 px-2 sm:px-3"
               title={label}
             >
               <Icon className="h-4 w-4" />
-              <span className="hidden sm:inline">{label}</span>
             </Button>
           ))}
         </div>
       </div>
 
       {showFilters && (
-        <Card>
-          <CardContent className="pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <Card className="w-full">
+          <CardContent className="pt-4 px-3 sm:px-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 items-end">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1 sm:mb-2">
                   Data inicial
                 </label>
                 <Input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
+                  className="text-sm"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1 sm:mb-2">
                   Data final
                 </label>
                 <Input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
+                  className="text-sm"
                 />
               </div>
               
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <Button
                   onClick={handleApplyDateFilter}
-                  className="w-full"
+                  className="w-full text-sm"
+                  size="sm"
                   disabled={!startDate && !endDate}
                 >
-                  Aplicar filtro de data
+                  <span className="hidden sm:inline">Aplicar filtro</span>
+                  <span className="sm:hidden">Aplicar</span>
                 </Button>
               </div>
             </div>

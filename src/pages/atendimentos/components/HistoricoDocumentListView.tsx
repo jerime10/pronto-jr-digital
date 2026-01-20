@@ -90,98 +90,47 @@ export const HistoricoDocumentListView: React.FC<HistoricoDocumentListViewProps>
   };
 
   return (
-    <div className="rounded-md border overflow-x-auto">
-      <Table>
+    <div className="rounded-md border overflow-x-auto w-full">
+      <Table className="min-w-[600px]">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[90px]">Status</TableHead>
-            <TableHead className="w-[130px]">Paciente</TableHead>
-            <TableHead className="w-[120px]">Telefone</TableHead>
-            <TableHead className="w-[130px]">SUS</TableHead>
-            <TableHead className="w-[140px]">Início Atendimento</TableHead>
-            <TableHead className="w-[140px]">Término Atendimento</TableHead>
-            <TableHead className="w-[70px]">Duração</TableHead>
-            <TableHead className="w-[150px]">Informações Obstétricas</TableHead>
-            <TableHead className="w-[100px]">Ações</TableHead>
+            <TableHead className="w-[80px] text-xs sm:text-sm">Status</TableHead>
+            <TableHead className="min-w-[120px] text-xs sm:text-sm">Paciente</TableHead>
+            <TableHead className="w-[100px] text-xs sm:text-sm hidden sm:table-cell">Telefone</TableHead>
+            <TableHead className="w-[80px] text-xs sm:text-sm">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {documents.map((document) => {
-            const duration = calculateDuration(document.attendance_start_at, document.attendance_end_at);
-            
             return (
               <TableRow key={document.id}>
-                <TableCell>
+                <TableCell className="py-2">
                   {getStatusBadge(document.status)}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-2">
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-gray-500" />
-                    <span className="font-medium">{document.patient.name}</span>
+                    <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <span className="font-medium text-foreground text-sm truncate max-w-[150px] sm:max-w-none">{document.patient.name}</span>
+                  </div>
+                  <div className="sm:hidden text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <Phone className="w-3 h-3" />
+                    {document.patient.phone || 'Sem telefone'}
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden sm:table-cell py-2">
                   {document.patient.phone && (
                     <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-gray-500" />
-                      <span>{document.patient.phone}</span>
+                      <Phone className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm">{document.patient.phone}</span>
                     </div>
                   )}
                 </TableCell>
-                <TableCell>
-                  <span className="font-mono text-sm">{document.patient.sus}</span>
-                </TableCell>
-                <TableCell>
-                  {document.attendance_start_at && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm">{formatDate(document.attendance_start_at)}</span>
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {document.attendance_end_at && (
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm">{formatDate(document.attendance_end_at)}</span>
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {duration && (
-                    <div className="flex items-center gap-2 text-blue-600 font-medium">
-                      <Clock className="w-4 h-4" />
-                      <span className="text-sm">{duration}</span>
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {document.obstetricInfo && (document.obstetricInfo.ig || document.obstetricInfo.dpp) ? (
-                    <div className="flex flex-col gap-0.5 px-2 py-1.5 rounded bg-pink-50 border border-pink-200 text-xs w-fit">
-                      {document.obstetricInfo.ig && (
-                        <div className="flex items-center gap-1 whitespace-nowrap">
-                          <Baby className="w-3 h-3 text-pink-500 shrink-0" />
-                          <span className="text-muted-foreground">IG:</span>
-                          <span className="font-semibold text-pink-600">{document.obstetricInfo.ig}</span>
-                        </div>
-                      )}
-                      {document.obstetricInfo.dpp && (
-                        <div className="flex items-center gap-1 whitespace-nowrap">
-                          <Calendar className="w-3 h-3 text-pink-400 shrink-0" />
-                          <span className="text-muted-foreground">DPP:</span>
-                          <span className="font-semibold text-pink-600">{document.obstetricInfo.dpp}</span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">-</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-1">
+                <TableCell className="py-2">
+                  <div className="flex gap-0.5 sm:gap-1 flex-wrap">
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="h-8 w-8 p-0"
                       onClick={() => handleView(document)}
                       disabled={document.status !== 'ready'}
                       title={document.status !== 'ready' ? 'Documento em processamento' : 'Visualizar documento'}
@@ -192,6 +141,7 @@ export const HistoricoDocumentListView: React.FC<HistoricoDocumentListViewProps>
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="h-8 w-8 p-0"
                       onClick={() => handleDownload(document)}
                       disabled={document.status !== 'ready'}
                       title={document.status !== 'ready' ? 'Documento em processamento' : 'Baixar documento'}
@@ -202,6 +152,7 @@ export const HistoricoDocumentListView: React.FC<HistoricoDocumentListViewProps>
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="h-8 w-8 p-0"
                       onClick={() => handleWhatsApp(document)}
                       disabled={document.status !== 'ready' || !document.patient.phone}
                       title={document.status !== 'ready' ? 'Documento em processamento' : !document.patient.phone ? 'Telefone não disponível' : 'Enviar via WhatsApp'}
@@ -212,16 +163,18 @@ export const HistoricoDocumentListView: React.FC<HistoricoDocumentListViewProps>
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="h-8 w-8 p-0"
                       onClick={() => handleDelete(document)}
                       title="Excluir documento"
                     >
-                      <Trash2 className="w-4 h-4 text-red-600" />
+                      <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
 
                     {document.status === 'processing' && (
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="h-8 w-8 p-0"
                         onClick={onRefresh}
                         title="Atualizar status"
                       >
