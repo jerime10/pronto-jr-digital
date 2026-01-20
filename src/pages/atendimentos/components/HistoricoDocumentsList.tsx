@@ -156,9 +156,9 @@ export const HistoricoDocumentsList: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="space-y-4 sm:space-y-6 w-full overflow-hidden">
+      <div className="flex flex-col gap-3 sm:gap-0 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex-1 min-w-0">
           <StorageSearchFilters
             searchTerm={searchTerm}
             onSearch={setSearchTerm}
@@ -173,37 +173,37 @@ export const HistoricoDocumentsList: React.FC = () => {
           variant="outline"
           size="sm"
           onClick={handleRefresh}
-          className="flex items-center gap-2"
+          className="flex items-center gap-1 sm:gap-2 self-end sm:self-auto sm:ml-4 flex-shrink-0"
         >
           <RefreshCw className="w-4 h-4" />
-          Atualizar
+          <span className="text-sm">Atualizar</span>
         </Button>
       </div>
 
       {/* Estatísticas */}
       {documents && documents.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 p-3 sm:p-4 bg-muted/50 rounded-lg">
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
-            <div className="text-sm text-gray-600">Total</div>
+            <div className="text-lg sm:text-2xl font-bold text-foreground">{stats.total}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Total</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">{stats.ready}</div>
-            <div className="text-sm text-gray-600">Prontos</div>
+            <div className="text-lg sm:text-2xl font-bold text-green-600">{stats.ready}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Prontos</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-yellow-600">{stats.processing}</div>
-            <div className="text-sm text-gray-600">Processando</div>
+            <div className="text-lg sm:text-2xl font-bold text-yellow-600">{stats.processing}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Processando</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-red-600">{stats.error}</div>
-            <div className="text-sm text-gray-600">Com Erro</div>
+            <div className="text-lg sm:text-2xl font-bold text-red-600">{stats.error}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Com Erro</div>
           </div>
         </div>
       )}
 
       {documents && documents.length > 0 && (
-        <div className="text-sm text-gray-600 mb-4">
+        <div className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-4">
           Mostrando {filteredDocuments.length} de {documents.length} documento(s)
           {stats.processing > 0 && (
             <span className="ml-2 text-yellow-600">
@@ -213,7 +213,9 @@ export const HistoricoDocumentsList: React.FC = () => {
         </div>
       )}
       
-      {renderDocuments()}
+      <div className="w-full overflow-x-auto">
+        {renderDocuments()}
+      </div>
     </div>
   );
 };
