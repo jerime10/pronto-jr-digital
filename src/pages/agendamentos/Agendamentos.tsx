@@ -787,7 +787,7 @@ const Agendamentos: React.FC = () => {
             <Button 
               size={isMobile ? "sm" : "default"}
               className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
-              onClick={() => window.open('/agendamento', '_blank')}
+              onClick={() => window.open('/agendamento?partner=ADM&code=ADM', '_blank')}
             >
               <Plus className="h-4 w-4 mr-2" />
               {isMobile ? 'Novo' : 'Novo Agendamento'}
