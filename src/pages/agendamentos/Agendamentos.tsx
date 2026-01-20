@@ -240,7 +240,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
             </Avatar>
             
             <div className="flex-1">
-              <h3 className="font-semibold text-primary-foreground">{appointment.patient_name}</h3>
+              <h3 className="font-semibold text-foreground">{appointment.patient_name}</h3>
               <p className="text-sm text-blue-600 font-medium mt-1">{appointment.service_name}</p>
               <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
                 <div className="flex items-center">
