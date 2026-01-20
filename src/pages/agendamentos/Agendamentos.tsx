@@ -136,19 +136,19 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
 
   if (isMobile) {
     return (
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
+      <Card className="hover:shadow-md transition-shadow w-full overflow-hidden">
+        <CardContent className="p-3">
           {/* Header com Avatar e Status */}
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 flex-shrink-0">
-                <AvatarFallback className="bg-blue-100 text-blue-600 text-sm">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Avatar className="h-9 w-9 flex-shrink-0">
+                <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
                   {getInitials(appointment.patient_name)}
                 </AvatarFallback>
               </Avatar>
-              <div className="min-w-0 flex-1">
-                <h3 className="font-semibold text-gray-900 text-sm truncate">{appointment.patient_name}</h3>
-                <p className="text-xs text-blue-600 font-medium truncate">{appointment.service_name}</p>
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <h3 className="font-semibold text-foreground text-sm truncate max-w-full">{appointment.patient_name}</h3>
+                <p className="text-xs text-blue-600 font-medium truncate max-w-full">{appointment.service_name}</p>
               </div>
             </div>
             
@@ -176,12 +176,12 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
           </div>
 
           {/* Data e Hora */}
-          <div className="space-y-1.5 mb-3">
-            <div className="flex items-center text-xs text-gray-600">
+          <div className="space-y-1 mb-2">
+            <div className="flex items-center text-xs text-muted-foreground">
               <Calendar className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
               <span className="truncate">{date} - {dayOfWeek}</span>
             </div>
-            <div className="flex items-center text-xs text-gray-600">
+            <div className="flex items-center text-xs text-muted-foreground">
               <Clock className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
               <span>{time}</span>
             </div>
@@ -189,21 +189,21 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onAction
 
           {/* Info Obstétrica */}
           {appointment.dum && isObstetricService(appointment.service_name) && (
-            <div className="flex items-center text-xs text-pink-600 mb-3 bg-pink-50 px-2 py-1.5 rounded-md">
+            <div className="flex items-center text-xs text-pink-600 mb-2 bg-pink-50 dark:bg-pink-950/30 px-2 py-1 rounded-md">
               <Baby className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
               <span className="font-medium truncate">{formatPregnancyDisplay(appointment.dum)}</span>
             </div>
           )}
 
           {/* Footer com Badges e Ações */}
-          <div className="flex items-center justify-between gap-2 pt-2 border-t">
-            <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
+            <div className="flex items-center gap-1 flex-wrap min-w-0 flex-1">
               {appointment.partner_username ? (
-                <span className="text-[10px] text-purple-800 font-semibold bg-yellow-100 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                <span className="text-[10px] text-purple-800 dark:text-purple-300 font-semibold bg-yellow-100 dark:bg-yellow-900/50 px-1.5 py-0.5 rounded-full whitespace-nowrap">
                   via {appointment.partner_code || appointment.partner_username}
                 </span>
               ) : appointment.attendant_name && !appointment.partner_username ? (
-                <span className="text-[10px] text-purple-800 font-semibold bg-yellow-100 px-1.5 py-0.5 rounded-full">
+                <span className="text-[10px] text-purple-800 dark:text-purple-300 font-semibold bg-yellow-100 dark:bg-yellow-900/50 px-1.5 py-0.5 rounded-full">
                   via ADM
                 </span>
               ) : null}
@@ -755,11 +755,11 @@ const Agendamentos: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+    <div className="space-y-4 md:space-y-6 p-2 sm:p-4 md:p-0 max-w-full overflow-hidden">
       {/* Header */}
       <div className={isMobile ? "space-y-3" : "flex items-center justify-between"}>
         <div>
-          <h1 className={isMobile ? "text-xl font-bold text-gray-900" : "text-2xl font-bold text-gray-900"}>
+          <h1 className={isMobile ? "text-xl font-bold text-foreground" : "text-2xl font-bold text-foreground"}>
             Agendamentos
           </h1>
           <p className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>
@@ -767,18 +767,18 @@ const Agendamentos: React.FC = () => {
           </p>
         </div>
         
-        <div className={isMobile ? "flex gap-2 overflow-x-auto pb-2" : "flex gap-2"}>
+        <div className={isMobile ? "flex gap-2 pb-2" : "flex gap-2"}>
           <Button 
             variant="outline"
             size={isMobile ? "sm" : "default"}
-            className="bg-green-50 text-green-700 hover:bg-green-100 border-green-300 whitespace-nowrap"
+            className="bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/50 border-green-300 dark:border-green-700 whitespace-nowrap flex-shrink-0"
             onClick={handleSendBatchReminders}
             disabled={sendingBatch || filterAppointmentsByStatus(selectedStatus).length === 0}
           >
             {sendingBatch ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
             ) : (
-              <Send className="h-4 w-4 mr-2" />
+              <Send className="h-4 w-4 mr-1" />
             )}
             {isMobile ? 'Lote' : (sendingBatch ? 'Enviando...' : 'Enviar Lembretes em Lote')}
           </Button>
@@ -786,20 +786,20 @@ const Agendamentos: React.FC = () => {
           <ActionButtonGuard permission="agendamentos_criar">
             <Button 
               size={isMobile ? "sm" : "default"}
-              className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
+              className="bg-primary hover:bg-primary/90 whitespace-nowrap flex-shrink-0"
               onClick={() => window.open('/agendamento?partner=ADM&code=ADM', '_blank')}
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-4 w-4 mr-1" />
               {isMobile ? 'Novo' : 'Novo Agendamento'}
             </Button>
           </ActionButtonGuard>
         </div>
       </div>
 
-      <Card>
-        <CardHeader className={isMobile ? "pb-3 px-4 pt-4" : "pb-4"}>
+      <Card className="overflow-hidden">
+        <CardHeader className={isMobile ? "pb-3 px-3 pt-3" : "pb-4"}>
           <div className="flex items-center space-x-4">
-            <div className="relative flex-1 max-w-sm">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Buscar..."
@@ -811,53 +811,55 @@ const Agendamentos: React.FC = () => {
           </div>
         </CardHeader>
         
-        <CardContent className={isMobile ? "px-2" : ""}>
+        <CardContent className={isMobile ? "px-2 pb-4" : ""}>
           <Tabs value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as AppointmentStatus | 'todos')} className="w-full">
-            <TabsList className={isMobile ? "w-full flex overflow-x-auto scrollbar-hide h-auto p-1" : "grid w-full grid-cols-4"}>
-              <TabsTrigger 
-                value="todos"
-                className={isMobile ? "flex-shrink-0 text-xs px-3 whitespace-nowrap" : ""}
-              >
-                {isMobile ? `Todos (${getStatusCount('todos')})` : `Todos (${getStatusCount('todos')})`}
-              </TabsTrigger>
-              <TabsTrigger 
-                value="aguardando_atendimento"
-                className={isMobile ? "flex-shrink-0 text-xs px-3 whitespace-nowrap" : ""}
-              >
-                {isMobile ? `Aguard. (${getStatusCount('aguardando_atendimento')})` : `Aguardando (${getStatusCount('aguardando_atendimento')})`}
-              </TabsTrigger>
-              <TabsTrigger 
-                value="atendimento_iniciado"
-                className={isMobile ? "flex-shrink-0 text-xs px-3 whitespace-nowrap" : ""}
-              >
-                {isMobile ? `Atend. (${getStatusCount('atendimento_iniciado')})` : `Em Atendimento (${getStatusCount('atendimento_iniciado')})`}
-              </TabsTrigger>
-              <TabsTrigger 
-                value="atendimento_finalizado"
-                className={isMobile ? "flex-shrink-0 text-xs px-3 whitespace-nowrap" : ""}
-              >
-                {isMobile ? `Final. (${getStatusCount('atendimento_finalizado')})` : `Finalizados (${getStatusCount('atendimento_finalizado')})`}
-              </TabsTrigger>
-            </TabsList>
+            <div className={isMobile ? "overflow-x-auto -mx-2 px-2" : ""}>
+              <TabsList className={isMobile ? "inline-flex w-auto min-w-full h-auto p-1" : "grid w-full grid-cols-4"}>
+                <TabsTrigger 
+                  value="todos"
+                  className={isMobile ? "flex-shrink-0 text-xs px-2.5 py-1.5 whitespace-nowrap" : ""}
+                >
+                  {isMobile ? `Todos (${getStatusCount('todos')})` : `Todos (${getStatusCount('todos')})`}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="aguardando_atendimento"
+                  className={isMobile ? "flex-shrink-0 text-xs px-2.5 py-1.5 whitespace-nowrap" : ""}
+                >
+                  {isMobile ? `Aguard. (${getStatusCount('aguardando_atendimento')})` : `Aguardando (${getStatusCount('aguardando_atendimento')})`}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="atendimento_iniciado"
+                  className={isMobile ? "flex-shrink-0 text-xs px-2.5 py-1.5 whitespace-nowrap" : ""}
+                >
+                  {isMobile ? `Atend. (${getStatusCount('atendimento_iniciado')})` : `Em Atendimento (${getStatusCount('atendimento_iniciado')})`}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="atendimento_finalizado"
+                  className={isMobile ? "flex-shrink-0 text-xs px-2.5 py-1.5 whitespace-nowrap" : ""}
+                >
+                  {isMobile ? `Final. (${getStatusCount('atendimento_finalizado')})` : `Finalizados (${getStatusCount('atendimento_finalizado')})`}
+                </TabsTrigger>
+              </TabsList>
+            </div>
             
             {['todos', 'aguardando_atendimento', 'atendimento_iniciado', 'atendimento_finalizado'].map((status) => (
-              <TabsContent key={status} value={status} className={isMobile ? "mt-3 px-2" : "mt-6"}>
+              <TabsContent key={status} value={status} className={isMobile ? "mt-3" : "mt-6"}>
                 {isLoading ? (
                   <div className={isMobile ? "flex items-center justify-center py-6" : "flex items-center justify-center py-8"}>
                     <Loader2 className={isMobile ? "w-5 h-5 animate-spin" : "w-6 h-6 animate-spin"} />
                     <span className={isMobile ? "ml-2 text-sm" : "ml-2"}>Carregando...</span>
                   </div>
                 ) : error ? (
-                  <div className={isMobile ? "text-center py-6 text-red-600 text-sm" : "text-center py-8 text-red-600"}>
+                  <div className={isMobile ? "text-center py-6 text-destructive text-sm" : "text-center py-8 text-destructive"}>
                     Erro ao carregar agendamentos
                   </div>
                 ) : appointments.length === 0 ? (
                   <div className={isMobile ? "text-center py-6" : "text-center py-8"}>
-                    <Calendar className={isMobile ? "w-10 h-10 mx-auto text-gray-400 mb-3" : "w-12 h-12 mx-auto text-gray-400 mb-4"} />
-                    <p className={isMobile ? "text-gray-500 text-sm" : "text-gray-500"}>Nenhum agendamento encontrado</p>
+                    <Calendar className={isMobile ? "w-10 h-10 mx-auto text-muted-foreground mb-3" : "w-12 h-12 mx-auto text-muted-foreground mb-4"} />
+                    <p className="text-muted-foreground text-sm">Nenhum agendamento encontrado</p>
                   </div>
                 ) : (
-                  <div className={isMobile ? "space-y-3" : "space-y-4"}>
+                  <div className={isMobile ? "space-y-2" : "space-y-4"}>
                     {appointments.map((appointment) => (
                       <AppointmentCard
                         key={appointment.id}
