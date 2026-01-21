@@ -247,13 +247,16 @@ export const useDraftManager = ({
         console.log('✅ Paciente já existe na tabela patients');
       }
 
-      // Gerar título automático se não fornecido
-      const draftTitle = title || `Rascunho - ${new Date().toLocaleDateString('pt-BR', { 
+      // Gerar título automático com nome do paciente, SUS e data/hora
+      const dataHoraAtual = new Date().toLocaleDateString('pt-BR', { 
         day: '2-digit', 
-        month: '2-digit', 
+        month: '2-digit',
+        year: 'numeric',
         hour: '2-digit', 
         minute: '2-digit' 
-      })}`;
+      });
+      
+      const draftTitle = title || `${pacienteSelecionado.name} - SUS: ${pacienteSelecionado.sus} - ${dataHoraAtual}`;
 
       // SEMPRE criar novo rascunho (não sobrescrever)
       console.log('💾 Criando novo rascunho...');
