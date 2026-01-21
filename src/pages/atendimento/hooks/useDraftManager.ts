@@ -178,11 +178,10 @@ export const useDraftManager = ({
   };
 
   // Salvar rascunho atual
-  // Regra:
-  // - Se o usuário informar um título (custom), cria um novo rascunho.
-  // - Se não informar título, atualiza o último rascunho automático do mesmo paciente+profissional
-  //   (ou cria um novo automático na primeira vez).
-  const saveDraft = async (title?: string, formData?: FormState, fields?: Record<string, string>) => {
+  // Regra simplificada:
+  // - Sempre atualiza o rascunho existente do mesmo paciente+profissional
+  // - Nunca cria duplicados para o mesmo paciente
+  const saveDraft = async (formData?: FormState, fields?: Record<string, string>) => {
     if (!pacienteSelecionado || !profissionalAtual) {
       console.error('❌ [useDraftManager] Dados insuficientes para salvar rascunho:', { 
         paciente: !!pacienteSelecionado, 
@@ -252,47 +251,38 @@ export const useDraftManager = ({
         console.log('✅ Paciente já existe na tabela patients');
       }
 
-      const titleTrimmed = title?.trim();
-      const hasCustomTitle = !!titleTrimmed;
-
       // Data/hora do momento do clique (última atualização)
       const dataHoraAtual = format(new Date(), 'dd/MM/yyyy HH:mm');
 
-      // Título automático (marca "Rascunho -" para conseguirmos identificar e atualizar na próxima vez)
-      const autoTitle = `Rascunho - ${pacienteSelecionado.name} - SUS: ${pacienteSelecionado.sus} - ${dataHoraAtual}`;
-      const draftTitle = hasCustomTitle ? titleTrimmed! : autoTitle;
+      // Título automático com dados do paciente e data/hora
+      const draftTitle = `${pacienteSelecionado.name} - SUS: ${pacienteSelecionado.sus} - ${dataHoraAtual}`;
 
       const nowIso = new Date().toISOString();
 
-      // Se não tiver título custom, tenta atualizar o último rascunho automático deste paciente+profissional
-      let existingAutoDraftId: string | null = null;
-      if (!hasCustomTitle) {
-        const { data: existingAutoDraft, error: existingAutoError } = await (supabase as any)
-          .from('medical_record_drafts')
-          .select('id, title')
-          .eq('patient_id', pacienteSelecionado.id)
-          .eq('professional_id', profissionalAtual.id)
-          // Suporta também o padrão antigo (sem o prefixo "Rascunho -")
-          .or('title.ilike.Rascunho - %,title.ilike.% - SUS:%')
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+      // Sempre buscar rascunho existente do mesmo paciente+profissional (independente do título)
+      const { data: existingDraft, error: existingError } = await (supabase as any)
+        .from('medical_record_drafts')
+        .select('id')
+        .eq('patient_id', pacienteSelecionado.id)
+        .eq('professional_id', profissionalAtual.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-        if (existingAutoError) {
-          console.error('❌ Erro ao buscar rascunho automático existente:', existingAutoError);
-          toast.error('Erro ao verificar rascunho existente. Tente novamente.');
-          return;
-        }
-
-        existingAutoDraftId = existingAutoDraft?.id ?? null;
+      if (existingError) {
+        console.error('❌ Erro ao buscar rascunho existente:', existingError);
+        toast.error('Erro ao verificar rascunho existente. Tente novamente.');
+        return;
       }
+
+      const existingDraftId = existingDraft?.id ?? null;
 
       // Atualiza ou cria
       let data: any = null;
       let error: any = null;
 
-      if (existingAutoDraftId) {
-        console.log('♻️ Atualizando rascunho automático existente:', existingAutoDraftId);
+      if (existingDraftId) {
+        console.log('♻️ Atualizando rascunho existente do paciente:', existingDraftId);
         const result = await (supabase as any)
           .from('medical_record_drafts')
           .update({
@@ -300,14 +290,14 @@ export const useDraftManager = ({
             form_data: formDataWithDynamicFields as any,
             updated_at: nowIso
           })
-          .eq('id', existingAutoDraftId)
+          .eq('id', existingDraftId)
           .select()
           .single();
 
         data = result.data;
         error = result.error;
       } else {
-        console.log('💾 Criando novo rascunho...');
+        console.log('💾 Criando novo rascunho para o paciente...');
         const result = await (supabase as any)
           .from('medical_record_drafts')
           .insert({
@@ -332,7 +322,7 @@ export const useDraftManager = ({
       }
 
       console.log('✅ Rascunho salvo com sucesso:', data);
-      toast.success(hasCustomTitle ? `Rascunho "${draftTitle}" salvo!` : `Rascunho atualizado: ${dataHoraAtual}`);
+      toast.success(`Rascunho atualizado: ${dataHoraAtual}`);
       
       // Recarregar a lista de rascunhos
       await loadDrafts();

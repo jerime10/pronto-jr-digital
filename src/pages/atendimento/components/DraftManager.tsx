@@ -39,8 +39,6 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
   onDynamicFieldsChange
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
-  const [draftTitle, setDraftTitle] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'oldest'>('recent');
   
@@ -66,7 +64,7 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
     if (open && profissionalAtual?.id) {
-      // Carregamento silencioso: evita toast “falso positivo” quando a lista acaba carregando.
+      // Carregamento silencioso: evita toast "falso positivo" quando a lista acaba carregando.
       loadDrafts({ silent: true });
     }
   };
@@ -79,9 +77,7 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
 
   const handleSaveDraft = async () => {
     console.log('💾 [DraftManager] Salvando rascunho com campos dinâmicos:', dynamicFields);
-    await saveDraft(draftTitle || undefined, form, dynamicFields);
-    setDraftTitle('');
-    setIsSaveDialogOpen(false);
+    await saveDraft(form, dynamicFields);
   };
 
   const canSaveDraft = pacienteSelecionado && form.queixaPrincipal.trim();
@@ -110,61 +106,17 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
 
   return (
     <div className="flex gap-2">
-      {/* Diálogo para Salvar Rascunho */}
-      <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
-        <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!canSaveDraft || isSavingDraft}
-            className="flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSavingDraft ? 'Salvando...' : 'Salvar Rascunho'}
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Salvar Novo Rascunho</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="draft-title">Título do Rascunho (opcional)</Label>
-              <Input
-                id="draft-title"
-                placeholder="Ex: Consulta de rotina"
-                value={draftTitle}
-                onChange={(e) => setDraftTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSaveDraft();
-                  }
-                }}
-              />
-              <p className="text-sm text-muted-foreground">
-                Se não informar, será gerado automaticamente com data e hora.
-              </p>
-            </div>
-            {pacienteSelecionado && (
-              <div className="bg-muted p-3 rounded-lg">
-                <p className="text-sm font-medium mb-1">Paciente:</p>
-                <p className="text-sm">{pacienteSelecionado.name}</p>
-              </div>
-            )}
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => {
-              setIsSaveDialogOpen(false);
-              setDraftTitle('');
-            }}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveDraft} disabled={isSavingDraft}>
-              {isSavingDraft ? 'Salvando...' : 'Salvar'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Botão para Salvar Rascunho (direto, sem modal) */}
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={!canSaveDraft || isSavingDraft}
+        onClick={handleSaveDraft}
+        className="flex items-center gap-2"
+      >
+        <Save className="w-4 h-4" />
+        {isSavingDraft ? 'Salvando...' : 'Salvar Rascunho'}
+      </Button>
 
       {/* Dialog para Gerenciar Rascunhos */}
       <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
