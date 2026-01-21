@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { FormState } from './useFormData';
+import { format } from 'date-fns';
 
 export interface Patient {
   id: string;
@@ -176,7 +177,11 @@ export const useDraftManager = ({
     }
   };
 
-  // Salvar rascunho atual - agora aceita título e sempre cria novo
+  // Salvar rascunho atual
+  // Regra:
+  // - Se o usuário informar um título (custom), cria um novo rascunho.
+  // - Se não informar título, atualiza o último rascunho automático do mesmo paciente+profissional
+  //   (ou cria um novo automático na primeira vez).
   const saveDraft = async (title?: string, formData?: FormState, fields?: Record<string, string>) => {
     if (!pacienteSelecionado || !profissionalAtual) {
       console.error('❌ [useDraftManager] Dados insuficientes para salvar rascunho:', { 
@@ -247,31 +252,78 @@ export const useDraftManager = ({
         console.log('✅ Paciente já existe na tabela patients');
       }
 
-      // Gerar título automático com nome do paciente, SUS e data/hora
-      const dataHoraAtual = new Date().toLocaleDateString('pt-BR', { 
-        day: '2-digit', 
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-      
-      const draftTitle = title || `${pacienteSelecionado.name} - SUS: ${pacienteSelecionado.sus} - ${dataHoraAtual}`;
+      const titleTrimmed = title?.trim();
+      const hasCustomTitle = !!titleTrimmed;
 
-      // SEMPRE criar novo rascunho (não sobrescrever)
-      console.log('💾 Criando novo rascunho...');
-      const { data, error } = await supabase
-        .from('medical_record_drafts')
-        .insert({
-          patient_id: pacienteSelecionado.id,
-          professional_id: profissionalAtual.id,
-          title: draftTitle,
-          form_data: formDataWithDynamicFields as any,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        } as any)
-        .select()
-        .single();
+      // Data/hora do momento do clique (última atualização)
+      const dataHoraAtual = format(new Date(), 'dd/MM/yyyy HH:mm');
+
+      // Título automático (marca "Rascunho -" para conseguirmos identificar e atualizar na próxima vez)
+      const autoTitle = `Rascunho - ${pacienteSelecionado.name} - SUS: ${pacienteSelecionado.sus} - ${dataHoraAtual}`;
+      const draftTitle = hasCustomTitle ? titleTrimmed! : autoTitle;
+
+      const nowIso = new Date().toISOString();
+
+      // Se não tiver título custom, tenta atualizar o último rascunho automático deste paciente+profissional
+      let existingAutoDraftId: string | null = null;
+      if (!hasCustomTitle) {
+        const { data: existingAutoDraft, error: existingAutoError } = await (supabase as any)
+          .from('medical_record_drafts')
+          .select('id, title')
+          .eq('patient_id', pacienteSelecionado.id)
+          .eq('professional_id', profissionalAtual.id)
+          // Suporta também o padrão antigo (sem o prefixo "Rascunho -")
+          .or('title.ilike.Rascunho - %,title.ilike.% - SUS:%')
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingAutoError) {
+          console.error('❌ Erro ao buscar rascunho automático existente:', existingAutoError);
+          toast.error('Erro ao verificar rascunho existente. Tente novamente.');
+          return;
+        }
+
+        existingAutoDraftId = existingAutoDraft?.id ?? null;
+      }
+
+      // Atualiza ou cria
+      let data: any = null;
+      let error: any = null;
+
+      if (existingAutoDraftId) {
+        console.log('♻️ Atualizando rascunho automático existente:', existingAutoDraftId);
+        const result = await (supabase as any)
+          .from('medical_record_drafts')
+          .update({
+            title: draftTitle,
+            form_data: formDataWithDynamicFields as any,
+            updated_at: nowIso
+          })
+          .eq('id', existingAutoDraftId)
+          .select()
+          .single();
+
+        data = result.data;
+        error = result.error;
+      } else {
+        console.log('💾 Criando novo rascunho...');
+        const result = await (supabase as any)
+          .from('medical_record_drafts')
+          .insert({
+            patient_id: pacienteSelecionado.id,
+            professional_id: profissionalAtual.id,
+            title: draftTitle,
+            form_data: formDataWithDynamicFields as any,
+            created_at: nowIso,
+            updated_at: nowIso
+          })
+          .select()
+          .single();
+
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) {
         console.error('❌ Erro ao salvar rascunho:', error);
@@ -280,7 +332,7 @@ export const useDraftManager = ({
       }
 
       console.log('✅ Rascunho salvo com sucesso:', data);
-      toast.success(`Rascunho "${draftTitle}" salvo com sucesso!`);
+      toast.success(hasCustomTitle ? `Rascunho "${draftTitle}" salvo!` : `Rascunho atualizado: ${dataHoraAtual}`);
       
       // Recarregar a lista de rascunhos
       await loadDrafts();
