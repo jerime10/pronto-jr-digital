@@ -41,7 +41,7 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'oldest'>('recent');
-  
+
   const {
     drafts,
     isLoadingDrafts,
@@ -88,7 +88,7 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
 
     // Filtrar por termo de busca
     if (searchTerm.trim()) {
-      filtered = filtered.filter(draft => 
+      filtered = filtered.filter(draft =>
         draft.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         draft.patient_data.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -175,109 +175,95 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>{searchTerm ? 'Nenhum rascunho encontrado' : 'Nenhum rascunho salvo'}</p>
                 <p className="text-sm">
-                  {searchTerm 
-                    ? 'Tente buscar com outros termos.' 
+                  {searchTerm
+                    ? 'Tente buscar com outros termos.'
                     : 'Salve um atendimento como rascunho para vê-lo aqui'}
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredAndSortedDrafts.map((draft) => (
-                  <Card key={draft.id} className="hover:shadow-md transition-shadow">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-start justify-between text-sm">
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center gap-2 font-semibold text-base">
-                            <FileText className="w-4 h-4" />
-                            {draft.title}
+              <div className="space-y-2">
+                {filteredAndSortedDrafts.map((draft) => {
+                  const createdDate = new Date(draft.created_at);
+                  const updatedDate = new Date(draft.updated_at);
+                  const wasUpdated = updatedDate.getTime() !== createdDate.getTime();
+
+                  return (
+                    <Card key={draft.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between gap-4">
+                          {/* Informações do paciente */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-2">
+                              <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                              <span className="font-semibold text-base truncate">
+                                {draft.patient_data.name}
+                              </span>
+                              <Badge variant="secondary" className="text-xs shrink-0">
+                                SUS: {draft.patient_data.sus}
+                              </Badge>
+                            </div>
+
+                            {/* Datas */}
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground ml-7">
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>
+                                  Criado: {format(createdDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                </span>
+                              </div>
+
+                              {wasUpdated && (
+                                <div className="flex items-center gap-1.5">
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  <span>
+                                    Atualizado: {format(updatedDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
-                            <User className="w-3 h-3" />
-                            {draft.patient_data.name}
-                          </div>
-                        </div>
-                        <Badge variant="secondary" className="text-xs shrink-0">
-                          SUS: {draft.patient_data.sus}
-                        </Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Clock className="w-4 h-4" />
-                        <span>
-                          Criado: {format(new Date(draft.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </span>
-                      </div>
 
-                      {draft.form_data.dataInicioAtendimento && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Calendar className="w-4 h-4" />
-                          <span>
-                            Atendimento: {format(new Date(draft.form_data.dataInicioAtendimento), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="bg-gray-50 p-3 rounded-md">
-                        <p className="text-sm font-medium mb-1">Queixa Principal:</p>
-                        <p className="text-sm text-gray-700 line-clamp-2">
-                          {draft.form_data.queixaPrincipal}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        {draft.form_data.antecedentes && (
-                          <Badge variant="outline" className="text-xs">Antecedentes</Badge>
-                        )}
-                        {draft.form_data.alergias && (
-                          <Badge variant="outline" className="text-xs">Alergias</Badge>
-                        )}
-                        {draft.form_data.evolucao && (
-                          <Badge variant="outline" className="text-xs">Evolução</Badge>
-                        )}
-                        {draft.form_data.prescricaoPersonalizada && (
-                          <Badge variant="outline" className="text-xs">Prescrição</Badge>
-                        )}
-                      </div>
-
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          size="sm"
-                          onClick={() => handleLoadDraft(draft)}
-                          className="flex-1"
-                        >
-                          Carregar
-                        </Button>
-                        
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="destructive" className="px-3">
-                              <Trash2 className="w-4 h-4" />
+                          {/* Ações */}
+                          <div className="flex gap-2 shrink-0">
+                            <Button
+                              size="sm"
+                              onClick={() => handleLoadDraft(draft)}
+                              className="px-4"
+                            >
+                              Carregar
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Deletar Rascunho</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja deletar o rascunho "{draft.title}"? 
-                                Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deleteDraft(draft.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Deletar
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="destructive" className="px-3">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Deletar Rascunho</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja deletar o rascunho de "{draft.patient_data.name}"?
+                                    Esta ação não pode ser desfeita.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteDraft(draft.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Deletar
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>

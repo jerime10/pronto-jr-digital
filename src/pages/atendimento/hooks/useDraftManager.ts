@@ -80,12 +80,12 @@ export const useDraftManager = ({
         .from('medical_record_drafts')
         .select(
           'id, patient_id, professional_id, title, created_at, updated_at, ' +
-            'queixa_principal:form_data->>queixaPrincipal, ' +
-            'antecedentes:form_data->>antecedentes, ' +
-            'alergias:form_data->>alergias, ' +
-            'evolucao:form_data->>evolucao, ' +
-            'prescricao_personalizada:form_data->>prescricaoPersonalizada, ' +
-            'data_inicio_atendimento:form_data->>dataInicioAtendimento'
+          'queixa_principal:form_data->>queixaPrincipal, ' +
+          'antecedentes:form_data->>antecedentes, ' +
+          'alergias:form_data->>alergias, ' +
+          'evolucao:form_data->>evolucao, ' +
+          'prescricao_personalizada:form_data->>prescricaoPersonalizada, ' +
+          'data_inicio_atendimento:form_data->>dataInicioAtendimento'
         )
         .eq('professional_id', profissionalAtual.id)
         .order('updated_at', { ascending: false })
@@ -183,21 +183,21 @@ export const useDraftManager = ({
   // - Nunca cria duplicados para o mesmo paciente
   const saveDraft = async (formData?: FormState, fields?: Record<string, string>) => {
     if (!pacienteSelecionado || !profissionalAtual) {
-      console.error('❌ [useDraftManager] Dados insuficientes para salvar rascunho:', { 
-        paciente: !!pacienteSelecionado, 
-        profissional: !!profissionalAtual 
+      console.error('❌ [useDraftManager] Dados insuficientes para salvar rascunho:', {
+        paciente: !!pacienteSelecionado,
+        profissional: !!profissionalAtual
       });
       toast.error('Selecione um paciente e profissional antes de salvar o rascunho.');
       return;
     }
 
     const dataToSave = formData || form;
-    
+
     // Combinar formData com dynamicFields (usar o que foi passado ou o do estado)
     const camposDinamicosParaSalvar = fields || dynamicFields || {};
-    
+
     console.log('💾 [useDraftManager] Salvando rascunho com campos dinâmicos:', camposDinamicosParaSalvar);
-    
+
     const formDataWithDynamicFields = {
       ...dataToSave,
       dynamicFields: camposDinamicosParaSalvar
@@ -206,7 +206,7 @@ export const useDraftManager = ({
     try {
       setIsSavingDraft(true);
       console.log('🔍 Verificando se paciente existe na tabela patients...');
-      
+
       // Verificar se o paciente existe na tabela patients
       const { data: existingPatient, error: checkError } = await supabase
         .from('patients')
@@ -223,7 +223,7 @@ export const useDraftManager = ({
       // Se o paciente não existir, criar automaticamente
       if (!existingPatient) {
         console.log('⚠️ Paciente não encontrado na tabela patients. Criando automaticamente...');
-        
+
         const { error: createError } = await supabase
           .from('patients')
           .insert([{
@@ -277,9 +277,17 @@ export const useDraftManager = ({
 
       const existingDraftId = existingDraft?.id ?? null;
 
+      console.log('🔍 [DEBUG] Verificação de rascunho existente:', {
+        existingDraft,
+        existingDraftId,
+        pacienteId: pacienteSelecionado.id,
+        profissionalId: profissionalAtual.id
+      });
+
       // Atualiza ou cria
       let data: any = null;
       let error: any = null;
+      let isCreating = !existingDraftId;
 
       if (existingDraftId) {
         console.log('♻️ Atualizando rascunho existente do paciente:', existingDraftId);
@@ -296,6 +304,8 @@ export const useDraftManager = ({
 
         data = result.data;
         error = result.error;
+
+        console.log('♻️ [DEBUG] Resultado da atualização:', { data, error });
       } else {
         console.log('💾 Criando novo rascunho para o paciente...');
         const result = await (supabase as any)
@@ -313,6 +323,8 @@ export const useDraftManager = ({
 
         data = result.data;
         error = result.error;
+
+        console.log('💾 [DEBUG] Resultado da criação:', { data, error });
       }
 
       if (error) {
@@ -322,11 +334,18 @@ export const useDraftManager = ({
       }
 
       console.log('✅ Rascunho salvo com sucesso:', data);
-      toast.success(`Rascunho atualizado: ${dataHoraAtual}`);
-      
+      console.log('✅ [DEBUG] isCreating:', isCreating, 'existingDraftId:', existingDraftId);
+
+      // Mostrar mensagem diferente para criação vs atualização
+      if (isCreating) {
+        toast.success(`Rascunho criado com sucesso: ${dataHoraAtual}`);
+      } else {
+        toast.success(`Rascunho atualizado: ${dataHoraAtual}`);
+      }
+
       // Recarregar a lista de rascunhos
       await loadDrafts();
-      
+
     } catch (error) {
       console.error('❌ Erro inesperado ao salvar rascunho:', error);
       toast.error('Erro inesperado. Tente novamente.');
@@ -393,7 +412,7 @@ export const useDraftManager = ({
       if (error) throw error;
 
       toast.success('Rascunho deletado com sucesso!');
-      
+
       // Recarregar lista de rascunhos
       await loadDrafts();
     } catch (error) {
