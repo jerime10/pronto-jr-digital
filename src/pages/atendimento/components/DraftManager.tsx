@@ -94,10 +94,12 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
       );
     }
 
-    // Ordenar
+    // Ordenar por data de atualização (prioridade) ou criação
+    // Sempre do mais recente para o mais antigo
     const sorted = [...filtered].sort((a, b) => {
-      const dateA = new Date(a.created_at).getTime();
-      const dateB = new Date(b.created_at).getTime();
+      // Usar updated_at como prioridade (que sempre existe e reflete a última atividade)
+      const dateA = new Date(a.updated_at).getTime();
+      const dateB = new Date(b.updated_at).getTime();
       return sortBy === 'recent' ? dateB - dateA : dateA - dateB;
     });
 
