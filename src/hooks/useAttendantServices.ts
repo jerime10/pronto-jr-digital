@@ -9,3 +9,12 @@ export function useAttendantServices(attendantId?: string) {
     staleTime: 5 * 60 * 1000,
   });
 }
+
+export function useAvailableAttendantServices(attendantId?: string) {
+  return useQuery<ServiceAssignment[]>({
+    queryKey: ['attendant-available-services', attendantId],
+    queryFn: () => attendantId ? serviceAssignmentService.getAvailableAssignmentsByAttendant(attendantId) : Promise.resolve([]),
+    enabled: !!attendantId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
