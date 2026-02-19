@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Sparkles, User } from 'lucide-react';
 import PublicProfessionalsList from './components/PublicProfessionalsList';
-import { useAttendantServices } from '@/hooks/useAttendantServices';
+import { useAvailableAttendantServices } from '@/hooks/useAttendantServices';
 import { usePublicAvailability } from '@/hooks/usePublicAvailability';
 import { toast } from 'sonner';
 
@@ -18,7 +18,7 @@ const PublicConsultarAgendaPage: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectOpen, setSelectOpen] = useState(false);
 
-  const { data: assignments } = useAttendantServices(attendantId);
+  const { data: assignments } = useAvailableAttendantServices(attendantId);
   const dateStr = useMemo(() => selectedDate ? selectedDate.toISOString().split('T')[0] : undefined, [selectedDate]);
   const { data: availability, isFetching } = usePublicAvailability({
     attendantId,

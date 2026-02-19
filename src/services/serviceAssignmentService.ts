@@ -94,6 +94,42 @@ export const serviceAssignmentService = {
       throw error;
     }
   },
+
+  // Buscar atribuições por atendente, filtrando apenas serviços disponíveis
+  async getAvailableAssignmentsByAttendant(attendantId: string): Promise<ServiceAssignment[]> {
+    console.log('Fetching available assignments for attendant:', attendantId);
+    
+    try {
+      // Buscar atribuições do atendente
+      const { data: assignments, error: assignError } = await enhancedSupabase
+        .from('service_assignments')
+        .select('*')
+        .eq('attendant_id', attendantId)
+        .order('created_at', { ascending: false });
+      
+      if (assignError) throw assignError;
+      if (!assignments || assignments.length === 0) return [];
+
+      // Buscar IDs de serviços disponíveis
+      const serviceIds = [...new Set(assignments.map(a => a.service_id))];
+      const { data: availableServices, error: svcError } = await enhancedSupabase
+        .from('services')
+        .select('id')
+        .in('id', serviceIds)
+        .eq('available', true);
+      
+      if (svcError) throw svcError;
+      
+      const availableIds = new Set((availableServices || []).map(s => s.id));
+      const filtered = assignments.filter(a => availableIds.has(a.service_id));
+      
+      console.log(`Available assignments: ${filtered.length}/${assignments.length}`);
+      return filtered;
+    } catch (error) {
+      console.error('Error in getAvailableAssignmentsByAttendant:', error);
+      throw error;
+    }
+  },
   
   // Remover atribuição
   async removeAssignment(assignmentId: string): Promise<void> {

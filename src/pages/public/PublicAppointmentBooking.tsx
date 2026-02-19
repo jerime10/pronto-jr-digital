@@ -443,8 +443,8 @@ export const PublicAppointmentBooking: React.FC = () => {
         service: 'serviceAssignmentService.getAssignmentsByAttendant'
       });
 
-      // Usar a camada de serviço para buscar as atribuições
-      const serviceAssignments = await serviceAssignmentService.getAssignmentsByAttendant(attendantId);
+      // Usar a camada de serviço para buscar as atribuições (apenas serviços disponíveis)
+      const serviceAssignments = await serviceAssignmentService.getAvailableAssignmentsByAttendant(attendantId);
 
       debugLogger.info('Frontend', 'service_assignments_response', {
         attendantId,
