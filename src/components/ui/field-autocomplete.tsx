@@ -39,7 +39,7 @@ export const FieldAutocomplete = ({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Fechar dropdown ao clicar fora
   useEffect(() => {
