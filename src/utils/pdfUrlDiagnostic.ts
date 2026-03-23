@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Configuração do Supabase para diagnóstico
 const supabaseUrl = 'https://vtthxoovjswtrwfrdlha.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || '';
+const supabaseKey = (typeof process !== 'undefined' && process.env?.SUPABASE_SERVICE_KEY) || (typeof process !== 'undefined' && process.env?.SUPABASE_ANON_KEY) || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface DiagnosticResult {
