@@ -7,7 +7,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // Configuração do Supabase para diagnóstico
 const supabaseUrl = 'https://vtthxoovjswtrwfrdlha.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || '';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabaseKey = ((globalThis as any).process?.env?.SUPABASE_SERVICE_KEY) || ((globalThis as any).process?.env?.SUPABASE_ANON_KEY) || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface DiagnosticResult {
