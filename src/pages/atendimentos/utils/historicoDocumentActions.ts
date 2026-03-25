@@ -149,6 +149,44 @@ export const deleteHistoricoDocument = async (documentId: string, refetch?: () =
       return;
     }
     
+    // First, fetch the record to check for storage files
+    const { data: record, error: fetchError } = await supabase
+      .from('medical_records')
+      .select('file_url_storage')
+      .eq('id', documentId)
+      .maybeSingle();
+    
+    if (fetchError) {
+      console.warn('Aviso ao buscar registro para exclusão de arquivo:', fetchError.message);
+    }
+
+    // If there's a storage URL, try to delete the file
+    if (record?.file_url_storage) {
+      try {
+        // Extract the filename from the URL, removing any query parameters
+        // Example: .../storage/v1/object/public/documents/prontuarios/FILENAME.pdf?t=123
+        const urlParts = record.file_url_storage.split('/');
+        const filenameWithParams = urlParts[urlParts.length - 1];
+        const filename = filenameWithParams.split('?')[0];
+        
+        if (filename) {
+          console.log('Deletando arquivo relacionado do storage:', filename);
+          const { error: storageError } = await supabase.storage
+            .from('documents')
+            .remove([`prontuarios/${filename}`]);
+          
+          if (storageError) {
+            console.error('Erro ao excluir do storage:', storageError);
+            throw new Error(`Erro ao excluir arquivo físico do storage: ${storageError.message}. O registro no banco não foi removido.`);
+          }
+        }
+      } catch (storageErr) {
+        console.error('Erro ao tentar excluir arquivo do storage:', storageErr);
+        // Lançar o erro para impedir a exclusão do registro no banco
+        throw storageErr;
+      }
+    }
+
     // First delete from generated_documents to avoid foreign key constraint violation
     console.log('Excluindo registros dependentes de generated_documents...');
     const { error: generatedDocsError } = await supabase

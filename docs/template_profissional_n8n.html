@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prontuário Profissional - {{ $json['nome-tratado-sem-caracter-especial'] }}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
+
+        :root {
+            --primary-color: #1e293b;
+            --accent-medical: #10b981;
+            --bg-card: #f8fafc;
+            --border-color: #e2e8f0;
+            --text-main: #334155;
+            --text-muted: #64748b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            line-height: 1.4;
+            background-color: #f1f5f9;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 10mm auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative;
+            page-break-after: always;
+        }
+
+        /* Marca d'água */
+        .page::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120mm;
+            height: 120mm;
+            background-image: url('{{ $json["assetsData-logomarca-consultorio"] }}');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            opacity: 0.05;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--accent-medical);
+            padding-bottom: 10mm;
+            margin-bottom: 10mm;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-img {
+            height: 20mm;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .clinic-info h1 {
+            font-size: 18pt;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .clinic-info p {
+            font-size: 10pt;
+            color: var(--text-muted);
+        }
+
+        .doc-meta {
+            text-align: right;
+            font-size: 9pt;
+            color: var(--text-muted);
+        }
+
+        .document-title {
+            text-align: center;
+            margin-bottom: 8mm;
+        }
+
+        .document-title h2 {
+            font-size: 14pt;
+            color: white;
+            background-color: var(--primary-color);
+            display: inline-block;
+            padding: 4px 25px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .section {
+            margin-bottom: 8mm;
+            position: relative;
+            z-index: 1;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4mm;
+            border-left: 4px solid var(--accent-medical);
+            padding-left: 10px;
+        }
+
+        .section-header h3 {
+            font-size: 11pt;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-transform: uppercase;
+        }
+
+        .data-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .data-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .data-label {
+            font-size: 8pt;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .data-value {
+            font-size: 10pt;
+            font-weight: 500;
+        }
+
+        .content-box {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 10pt;
+            background-color: white;
+            white-space: pre-wrap;
+            text-align: justify;
+        }
+
+        /* Grade de Exames */
+        .exam-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            background-color: #f1f5f9;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        .exam-item {
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .exam-label {
+            font-size: 7pt;
+            color: var(--text-muted);
+            font-weight: 700;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .exam-value {
+            font-size: 9pt;
+            font-weight: 500;
+        }
+
+        /* Imagens */
+        .images-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .image-set {
+            text-align: center;
+        }
+
+        .image-img {
+            width: 100%;
+            height: 60mm;
+            object-fit: contain;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: #eee;
+        }
+
+        .image-desc {
+            font-size: 8pt;
+            font-weight: 600;
+            margin-top: 5px;
+            color: var(--primary-color);
+        }
+
+        /* Rodapé e Assinatura */
+        footer {
+            margin-top: auto;
+            border-top: 1px solid var(--border-color);
+            padding-top: 5mm;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .clinic-footer {
+            font-size: 8pt;
+            color: var(--text-muted);
+        }
+
+        .signature-box {
+            text-align: center;
+            width: 60mm;
+        }
+
+        .sig-img {
+            height: 12mm;
+            width: auto;
+            margin-bottom: 2px;
+        }
+
+        .sig-line {
+            border-top: 1px solid var(--primary-color);
+            margin-bottom: 4px;
+        }
+
+        .sig-name {
+            font-size: 9pt;
+            font-weight: 700;
+        }
+
+        .sig-id {
+            font-size: 8pt;
+            color: var(--text-muted);
+        }
+
+        @media print {
+            body { background: white; }
+            .page { margin: 0; box-shadow: none; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PÁGINA 1: DADOS CLÍNICOS -->
+    <div class="page">
+        <header>
+            <div class="logo-area">
+                <img src="{{ $json['assetsData-logomarca-consultorio'] }}" class="logo-img" alt="Logo">
+                <div class="clinic-info">
+                    <h1>CONSULTÓRIO JRS</h1>
+                    <p>Cuidados Especializados em Enfermagem</p>
+                </div>
+            </div>
+            <div class="doc-meta">
+                <p>Data Atendimento: {{ $json['inicio-atendimento'] }}</p>
+                <p>ID: #{{ $json.id }}</p>
+            </div>
+        </header>
+
+        <div class="document-title">
+            <h2>Prontuário de Atendimento</h2>
+        </div>
+
+        <div class="section">
+            <div class="section-header"><h3>Dados do Paciente</h3></div>
+            <div class="data-card">
+                <div class="data-item"><span class="data-label">Nome Completo</span><span class="data-value">{{ $json['nome-tratado-sem-caracter-especial'] }}</span></div>
+                <div class="data-item"><span class="data-label">Cartão SUS</span><span class="data-value">{{ $json.sus }}</span></div>
+                <div class="data-item"><span class="data-label">Telefone</span><span class="data-value">{{ $json.telefone }}</span></div>
+                <div class="data-item"><span class="data-label">Data de Nascimento</span><span class="data-value">{{ $json.data_nascimento }}</span></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header"><h3>Queixa Principal</h3></div>
+            <div class="content-box">{{ $json['QUEIXA PRINCIPAL'] }}</div>
+        </div>
+
+        <div class="section">
+            <div class="section-header"><h3>Evolução Clínica</h3></div>
+            <div class="content-box">{{ $json['EVOLUÇÃO'] }}</div>
+        </div>
+
+        <footer>
+            <div class="clinic-footer">
+                <p>{{ $('Webhook').item.json.body.clinicAddress }}</p>
+                <p>Contato: {{ $('Webhook').item.json.body.clinicPhone }}</p>
+            </div>
+            <div class="signature-box">
+                <img src="{{ $json['assinatura-base64-profissional'] }}" class="sig-img">
+                <div class="sig-line"></div>
+                <p class="sig-name">{{ $json['nome-profissional'] }}</p>
+                <p class="sig-id">{{ $json.Profissao }} - {{ $json['orgao-classe'] }}</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- PÁGINA 2: EXAMES E LAUDO -->
+    <div class="page">
+        <header>
+            <div class="logo-area">
+                <img src="{{ $json['assetsData-logomarca-consultorio'] }}" class="logo-img" alt="Logo">
+                <div class="clinic-info">
+                    <h1>CONSULTÓRIO JRS</h1>
+                    <p>Cuidados Especializados em Enfermagem</p>
+                </div>
+            </div>
+            <div class="doc-meta">
+                <p>Paciente: {{ $json['nome-tratado-sem-caracter-especial'] }}</p>
+            </div>
+        </header>
+
+        <div class="document-title">
+            <h2>Laudo de Ultrassonografia</h2>
+        </div>
+
+        <div class="section">
+            <div class="section-header"><h3>{{ $json['TITULO MODELO RESULTADO EXAME'] }}</h3></div>
+            <div class="exam-grid">
+                <div class="exam-item"><span class="exam-label">GRAVIDEZ</span><span class="exam-value">{{ $json.GRAVIDEZ }}</span></div>
+                <div class="exam-item"><span class="exam-label">FETO</span><span class="exam-value">{{ $json.FETO }}</span></div>
+                <div class="exam-item"><span class="exam-label">SITUAÇÃO</span><span class="exam-value">{{ $json.SITUAÇÃO }}</span></div>
+                <div class="exam-item"><span class="exam-label">APRESENTAÇÃO</span><span class="exam-value">{{ $json.APRESENTAÇÃO }}</span></div>
+                <div class="exam-item"><span class="exam-label">IG</span><span class="exam-value">{{ $json.IG }}</span></div>
+                <div class="exam-item"><span class="exam-label">DPP</span><span class="exam-value">{{ $json.DPP }}</span></div>
+                <div class="exam-item"><span class="exam-label">PESO</span><span class="exam-value">{{ $json.PESO }}</span></div>
+                <div class="exam-item"><span class="exam-label">PERCENTIL</span><span class="exam-value">{{ $json.PERCENTIL }}</span></div>
+                <div class="exam-item"><span class="exam-label">BCF</span><span class="exam-value">{{ $json.BCF }}</span></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header"><h3>Impressão Diagnóstica</h3></div>
+            <div class="content-box">{{ $json['IMPRESSÃO DIAGNÓSTICA'] }}</div>
+        </div>
+
+        <div class="section">
+            <div class="section-header"><h3>Achados e Recomendações</h3></div>
+            <div class="content-box">{{ $json['ACHADOS ADICIONAIS'] }}\n\n{{ $json['RECOMENDAÇÕES'] }}</div>
+        </div>
+
+        <div class="section">
+            <div class="section-header"><h3>Observações Legais</h3></div>
+            <div class="content-box" style="font-size: 8pt; color: var(--text-muted);">{{ $json['OBSERVAÇÕES'] }}</div>
+        </div>
+
+        <footer>
+            <div class="clinic-footer">
+                <p>Documento gerado eletronicamente.</p>
+            </div>
+            <div class="signature-box">
+                <img src="{{ $json['assinatura-base64-profissional'] }}" class="sig-img">
+                <div class="sig-line"></div>
+                <p class="sig-name">{{ $json['nome-profissional'] }}</p>
+                <p class="sig-id">{{ $json.Profissao }} - {{ $json['orgao-classe'] }}</p>
+            </div>
+        </footer>
+    </div>
+
+</body>
+</html>

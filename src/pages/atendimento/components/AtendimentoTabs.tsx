@@ -91,23 +91,52 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
         }
       }
     } else {
-      // Para outros campos, usar o comportamento normal
+      // Para outros campos (Evolução, Queixa), usar o comportamento normal, SEM enviar dynamicFields
+      // que pertencem à aba de exames e acabavam confundindo o backend
       const content = form[formField] as string;
       if (content?.trim()) {
-        await processAIContent(formField, content);
+        console.log(`🎯 [AtendimentoTabs] Enviando conteúdo do textarea para ${field} (sem campos dinâmicos)`);
+        await processAIContent(formField, content, undefined); // undefined garante que não envie dynamicFields
       }
     }
   };
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <TabsList className="w-full">
-        <TabsTrigger className="flex-1" value="info">Informações Clínicas</TabsTrigger>
-        <TabsTrigger className="flex-1" value="evolucao">Evolução</TabsTrigger>
-        <TabsTrigger className="flex-1" value="prescricao">Prescrição</TabsTrigger>
-        <TabsTrigger className="flex-1" value="exames">Exames</TabsTrigger>
-        <TabsTrigger className="flex-1" value="imagens">Imagens</TabsTrigger>
-      </TabsList>
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <div className="bg-white/50 backdrop-blur-sm p-1.5 rounded-[1.5rem] border border-slate-200/60 shadow-sm mb-8 sticky top-0 z-40">
+        <TabsList className="w-full bg-slate-100/50 rounded-[1.2rem] h-12 p-1">
+          <TabsTrigger 
+            className="flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md transition-all font-bold text-slate-500 text-sm md:text-base tracking-tight" 
+            value="info"
+          >
+            Informações
+          </TabsTrigger>
+          <TabsTrigger 
+            className="flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md transition-all font-bold text-slate-500 text-sm md:text-base tracking-tight" 
+            value="evolucao"
+          >
+            Evolução
+          </TabsTrigger>
+          <TabsTrigger 
+            className="flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md transition-all font-bold text-slate-500 text-sm md:text-base tracking-tight" 
+            value="prescricao"
+          >
+            Prescrição
+          </TabsTrigger>
+          <TabsTrigger 
+            className="flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md transition-all font-bold text-slate-500 text-sm md:text-base tracking-tight" 
+            value="exames"
+          >
+            Exames
+          </TabsTrigger>
+          <TabsTrigger 
+            className="flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md transition-all font-bold text-slate-500 text-sm md:text-base tracking-tight" 
+            value="imagens"
+          >
+            Imagens
+          </TabsTrigger>
+        </TabsList>
+      </div>
       
       <TabsContent value="info">
         <InformacoesTab

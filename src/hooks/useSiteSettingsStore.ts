@@ -5,6 +5,7 @@ import { useThemeSettings } from './useThemeSettings';
 import { useClinicSettings } from './useClinicSettings';
 import { useWebhookSettings } from './useWebhookSettings';
 import { useMedicalRecordWebhookSettings } from './useMedicalRecordWebhookSettings';
+import { useAIPromptSettings } from './useAIPromptSettings';
 import { SiteSettings } from '@/types/siteSettingsTypes';
 import { fetchSiteSettings } from '@/services/siteSettingsService';
 
@@ -17,6 +18,7 @@ export function useSiteSettingsStore() {
   const clinicSettings = useClinicSettings();
   const webhookSettings = useWebhookSettings();
   const medicalRecordWebhookSettings = useMedicalRecordWebhookSettings();
+  const aiPromptSettings = useAIPromptSettings();
 
   // Get a unified settings object for backward compatibility
   const { data: settings, isLoading, error } = useQuery({
@@ -48,6 +50,9 @@ export function useSiteSettingsStore() {
     saveWebhookUrl: webhookSettings.saveWebhookUrl,
     
     // Medical record webhook settings
-    saveMedicalRecordWebhookUrl: medicalRecordWebhookSettings.saveMedicalRecordWebhookUrl
+    saveMedicalRecordWebhookUrl: medicalRecordWebhookSettings.saveMedicalRecordWebhookUrl,
+
+    // AI Prompts settings
+    saveAIPrompts: aiPromptSettings.saveAIPrompts
   };
 }

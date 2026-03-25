@@ -144,6 +144,7 @@ export const usePacienteSearch = (initialPatient?: Patient | null) => {
     handleSelectPaciente,
     handleClearPaciente,
     handleInputFocus,
-    handleInputBlur
+    handleInputBlur,
+    setMostrarResultadosBusca
   };
 };

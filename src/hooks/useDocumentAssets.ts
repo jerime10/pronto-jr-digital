@@ -110,12 +110,7 @@ export function useDocumentAssets() {
       setUploadProgress(75);
       
       await saveAssetsMutation.mutateAsync({
-        logoData: assets?.logoData || null,
         signatureData: signatureAsset.base64,
-        signatureProfessionalName: assets?.signatureProfessionalName || null,
-        signatureProfessionalTitle: assets?.signatureProfessionalTitle || null,
-        signatureProfessionalRegistry: assets?.signatureProfessionalRegistry || null,
-        attendantLogoData: assets?.attendantLogoData || null,
       });
       
       setUploadProgress(100);
@@ -123,6 +118,30 @@ export function useDocumentAssets() {
     } catch (error) {
       console.error('Error uploading signature:', error);
       toast.error(error instanceof Error ? error.message : 'Erro ao fazer upload da assinatura');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  // Upload RT signature
+  const uploadRtSignature = async (file: File) => {
+    try {
+      setIsUploading(true);
+      setUploadProgress(25);
+      
+      const signatureAsset = await processFile(file);
+      setUploadProgress(75);
+      
+      await saveAssetsMutation.mutateAsync({
+        rtSignatureData: signatureAsset.base64,
+      });
+      
+      setUploadProgress(100);
+      toast.success('Assinatura do RT salva com sucesso!');
+    } catch (error) {
+      console.error('Error uploading RT signature:', error);
+      toast.error(error instanceof Error ? error.message : 'Erro ao fazer upload da assinatura do RT');
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -139,11 +158,6 @@ export function useDocumentAssets() {
       setUploadProgress(75);
       
       await saveAssetsMutation.mutateAsync({
-        logoData: assets?.logoData || null,
-        signatureData: assets?.signatureData || null,
-        signatureProfessionalName: assets?.signatureProfessionalName || null,
-        signatureProfessionalTitle: assets?.signatureProfessionalTitle || null,
-        signatureProfessionalRegistry: assets?.signatureProfessionalRegistry || null,
         attendantLogoData: attendantLogoAsset.base64,
       });
       
@@ -162,12 +176,9 @@ export function useDocumentAssets() {
   const updateProfessionalInfo = async (professionalInfo: ProfessionalSignatureInfo) => {
     try {
       await saveAssetsMutation.mutateAsync({
-        logoData: assets?.logoData || null,
-        signatureData: assets?.signatureData || null,
         signatureProfessionalName: professionalInfo.name,
         signatureProfessionalTitle: professionalInfo.title,
         signatureProfessionalRegistry: professionalInfo.registry,
-        attendantLogoData: assets?.attendantLogoData || null,
       });
       toast.success('Informações do profissional salvas com sucesso!');
     } catch (error) {
@@ -176,16 +187,26 @@ export function useDocumentAssets() {
     }
   };
 
+  // Update RT info
+  const updateRtInfo = async (rtInfo: ProfessionalSignatureInfo) => {
+    try {
+      await saveAssetsMutation.mutateAsync({
+        rtName: rtInfo.name,
+        rtTitle: rtInfo.title,
+        rtRegistry: rtInfo.registry,
+      });
+      toast.success('Informações do RT salvas com sucesso!');
+    } catch (error) {
+      console.error('Error updating RT info:', error);
+      toast.error('Erro ao salvar informações do RT');
+    }
+  };
+
   // Remove logo
   const removeLogo = async () => {
     try {
       await saveAssetsMutation.mutateAsync({
         logoData: null,
-        signatureData: assets?.signatureData || null,
-        signatureProfessionalName: assets?.signatureProfessionalName || null,
-        signatureProfessionalTitle: assets?.signatureProfessionalTitle || null,
-        signatureProfessionalRegistry: assets?.signatureProfessionalRegistry || null,
-        attendantLogoData: assets?.attendantLogoData || null,
       });
       toast.success('Logo removido com sucesso!');
     } catch (error) {
@@ -198,12 +219,10 @@ export function useDocumentAssets() {
   const removeSignature = async () => {
     try {
       await saveAssetsMutation.mutateAsync({
-        logoData: assets?.logoData || null,
         signatureData: null,
         signatureProfessionalName: null,
         signatureProfessionalTitle: null,
         signatureProfessionalRegistry: null,
-        attendantLogoData: assets?.attendantLogoData || null,
       });
       toast.success('Assinatura removida com sucesso!');
     } catch (error) {
@@ -212,15 +231,26 @@ export function useDocumentAssets() {
     }
   };
 
+  // Remove RT signature
+  const removeRtSignature = async () => {
+    try {
+      await saveAssetsMutation.mutateAsync({
+        rtSignatureData: null,
+        rtName: null,
+        rtTitle: null,
+        rtRegistry: null,
+      });
+      toast.success('Assinatura do RT removida com sucesso!');
+    } catch (error) {
+      console.error('Error removing RT signature:', error);
+      toast.error('Erro ao remover assinatura do RT');
+    }
+  };
+
   // Remove attendant logo
   const removeAttendantLogo = async () => {
     try {
       await saveAssetsMutation.mutateAsync({
-        logoData: assets?.logoData || null,
-        signatureData: assets?.signatureData || null,
-        signatureProfessionalName: assets?.signatureProfessionalName || null,
-        signatureProfessionalTitle: assets?.signatureProfessionalTitle || null,
-        signatureProfessionalRegistry: assets?.signatureProfessionalRegistry || null,
         attendantLogoData: null,
       });
       toast.success('Logo do atendente removido com sucesso!');
@@ -239,10 +269,13 @@ export function useDocumentAssets() {
     isSaving: saveAssetsMutation.isPending,
     uploadLogo,
     uploadSignature,
+    uploadRtSignature,
     uploadAttendantLogo,
     updateProfessionalInfo,
+    updateRtInfo,
     removeLogo,
     removeSignature,
+    removeRtSignature,
     removeAttendantLogo,
     attendantLogoData: assets?.attendantLogoData || null,
   };

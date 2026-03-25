@@ -172,23 +172,53 @@ export async function fetchDocumentAssets() {
   try {
     console.log('Fetching document assets from site_settings...');
     
+    // Tenta buscar com todos os campos (incluindo os novos do RT)
     const { data, error } = await supabase
       .from('site_settings')
-      .select('logo_data, signature_data, signature_professional_name, signature_professional_title, signature_professional_registry, attendant_logo_data')
+      .select('logo_data, signature_data, signature_professional_name, signature_professional_title, signature_professional_registry, attendant_logo_data, rt_signature_data, rt_name, rt_title, rt_registry')
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (error) {
-      console.error('Error fetching document assets:', error);
-      // Return empty assets on error to avoid breaking the app
+      console.error('Error fetching document assets (with RT fields):', error);
+      
+      // FALLBACK: Se falhar (provavelmente colunas ausentes), tenta buscar apenas os campos originais
+      console.log('Tentando fallback para campos originais...');
+      const { data: oldData, error: oldError } = await supabase
+        .from('site_settings')
+        .select('logo_data, signature_data, signature_professional_name, signature_professional_title, signature_professional_registry, attendant_logo_data')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (oldError) {
+        console.error('Error fetching document assets (fallback):', oldError);
+        return {
+          logoData: null,
+          signatureData: null,
+          signatureProfessionalName: null,
+          signatureProfessionalTitle: null,
+          signatureProfessionalRegistry: null,
+          attendantLogoData: null,
+          rtSignatureData: null,
+          rtName: null,
+          rtTitle: null,
+          rtRegistry: null
+        };
+      }
+
       return {
-        logoData: null,
-        signatureData: null,
-        signatureProfessionalName: null,
-        signatureProfessionalTitle: null,
-        signatureProfessionalRegistry: null,
-        attendantLogoData: null
+        logoData: oldData?.logo_data || null,
+        signatureData: oldData?.signature_data || null,
+        signatureProfessionalName: oldData?.signature_professional_name || null,
+        signatureProfessionalTitle: oldData?.signature_professional_title || null,
+        signatureProfessionalRegistry: oldData?.signature_professional_registry || null,
+        attendantLogoData: oldData?.attendant_logo_data || null,
+        rtSignatureData: null,
+        rtName: null,
+        rtTitle: null,
+        rtRegistry: null
       };
     }
 
@@ -200,7 +230,11 @@ export async function fetchDocumentAssets() {
         signatureProfessionalName: null,
         signatureProfessionalTitle: null,
         signatureProfessionalRegistry: null,
-        attendantLogoData: null
+        attendantLogoData: null,
+        rtSignatureData: null,
+        rtName: null,
+        rtTitle: null,
+        rtRegistry: null
       };
     }
 
@@ -211,7 +245,11 @@ export async function fetchDocumentAssets() {
       signatureProfessionalName: data.signature_professional_name,
       signatureProfessionalTitle: data.signature_professional_title,
       signatureProfessionalRegistry: data.signature_professional_registry,
-      attendantLogoData: data.attendant_logo_data
+      attendantLogoData: data.attendant_logo_data,
+      rtSignatureData: data.rt_signature_data,
+      rtName: data.rt_name,
+      rtTitle: data.rt_title,
+      rtRegistry: data.rt_registry
     };
   } catch (error) {
     console.error('Error fetching document assets:', error);
@@ -222,7 +260,11 @@ export async function fetchDocumentAssets() {
       signatureProfessionalName: null,
       signatureProfessionalTitle: null,
       signatureProfessionalRegistry: null,
-      attendantLogoData: null
+      attendantLogoData: null,
+      rtSignatureData: null,
+      rtName: null,
+      rtTitle: null,
+      rtRegistry: null
     };
   }
 }
@@ -246,12 +288,19 @@ export async function saveDocumentAssets(assets: any) {
 
     // Preparar dados para salvar
     const settingsData = {
-      logo_data: assets.logoData || null,
-      signature_data: assets.signatureData || null,
-      signature_professional_name: assets.signatureProfessionalName || null,
-      signature_professional_title: assets.signatureProfessionalTitle || null,
-      signature_professional_registry: assets.signatureProfessionalRegistry || null,
-      attendant_logo_data: assets.attendantLogoData || null,
+      logo_data: assets.logoData !== undefined ? assets.logoData : existingSettings?.logo_data,
+      signature_data: assets.signatureData !== undefined ? assets.signatureData : existingSettings?.signature_data,
+      signature_professional_name: assets.signatureProfessionalName !== undefined ? assets.signatureProfessionalName : existingSettings?.signature_professional_name,
+      signature_professional_title: assets.signatureProfessionalTitle !== undefined ? assets.signatureProfessionalTitle : existingSettings?.signature_professional_title,
+      signature_professional_registry: assets.signatureProfessionalRegistry !== undefined ? assets.signatureProfessionalRegistry : existingSettings?.signature_professional_registry,
+      attendant_logo_data: assets.attendantLogoData !== undefined ? assets.attendantLogoData : existingSettings?.attendant_logo_data,
+      
+      // RT fields
+      rt_signature_data: assets.rtSignatureData !== undefined ? assets.rtSignatureData : existingSettings?.rt_signature_data,
+      rt_name: assets.rtName !== undefined ? assets.rtName : existingSettings?.rt_name,
+      rt_title: assets.rtTitle !== undefined ? assets.rtTitle : existingSettings?.rt_title,
+      rt_registry: assets.rtRegistry !== undefined ? assets.rtRegistry : existingSettings?.rt_registry,
+      
       primary_color: existingSettings?.primary_color || '#10b981',
       accent_color: existingSettings?.accent_color || '#3b82f6',
       font_family: existingSettings?.font_family || 'Inter',

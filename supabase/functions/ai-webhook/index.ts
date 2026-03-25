@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
@@ -8,537 +7,187 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
   
   try {
-    console.log("AI Webhook recebeu requisição");
+    console.log("AI Webhook recebeu requisição (OpenRouter Nativo)");
     
-    // Create Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     
     if (!supabaseUrl || !supabaseKey) {
-      console.error("Variáveis de ambiente SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não definidas");
-      return new Response(
-        JSON.stringify({ 
-          error: 'Configuração incompleta do servidor',
-          success: false
-        }),
-        { 
-          status: 500, 
-          headers: { 
-            ...corsHeaders,
-            'Content-Type': 'application/json' 
-          } 
-        }
-      );
+      throw new Error('Configuração incompleta do servidor Supabase');
     }
     
     const supabase = createClient(supabaseUrl, supabaseKey);
-    
-    // Get request data
     const requestBody = await req.json();
     console.log("Corpo da requisição:", requestBody);
     
-    // Extract text/content for compatibility
     const text = requestBody.text || requestBody.content;
-    const type = requestBody.type;
-    const fieldKey = requestBody.fieldKey; // Identificar se é processamento de campo individual
+    const type = requestBody.type; // 'main_complaint', 'evolution', 'exam_result', 'voice_command'
+    const fieldKey = requestBody.fieldKey; 
+    const availableFields = requestBody.availableFields; // Lista de {key, label} para comando de voz
     
-    // Check if we have dynamic fields (campos de exame)
     const dynamicFields = Object.keys(requestBody).filter(key => 
-      !['text', 'content', 'type', 'selectedModelTitle', 'resultadoFinal', 'timestamp', 'fieldKey'].includes(key)
+      !['text', 'content', 'type', 'selectedModelTitle', 'resultadoFinal', 'timestamp', 'fieldKey', 'availableFields'].includes(key)
     );
-    const hasDynamicFields = dynamicFields.length > 0 && 
-      dynamicFields.some(key => requestBody[key] && requestBody[key].toString().trim());
-    
-    console.log("=== DEBUG PROCESSAMENTO (ENVIO SELETIVO) ===");
-    console.log("fieldKey:", fieldKey);
-    console.log("hasDynamicFields:", hasDynamicFields);
-    console.log("dynamicFields recebidos:", dynamicFields);
-    console.log("Quantidade de campos:", dynamicFields.length);
-    
-    // Identificar o tipo de envio
-    if (fieldKey) {
-      const fieldsWithFullContext = ['impressaodiagnostica', 'achadosadicionais', 'recomendacoes'];
-      if (fieldsWithFullContext.includes(fieldKey)) {
-        console.log("🎯 ENVIO COMPLETO: Campo especial (precisa de contexto completo)");
-      } else if (fieldKey === 'percentil') {
-        console.log("🎯 ENVIO PERCENTIL: Deve conter PERCENTIL + PESO + IG");
-      } else {
-        console.log("🎯 ENVIO SELETIVO: Apenas o campo", fieldKey);
-      }
-    }
-    
-    // Validar: precisamos de campos dinâmicos OU text/content
+    const hasDynamicFields = (dynamicFields.length > 0 && 
+      dynamicFields.some(key => requestBody[key] && requestBody[key].toString().trim())) || type === 'voice_command';
+
     if (!hasDynamicFields && !text) {
-      console.error("Conteúdo ou campos dinâmicos obrigatórios ausentes:", { 
-        text: !!text,
-        hasDynamicFields,
-        dynamicFields: dynamicFields.map(key => ({ [key]: requestBody[key] }))
-      });
-      return new Response(
-        JSON.stringify({ 
-          error: 'Conteúdo (text/content) ou campos dinâmicos são obrigatórios',
-          success: false
-        }),
-        { 
-          status: 400, 
-          headers: { 
-            ...corsHeaders,
-            'Content-Type': 'application/json' 
-          } 
-        }
-      );
+      return new Response(JSON.stringify({ error: 'Conteúdo ou campos dinâmicos são obrigatórios', success: false }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     
-    // Get N8N webhook URL from site_settings
-    // Instead of maybeSingle(), get the most recent record by updated_at
+    // Buscar configurações da IA
     const { data: settingsData, error: settingsError } = await supabase
       .from('site_settings')
-      .select('n8n_webhook_url')
+      .select('openrouter_api_key, openrouter_model, prompt_queixa, prompt_evolucao, prompt_exames')
       .order('updated_at', { ascending: false })
       .limit(1)
       .single();
     
-    console.log("Resultado da consulta de configurações:", settingsData);
-    
-    if (settingsError) {
-      console.error("Erro ao buscar URL do webhook n8n:", settingsError);
-      return new Response(
-        JSON.stringify({ 
-          error: `Erro no banco de dados: ${settingsError.message}`,
-          details: settingsError,
-          success: false
-        }),
-        { 
-          status: 500, 
-          headers: { 
-            ...corsHeaders,
-            'Content-Type': 'application/json' 
-          } 
-        }
-      );
+    if (settingsError || !settingsData?.openrouter_api_key) {
+      return new Response(JSON.stringify({ error: 'Chave do OpenRouter não configurada no painel de configurações.', success: false }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
+
+    const apiKey = settingsData.openrouter_api_key;
+    const model = settingsData.openrouter_model || 'openai/gpt-4o-mini';
     
-    let n8nWebhookUrl = settingsData?.n8n_webhook_url;
-    
-    if (!n8nWebhookUrl) {
-      console.error("URL do webhook n8n não configurada");
-      return new Response(
-        JSON.stringify({ 
-          error: 'URL do webhook N8N não configurada',
-          success: false
-        }),
-        { 
-          status: 400, 
-          headers: { 
-            ...corsHeaders,
-            'Content-Type': 'application/json' 
-          } 
-        }
-      );
+    // Determinar o prompt base
+    let systemPrompt = "";
+    if (type === 'main_complaint') systemPrompt = settingsData.prompt_queixa || 'Você é um assistente médico. Melhore a queixa principal.';
+    else if (type === 'evolution') systemPrompt = settingsData.prompt_evolucao || 'Você é um assistente médico. Melhore a evolução clínica.';
+    else if (type === 'exam_result') systemPrompt = settingsData.prompt_exames || 'Você é um assistente médico. Estruture o laudo de exames.';
+    else if (type === 'voice_command') {
+      systemPrompt = `Você é um assistente médico especializado em extrair informações de transcrições de áudio para laudos de exames de Ultrassonografia Obstétrica.
+      Sua tarefa é identificar no texto quais partes pertencem a quais campos do laudo.
+      
+      CAMPOS DISPONÍVEIS (ID: NOME):
+      ${availableFields ? availableFields.map((f: any) => `${f.key}: ${f.label}`).join('\n') : 'Nenhum campo disponível'}
+      
+      REGRAS CRÍTICAS:
+      1. Se o usuário disser o nome do campo (ex: "Gravidez", "Feto", "Placenta"), atribua o texto subsequente a esse campo.
+      2. Se o texto for genérico (ex: "tópica e única"), deduza que pertence ao campo "gravidez" pelo contexto médico.
+      3. DATA (DPP): Se ouvir uma data, converta OBRIGATORIAMENTE para o formato DD/MM/AAAA. Exemplo: "vinte de março de dois mil e vinte e seis" vira "20/03/2026".
+      4. IG (IDADE GESTACIONAL): Converta OBRIGATORIAMENTE para o formato XSXD (S maiúsculo, D maiúsculo). Exemplo: "33 semanas e 0 dias" vira "33S0D". "32 semanas e 4 dias" vira "32S4D".
+      5. PESO: Converta OBRIGATORIAMENTE para um número inteiro seguido da letra "g" no final. JAMAIS use vírgula ou ponto. Exemplo: "mil e quinhentos gramas" vira "1500g". "duzentos gramas" vira "200g".
+      6. Retorne APENAS um JSON onde as chaves são os IDs dos campos e os valores são os textos extraídos e formatados clinicamente.
+      7. NÃO invente campos. Se uma informação não se encaixar em nenhum campo, ignore-a.
+      8. Se o campo "observacoes" (ID: observacoes) for mencionado, transcreva a narração. Se não for mencionado, NÃO retorne nada para ele (o sistema cuidará do texto fixo).
+      9. Mantenha a terminologia médica correta.`;
     }
-    
-    // IMPORTANTE: NÃO converter URLs "webhook-test" para "webhook"
-    // Usar a URL exatamente como está configurada no banco de dados
-    console.log(`Usando webhook URL como configurado: ${n8nWebhookUrl}`);
-    
-    // Forward the request to N8N webhook
-    try {
-      let n8nPayload: Record<string, any> = {};
+    else systemPrompt = 'Você é um assistente médico especializado.';
+
+    let userMessage = "";
+    let expectedOutput = "texto";
+
+    if (type === 'voice_command') {
+      expectedOutput = "json";
+      userMessage = `TRANSCRIÇÃO DO ÁUDIO:\n"${text}"\n\nExtraia as informações para os campos acima e retorne o JSON.`;
+    } else if (hasDynamicFields) {
+      expectedOutput = "json";
+      systemPrompt += `\n\nATENÇÃO: Você DEVE retornar APENAS um objeto JSON válido. NENHUM texto adicional antes ou depois. As chaves do JSON devem corresponder exatamente aos campos enviados.`;
       
-      if (hasDynamicFields) {
-        // Se há campos dinâmicos, enviar apenas eles (comportamento novo)
-        console.log("Enviando apenas campos dinâmicos para N8N");
-        console.log("selectedModelTitle no requestBody:", requestBody.selectedModelTitle);
-        
-        Object.keys(requestBody).forEach(key => {
-          if (!['text', 'content', 'type', 'selectedModelTitle', 'resultadoFinal', 'timestamp', 'fieldKey'].includes(key)) {
-            n8nPayload[key] = requestBody[key];
-          }
-        });
-        
-        // IMPORTANTE: Incluir selectedModelTitle no payload para N8N
-        if (requestBody.selectedModelTitle) {
-          n8nPayload.selectedModelTitle = requestBody.selectedModelTitle;
-          console.log("selectedModelTitle incluído no payload N8N:", requestBody.selectedModelTitle);
-        } else {
-          console.log("⚠️ selectedModelTitle não encontrado no requestBody");
-        }
-        
-        // NÃO incluir resultadoFinal - apenas campos dinâmicos individuais
-        console.log("🎯 Enviando APENAS campos dinâmicos individuais para N8N");
-        
-        n8nPayload.timestamp = new Date().toISOString();
-      } else {
-        // Se não há campos dinâmicos, enviar text/type (compatibilidade com botões individuais)
-        console.log("Enviando text/type para N8N (requisição individual)");
-        n8nPayload = {
-          text,
-          type,
-          timestamp: new Date().toISOString()
-        };
-        
-        // Incluir selectedModelTitle se disponível
-        if (requestBody.selectedModelTitle) {
-          n8nPayload.selectedModelTitle = requestBody.selectedModelTitle;
-        }
+      const fieldsData = dynamicFields.map(key => `"${key}": "${requestBody[key]}"`).join('\n');
+      userMessage = `Aqui estão os campos a serem processados e melhorados clinicamente:\n${fieldsData}\n\nRetorne um JSON com os mesmos nomes de campos (chaves), mas com os valores melhorados e formatados clinicamente.`;
+      
+      if (fieldKey) {
+        userMessage += `\n\nFOCO ESPECIAL NO CAMPO: "${fieldKey}".`;
       }
+      if (requestBody.selectedModelTitle) {
+        userMessage += `\nContexto do modelo de exame: ${requestBody.selectedModelTitle}`;
+      }
+    } else {
+      expectedOutput = "texto";
+      userMessage = `Aqui está o conteúdo bruto que precisa ser melhorado clinicamente:\n\n${text}`;
+    }
+
+    console.log(`Enviando para OpenRouter (Modelo: ${model})...`);
+    const orResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://prontuario.jr", // Required by OpenRouter
+        "X-Title": "Pronto Jr Digital" // Required by OpenRouter
+      },
+      body: JSON.stringify({
+        model: model, // Usando o modelo dinâmico configurado
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMessage }
+        ],
+        response_format: expectedOutput === "json" ? { type: "json_object" } : undefined
+      })
+    });
+
+    if (!orResponse.ok) {
+      const errText = await orResponse.text();
+      console.error("Erro OpenRouter:", errText);
       
-      console.log("Enviando payload para n8n:", n8nPayload);
+      let errorMsg = `Erro na IA (${orResponse.status}): ${orResponse.statusText}`;
       
-      // Try with fetch to n8n webhook directly
-      const n8nResponse = await fetch(n8nWebhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Origin': 'https://sistema.saude.app',
-        },
-        body: JSON.stringify(n8nPayload),
-      });
-      
-      console.log("Status da resposta do N8N:", n8nResponse.status);
-      let responseText = '';
-      
+      // Tratamento específico de erros comuns do OpenRouter
       try {
-        // Try to read response as text first to ensure we can log it even if it's not JSON
-        responseText = await n8nResponse.text();
-        console.log("Resposta completa do N8N:", responseText);
-      } catch (readError) {
-        console.error("Erro ao ler resposta do N8N como texto:", readError);
+        const errJson = JSON.parse(errText);
+        if (errJson.error?.message) {
+          errorMsg = errJson.error.message;
+        }
+        
+        // Tratamento de limites de crédito/uso
+        if (orResponse.status === 402 && errorMsg.toLowerCase().includes('insufficient')) {
+          errorMsg = "Saldo insuficiente na conta OpenRouter. Verifique seus créditos.";
+        } else if (orResponse.status === 429) {
+          errorMsg = "Limite de requisições excedido. Tente novamente em alguns instantes.";
+        } else if (orResponse.status === 404 || errorMsg.toLowerCase().includes('model not found')) {
+          errorMsg = `O modelo '${model}' não foi encontrado ou está indisponível. Tente selecionar outro modelo nas configurações.`;
+        }
+      } catch (e) {
+        // Fallback para o texto puro se não for JSON
       }
-      
-      if (!n8nResponse.ok) {
-        console.error(`N8N respondeu com status ${n8nResponse.status}: ${responseText}`);
-        console.error(`URL utilizada: ${n8nWebhookUrl}`);
-        console.error(`Payload enviado:`, n8nPayload);
-        return new Response(
-          JSON.stringify({ 
-            error: `N8N respondeu com status ${n8nResponse.status}`,
-            details: responseText,
-            webhookUrl: n8nWebhookUrl,
-            sentPayload: n8nPayload,
-            success: false
-          }),
-          { 
-            status: 502, 
-            headers: { 
-              ...corsHeaders,
-              'Content-Type': 'application/json' 
-            } 
-          }
-        );
-      }
-      
-      // Try to parse JSON response, if it fails, use the text response
-      let n8nData;
+
+      return new Response(JSON.stringify({ error: errorMsg, success: false }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const orData = await orResponse.json();
+    const contentResponse = orData.choices?.[0]?.message?.content || "";
+    
+    console.log("Resposta do OpenRouter:", contentResponse);
+
+    if (hasDynamicFields) {
       try {
-        n8nData = JSON.parse(responseText);
-        console.log("Dados da resposta do N8N:", n8nData);
-      } catch (parseError) {
-        console.log("Resposta do N8N não é JSON válido, usando como resposta de texto");
-        // If raw text, treat it as the processed content
-        return new Response(
-          JSON.stringify({
-            success: true,
-            processed_content: responseText
-          }),
-          { 
-            headers: { 
-              ...corsHeaders,
-              'Content-Type': 'application/json' 
-            } 
-          }
-        );
-      }
-      
-      // MODIFIED: Check multiple possible response formats from n8n
-      // Look for processed_content, text, or output fields in the response
-      let processedContent = null;
-      let individualFields: Record<string, string> = {};
-      
-      if (n8nData.processed_content) {
-        processedContent = n8nData.processed_content;
-      } else if (n8nData.text) {
-        processedContent = n8nData.text;
-      } else if (n8nData.output) {
-        processedContent = n8nData.output;
-      } else if (Array.isArray(n8nData) && n8nData.length > 0) {
-        // Check if it's an array response
-        if (n8nData[0].output) {
-          processedContent = n8nData[0].output;
-        } else if (n8nData[0].processed_content) {
-          processedContent = n8nData[0].processed_content;
-        } else if (n8nData[0].text) {
-          processedContent = n8nData[0].text;
-        }
-      }
-      
-      // Check if n8nData contains individual fields (any field that matches our dynamic fields)
-      const sentDynamicFields = Object.keys(requestBody).filter(key => 
-        !['text', 'content', 'type', 'selectedModelTitle', 'timestamp', 'fieldKey'].includes(key)
-      );
-      
-      // Extract individual fields from n8nData if they exist
-      sentDynamicFields.forEach(fieldKey => {
-        if (n8nData[fieldKey] && typeof n8nData[fieldKey] === 'string') {
-          individualFields[fieldKey] = n8nData[fieldKey];
-        }
-      });
-      
-      // Also check for common field variations
-      const fieldMappings = {
-        // Campos obstétricos completos
-        'gravidez': ['gravidez', 'GRAVIDEZ', 'pregnancy', 'gestacao', 'gestação'],
-        'feto': ['feto', 'FETO', 'fetus', 'fetal'],
-        'apresentacao': ['apresentacao', 'apresentação', 'APRESENTACAO', 'APRESENTAÇÃO', 'presentation'],
-        'situacao': ['situacao', 'situação', 'SITUACAO', 'SITUAÇÃO', 'situation'],
-        'bcf': ['bcf', 'BCF', 'batimentos_cardiacos', 'heart_rate'],
-        'ig': ['ig', 'IG', 'idade_gestacional', 'gestational_age'],
-        'dum': ['dum', 'DUM', 'data_ultima_menstruacao'],
-        'dpp': ['dpp', 'DPP', 'data_provavel_parto'],
-        'bpd': ['bpd', 'BPD', 'diametro_biparietal'],
-        'dof': ['dof', 'DOF', 'diametro_occipito_frontal'],
-        'cc': ['cc', 'CC', 'circunferencia_cefalica'],
-        'ca': ['ca', 'CA', 'circunferencia_abdominal'],
-        'cf': ['cf', 'CF', 'comprimento_femur'],
-        'peso_fetal': ['peso_fetal', 'PESO_FETAL', 'peso', 'weight', 'estimated_weight'],
-        'placenta': ['placenta', 'PLACENTA'],
-        'cordaoumbilical': ['cordaoumbilical', 'CORDAOUMBILICAL', 'cordao_umbilical', 'umbilical_cord'],
-        'liquidoamniotico': ['liquidoamniotico', 'LIQUIDOAMNIOTICO', 'liquido_amniotico', 'amniotic_fluid'],
-        'colo': ['colo', 'COLO', 'cervix'],
-        'anexos': ['anexos', 'ANEXOS', 'adnexa'],
-        
-        // Campos de ultrassom abdominal
-        'figado': ['figado', 'fígado', 'liver', 'FIGADO', 'FÍGADO'],
-        'viasbiliares': ['viasbiliares', 'vias_biliares', 'bile_ducts', 'VIASBILIARES', 'VIAS_BILIARES'],
-        'vesiculabiliar': ['vesiculabiliar', 'vesicula_biliar', 'gallbladder', 'VESICULABILIAR', 'VESICULA_BILIAR'],
-        'pancreaseretroperitonio': ['pancreaseretroperitonio', 'pancreas_retroperitonio', 'pancreas', 'PANCREASERETROPERITONIO'],
-        'baco': ['baco', 'baço', 'spleen', 'BACO', 'BAÇO'],
-        'rins': ['rins', 'kidneys', 'RINS'],
-        'aortaabdominal': ['aortaabdominal', 'aorta_abdominal', 'aorta', 'AORTAABDOMINAL'],
-        'bexiga': ['bexiga', 'bladder', 'BEXIGA'],
-        'apendicececal': ['apendicececal', 'apendice_cecal', 'appendix', 'APENDICECECAL'],
-        'cavidadeabdominal': ['cavidadeabdominal', 'cavidade_abdominal', 'abdominal_cavity', 'CAVIDADEABDOMINAL'],
-        
-        // Campos de conclusão (que já funcionam)
-        'impressaodiagnostica': ['impressaodiagnostica', 'impressao_diagnostica', 'diagnostic_impression', 'IMPRESSAODIAGNOSTICA'],
-        'achadosadicionais': ['achadosadicionais', 'achados_adicionais', 'additional_findings', 'ACHADOSADICIONAIS'],
-        'recomendacoes': ['recomendacoes', 'recomendações', 'recommendations', 'RECOMENDACOES'],
-        'observacoes': ['observacoes', 'observações', 'observations', 'OBSERVACOES']
-      };
-      
-      Object.entries(fieldMappings).forEach(([standardKey, variations]) => {
-        if (!individualFields[standardKey]) {
-          for (const variation of variations) {
-            if (n8nData[variation] && typeof n8nData[variation] === 'string') {
-              individualFields[standardKey] = n8nData[variation];
-              break;
-            }
-          }
-        }
-      });
-      
-      // Se não encontrou campos individuais diretamente, tentar extrair do processed_content
-      if (Object.keys(individualFields).length === 0 && processedContent) {
-        console.log("Tentando extrair campos do processed_content...");
-        
-        // Padrões para extrair campos do texto (incluindo todos os campos obstétricos)
-        const extractionPatterns = {
-          // Campos obstétricos
-          'gravidez': /GRAVIDEZ[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'feto': /FETO[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'apresentacao': /APRESENTAÇÃO[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'situacao': /SITUAÇÃO[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'bcf': /BCF[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'ig': /IG[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'dum': /DUM[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'dpp': /DPP[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'bpd': /BPD[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'dof': /DOF[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'cc': /CC[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'ca': /CA[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'cf': /CF[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'peso_fetal': /PESO FETAL[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'placenta': /PLACENTA[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'cordaoumbilical': /CORDÃO UMBILICAL[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'liquidoamniotico': /LÍQUIDO AMNIÓTICO[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'colo': /COLO[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'anexos': /ANEXOS[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          
-          // Campos de ultrassom abdominal
-          'figado': /FÍGADO[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'viasbiliares': /VIAS BILIARES[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'vesiculabiliar': /VESÍCULA BILIAR[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'pancreaseretroperitonio': /PÂNCREAS E RETROPERITÔNIO[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'baco': /BAÇO[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'rins': /RINS[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'aortaabdominal': /AORTA ABDOMINAL[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'bexiga': /BEXIGA[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'apendicececal': /APÊNDICE CECAL[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'cavidadeabdominal': /CAVIDADE ABDOMINAL[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          
-          // Campos de conclusão (que já funcionam)
-          'impressaodiagnostica': /IMPRESSÃO DIAGNÓSTICA[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'achadosadicionais': /ACHADOS ADICIONAIS[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'recomendacoes': /RECOMENDAÇÕES[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i,
-          'observacoes': /OBSERVAÇÕES[:\s]*([^]*?)(?=\n[A-Z]|\n\n|$)/i
-        };
-        
-        Object.entries(extractionPatterns).forEach(([fieldKey, pattern]) => {
-          const match = processedContent.match(pattern);
-          if (match && match[1] && match[1].trim()) {
-            individualFields[fieldKey] = match[1].trim();
-            console.log(`Campo ${fieldKey} extraído do texto:`, match[1].trim().substring(0, 50) + '...');
-          }
-        });
-      }
-      
-      console.log("=== DEBUG CAMPOS INDIVIDUAIS ===");
-      console.log("Campos dinâmicos enviados:", sentDynamicFields);
-      console.log("Dados brutos do N8N:", n8nData);
-      console.log("Tipo dos dados do N8N:", typeof n8nData);
-      console.log("É array?", Array.isArray(n8nData));
-      console.log("Todas as chaves do N8N:", Object.keys(n8nData));
-      
-      // Debug mais detalhado de cada campo
-      Object.entries(n8nData).forEach(([key, value]) => {
-        console.log(`N8N Campo "${key}":`, typeof value, value);
-      });
-      
-      // Log final dos campos individuais extraídos
-      console.log("=== CAMPOS INDIVIDUAIS FINAIS ===");
-      console.log(`Total de campos individuais: ${Object.keys(individualFields).length}`);
-      Object.entries(individualFields).forEach(([key, value]) => {
-        console.log(`  ${key}: ${value.substring(0, 50)}...`);
-      });
-      
-      console.log("Campos individuais extraídos:", individualFields);
-      console.log("Quantidade de campos extraídos:", Object.keys(individualFields).length);
-      
-      // Se foi processamento de campo individual, retornar apenas esse campo
-      if (fieldKey && individualFields[fieldKey]) {
-        console.log(`=== PROCESSAMENTO INDIVIDUAL: Campo ${fieldKey} ===`);
-        console.log(`Valor processado: ${individualFields[fieldKey].substring(0, 100)}...`);
-        
-        return new Response(
-          JSON.stringify({
-            success: true,
-            fieldKey: fieldKey,
-            individual_fields: {
-              [fieldKey]: individualFields[fieldKey]
-            },
-            processed_content: individualFields[fieldKey]
-          }),
-          { 
-            headers: { 
-              ...corsHeaders,
-              'Content-Type': 'application/json' 
-            } 
-          }
-        );
-      }
-      
-      // Debug adicional: verificar se N8N retornou algum campo esperado
-      const expectedFields = [
-        // Campos obstétricos
-        'gravidez', 'feto', 'apresentacao', 'situacao', 'bcf', 'ig', 'dum', 'dpp',
-        'bpd', 'dof', 'cc', 'ca', 'cf', 'peso_fetal', 'placenta', 'cordaoumbilical',
-        'liquidoamniotico', 'colo', 'anexos',
-        // Campos de ultrassom abdominal
-        'figado', 'viasbiliares', 'vesiculabiliar', 'pancreaseretroperitonio', 'baco',
-        'rins', 'aortaabdominal', 'bexiga', 'apendicececal', 'cavidadeabdominal',
-        // Campos de conclusão
-        'impressaodiagnostica', 'achadosadicionais', 'recomendacoes', 'observacoes'
-      ];
-      
-      console.log("=== DEBUG CAMPOS ESPERADOS ===");
-      expectedFields.forEach(field => {
-        if (n8nData[field]) {
-          console.log(`✅ Campo ${field} encontrado no N8N:`, n8nData[field]);
-        } else {
-          console.log(`❌ Campo ${field} NÃO encontrado no N8N`);
-        }
-      });
-      
-      // Verificar se há campos que começam com os nomes esperados
-      Object.keys(n8nData).forEach(key => {
-        const lowerKey = key.toLowerCase();
-        if (lowerKey.includes('figado') || lowerKey.includes('fígado') || lowerKey.includes('liver')) {
-          console.log(`Possível campo fígado encontrado: "${key}":`, n8nData[key]);
-        }
-      });
-      
-      console.log("=== FIM DEBUG ===");
-      
-      // If we found some form of processed content, return it along with individual fields
-      if (processedContent !== null) {
-        return new Response(
-          JSON.stringify({
-            success: true,
-            processed_content: processedContent,
-            individual_fields: Object.keys(individualFields).length > 0 ? individualFields : null
-          }),
-          { 
-            headers: { 
-              ...corsHeaders,
-              'Content-Type': 'application/json' 
-            } 
-          }
-        );
-      }
-      
-      // If there's no processed content in any expected format, log this issue
-      console.log("Formato de resposta do n8n não reconhecido:", n8nData);
-      return new Response(
-        JSON.stringify({
+        // Tenta parsear como JSON
+        const parsedJson = JSON.parse(contentResponse);
+        return new Response(JSON.stringify({
           success: true,
-          processed_content: "O resultado do processamento não foi encontrado na resposta. Verifique a configuração do n8n."
-        }),
-        { 
-          headers: { 
-            ...corsHeaders,
-            'Content-Type': 'application/json' 
-          } 
+          processed_content: fieldKey ? parsedJson[fieldKey] : null,
+          individual_fields: parsedJson,
+          fieldKey: fieldKey
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      } catch (e) {
+        console.error("A IA não retornou um JSON válido:", e);
+        // Fallback: se falhou o parse mas tem fieldKey, retorna o texto bruto para o campo
+        if (fieldKey) {
+           return new Response(JSON.stringify({
+            success: true,
+            processed_content: contentResponse,
+            individual_fields: { [fieldKey]: contentResponse },
+            fieldKey: fieldKey
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
-      );
-    } catch (error) {
-      console.error("Erro ao encaminhar para o n8n:", error);
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      return new Response(
-        JSON.stringify({ 
-          error: `Falha ao processar com N8N: ${errorMessage}`,
-          success: false
-        }),
-        { 
-          status: 502, 
-          headers: { 
-            ...corsHeaders,
-            'Content-Type': 'application/json' 
-          } 
-        }
-      );
+        return new Response(JSON.stringify({ error: 'A IA não retornou um JSON válido.', success: false }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    } else {
+      return new Response(JSON.stringify({
+        success: true,
+        processed_content: contentResponse
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
+    
   } catch (error) {
     console.error("Erro na função AI webhook:", error);
-    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-    
-    return new Response(
-      JSON.stringify({ 
-        error: errorMessage,
-        success: false
-      }),
-      { 
-        status: 500, 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json' 
-        } 
-      }
-    );
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Erro desconhecido', success: false }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });

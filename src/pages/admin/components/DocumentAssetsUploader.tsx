@@ -22,10 +22,13 @@ const DocumentAssetsUploader: React.FC = () => {
     isSaving,
     uploadLogo,
     uploadSignature,
+    uploadRtSignature,
     uploadAttendantLogo,
     updateProfessionalInfo,
+    updateRtInfo,
     removeLogo,
     removeSignature,
+    removeRtSignature,
     removeAttendantLogo,
     attendantLogoData,
   } = useDocumentAssets();
@@ -33,6 +36,7 @@ const DocumentAssetsUploader: React.FC = () => {
   const { isAdmin } = usePermissions();
   const logoInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
+  const rtSignatureInputRef = useRef<HTMLInputElement>(null);
   const attendantLogoInputRef = useRef<HTMLInputElement>(null);
 
   // Professional info state
@@ -42,9 +46,17 @@ const DocumentAssetsUploader: React.FC = () => {
     registry: '',
   });
 
+  // RT info state
+  const [rtInfo, setRtInfo] = useState<ProfessionalSignatureInfo>({
+    name: '',
+    title: '',
+    registry: '',
+  });
+
   // Drag and drop states
   const [dragOverLogo, setDragOverLogo] = useState(false);
   const [dragOverSignature, setDragOverSignature] = useState(false);
+  const [dragOverRtSignature, setDragOverRtSignature] = useState(false);
   const [dragOverAttendantLogo, setDragOverAttendantLogo] = useState(false);
 
   // Update professional info when assets change
@@ -54,6 +66,11 @@ const DocumentAssetsUploader: React.FC = () => {
         name: assets.signatureProfessionalName || '',
         title: assets.signatureProfessionalTitle || '',
         registry: assets.signatureProfessionalRegistry || '',
+      });
+      setRtInfo({
+        name: assets.rtName || '',
+        title: assets.rtTitle || '',
+        registry: assets.rtRegistry || '',
       });
     }
   }, [assets]);
@@ -97,6 +114,22 @@ const DocumentAssetsUploader: React.FC = () => {
     // Clear input to allow re-upload of same file
     if (signatureInputRef.current) {
       signatureInputRef.current.value = '';
+    }
+  };
+
+  const handleRtSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        validateFile(file);
+        uploadRtSignature(file);
+      } catch (error) {
+        console.error('File validation error:', error);
+      }
+    }
+    // Clear input to allow re-upload of same file
+    if (rtSignatureInputRef.current) {
+      rtSignatureInputRef.current.value = '';
     }
   };
 
@@ -146,6 +179,21 @@ const DocumentAssetsUploader: React.FC = () => {
     }
   };
 
+  const handleRtSignatureDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOverRtSignature(false);
+    
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      try {
+        validateFile(file);
+        uploadRtSignature(file);
+      } catch (error) {
+        console.error('File validation error:', error);
+      }
+    }
+  };
+
   const handleAttendantLogoDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOverAttendantLogo(false);
@@ -181,6 +229,16 @@ const DocumentAssetsUploader: React.FC = () => {
     setDragOverSignature(false);
   };
 
+  const handleRtSignatureDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOverRtSignature(true);
+  };
+
+  const handleRtSignatureDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOverRtSignature(false);
+  };
+
   const handleAttendantLogoDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOverAttendantLogo(true);
@@ -198,6 +256,13 @@ const DocumentAssetsUploader: React.FC = () => {
     }));
   };
 
+  const handleRtInfoChange = (field: keyof ProfessionalSignatureInfo, value: string) => {
+    setRtInfo(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const handleSaveProfessionalInfo = () => {
     // Validate required fields when signature exists
     if (assets?.signatureData) {
@@ -208,9 +273,28 @@ const DocumentAssetsUploader: React.FC = () => {
     updateProfessionalInfo(professionalInfo);
   };
 
+  const handleSaveRtInfo = () => {
+    // Validate required fields when signature exists
+    if (assets?.rtSignatureData) {
+      if (!rtInfo.name.trim() || !rtInfo.title.trim() || !rtInfo.registry.trim()) {
+        return;
+      }
+    }
+    updateRtInfo(rtInfo);
+  };
+
   const handleRemoveSignature = () => {
     removeSignature();
     setProfessionalInfo({
+      name: '',
+      title: '',
+      registry: '',
+    });
+  };
+
+  const handleRemoveRtSignature = () => {
+    removeRtSignature();
+    setRtInfo({
       name: '',
       title: '',
       registry: '',
@@ -402,8 +486,8 @@ const DocumentAssetsUploader: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {assets?.signatureData ? (
-              <div className="space-y-4">
+            <div className="space-y-4">
+              {assets?.signatureData ? (
                 <div className="relative group">
                   <img
                     src={assets.signatureData}
@@ -432,90 +516,7 @@ const DocumentAssetsUploader: React.FC = () => {
                     </Dialog>
                   </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  Tamanho: {formatFileSize(getFileSizeFromBase64(assets.signatureData))}
-                </div>
-
-                {/* Professional Info Form */}
-                <div className="border-t pt-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <User className="h-4 w-4" />
-                    <Label className="font-medium">Informações do Profissional</Label>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <Label htmlFor="professional-name" className="text-sm">Nome do Profissional *</Label>
-                      <Input
-                        id="professional-name"
-                        value={professionalInfo.name}
-                        onChange={(e) => handleProfessionalInfoChange('name', e.target.value)}
-                        placeholder="Ex: JERIME REGO SOARES"
-                        className="mt-1"
-                        disabled={isUploading || isSaving}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="professional-title" className="text-sm">Profissão/Especialidade *</Label>
-                      <Input
-                        id="professional-title"
-                        value={professionalInfo.title}
-                        onChange={(e) => handleProfessionalInfoChange('title', e.target.value)}
-                        placeholder="Ex: Enfermeiro Especialista"
-                        className="mt-1"
-                        disabled={isUploading || isSaving}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="professional-registry" className="text-sm">Órgão de Classe/Registro *</Label>
-                      <Input
-                        id="professional-registry"
-                        value={professionalInfo.registry}
-                        onChange={(e) => handleProfessionalInfoChange('registry', e.target.value)}
-                        placeholder="Ex: Coren-502061"
-                        className="mt-1"
-                        disabled={isUploading || isSaving}
-                      />
-                    </div>
-                    <ActionButtonGuard permission="configuracoes">
-                      <Button
-                        onClick={handleSaveProfessionalInfo}
-                        size="sm"
-                        className="w-full"
-                        disabled={isUploading || isSaving || !professionalInfo.name.trim() || !professionalInfo.title.trim() || !professionalInfo.registry.trim()}
-                      >
-                        Salvar Informações
-                      </Button>
-                    </ActionButtonGuard>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 pt-2 border-t">
-                  <ActionButtonGuard permission="configuracoes">
-                    <Button
-                      onClick={() => signatureInputRef.current?.click()}
-                      variant="outline"
-                      size="sm"
-                      disabled={isUploading || isSaving}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Substituir Assinatura
-                    </Button>
-                  </ActionButtonGuard>
-                  <ActionButtonGuard permission="configuracoes">
-                    <Button
-                      onClick={handleRemoveSignature}
-                      variant="destructive"
-                      size="sm"
-                      disabled={isUploading || isSaving}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Remover Tudo
-                    </Button>
-                  </ActionButtonGuard>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
+              ) : (
                 <div
                   className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
                     dragOverSignature 
@@ -535,24 +536,259 @@ const DocumentAssetsUploader: React.FC = () => {
                     JPG, JPEG, PNG - máximo 10MB
                   </p>
                 </div>
-                <Button
-                  onClick={() => signatureInputRef.current?.click()}
-                  className="w-full"
-                  disabled={isUploading || isSaving}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Selecionar Assinatura
-                </Button>
-                <div className="text-xs text-muted-foreground bg-blue-50 p-3 rounded border border-blue-200">
-                  <strong>💡 Dica:</strong> Após fazer upload da assinatura, você poderá preencher as informações do profissional que serão enviadas junto com a imagem para o n8n.
+              )}
+
+              {assets?.signatureData && (
+                <div className="text-sm text-muted-foreground">
+                  Tamanho: {formatFileSize(getFileSizeFromBase64(assets.signatureData))}
+                </div>
+              )}
+
+              {/* Professional Info Form */}
+              <div className="border-t pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <User className="h-4 w-4" />
+                  <Label className="font-medium">Informações do Profissional</Label>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="professional-name" className="text-sm">Nome do Profissional *</Label>
+                    <Input
+                      id="professional-name"
+                      value={professionalInfo.name}
+                      onChange={(e) => handleProfessionalInfoChange('name', e.target.value)}
+                      placeholder="Ex: JERIME REGO SOARES"
+                      className="mt-1"
+                      disabled={isUploading || isSaving}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="professional-title" className="text-sm">Profissão/Especialidade *</Label>
+                    <Input
+                      id="professional-title"
+                      value={professionalInfo.title}
+                      onChange={(e) => handleProfessionalInfoChange('title', e.target.value)}
+                      placeholder="Ex: Enfermeiro Especialista"
+                      className="mt-1"
+                      disabled={isUploading || isSaving}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="professional-registry" className="text-sm">Órgão de Classe/Registro *</Label>
+                    <Input
+                      id="professional-registry"
+                      value={professionalInfo.registry}
+                      onChange={(e) => handleProfessionalInfoChange('registry', e.target.value)}
+                      placeholder="Ex: Coren-502061"
+                      className="mt-1"
+                      disabled={isUploading || isSaving}
+                    />
+                  </div>
+                  <ActionButtonGuard permission="configuracoes">
+                    <Button
+                      onClick={handleSaveProfessionalInfo}
+                      size="sm"
+                      className="w-full"
+                      disabled={isUploading || isSaving || !professionalInfo.name.trim() || !professionalInfo.title.trim() || !professionalInfo.registry.trim()}
+                    >
+                      Salvar Informações
+                    </Button>
+                  </ActionButtonGuard>
                 </div>
               </div>
-            )}
+
+              <div className="flex gap-2 pt-2 border-t">
+                <ActionButtonGuard permission="configuracoes">
+                  <Button
+                    onClick={() => signatureInputRef.current?.click()}
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploading || isSaving}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {assets?.signatureData ? 'Substituir Assinatura' : 'Selecionar Assinatura'}
+                  </Button>
+                </ActionButtonGuard>
+                {assets?.signatureData && (
+                  <ActionButtonGuard permission="configuracoes">
+                    <Button
+                      onClick={handleRemoveSignature}
+                      variant="destructive"
+                      size="sm"
+                      disabled={isUploading || isSaving}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Remover Tudo
+                    </Button>
+                  </ActionButtonGuard>
+                )}
+              </div>
+            </div>
             <input
               ref={signatureInputRef}
               type="file"
               accept=".jpg,.jpeg,.png,image/jpeg,image/jpg,image/png"
               onChange={handleSignatureUpload}
+              className="hidden"
+            />
+          </CardContent>
+        </Card>
+
+        {/* RT Signature Upload */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileImage className="h-5 w-5" />
+              Assinatura Digital RT
+            </CardTitle>
+            <CardDescription>
+              Upload da assinatura e informações do Responsável Técnico (JPG, JPEG, PNG - máx. 10MB)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-4">
+              {assets?.rtSignatureData ? (
+                <div className="relative group">
+                  <img
+                    src={assets.rtSignatureData}
+                    alt="Assinatura RT"
+                    className="w-full h-32 object-contain bg-gray-50 rounded border"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all rounded flex items-center justify-center">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Visualizar
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl">
+                        <img
+                          src={assets.rtSignatureData}
+                          alt="Assinatura RT - Visualização"
+                          className="w-full h-auto max-h-96 object-contain"
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+                    dragOverRtSignature 
+                      ? 'border-primary bg-primary/5' 
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                  onClick={() => rtSignatureInputRef.current?.click()}
+                  onDrop={handleRtSignatureDrop}
+                  onDragOver={handleRtSignatureDragOver}
+                  onDragLeave={handleRtSignatureDragLeave}
+                >
+                  <ImageIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">
+                    Clique ou arraste a assinatura do RT aqui
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    JPG, JPEG, PNG - máximo 10MB
+                  </p>
+                </div>
+              )}
+
+              {assets?.rtSignatureData && (
+                <div className="text-sm text-muted-foreground">
+                  Tamanho: {formatFileSize(getFileSizeFromBase64(assets.rtSignatureData))}
+                </div>
+              )}
+
+              {/* RT Info Form */}
+              <div className="border-t pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <User className="h-4 w-4" />
+                  <Label className="font-medium">Informações do Responsável Técnico</Label>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="rt-name" className="text-sm">Nome do RT *</Label>
+                    <Input
+                      id="rt-name"
+                      value={rtInfo.name}
+                      onChange={(e) => handleRtInfoChange('name', e.target.value)}
+                      placeholder="Ex: NOME DO RT"
+                      className="mt-1"
+                      disabled={isUploading || isSaving}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="rt-title" className="text-sm">Profissão/Especialidade *</Label>
+                    <Input
+                      id="rt-title"
+                      value={rtInfo.title}
+                      onChange={(e) => handleRtInfoChange('title', e.target.value)}
+                      placeholder="Ex: Enfermeiro Responsável"
+                      className="mt-1"
+                      disabled={isUploading || isSaving}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="rt-registry" className="text-sm">Órgão de Classe/Registro *</Label>
+                    <Input
+                      id="rt-registry"
+                      value={rtInfo.registry}
+                      onChange={(e) => handleRtInfoChange('registry', e.target.value)}
+                      placeholder="Ex: Coren-000000"
+                      className="mt-1"
+                      disabled={isUploading || isSaving}
+                    />
+                  </div>
+                  <ActionButtonGuard permission="configuracoes">
+                    <Button
+                      onClick={handleSaveRtInfo}
+                      size="sm"
+                      className="w-full"
+                      disabled={isUploading || isSaving || !rtInfo.name.trim() || !rtInfo.title.trim() || !rtInfo.registry.trim()}
+                    >
+                      Salvar Informações do RT
+                    </Button>
+                  </ActionButtonGuard>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t">
+                <ActionButtonGuard permission="configuracoes">
+                  <Button
+                    onClick={() => rtSignatureInputRef.current?.click()}
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploading || isSaving}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {assets?.rtSignatureData ? 'Substituir Assinatura RT' : 'Selecionar Assinatura RT'}
+                  </Button>
+                </ActionButtonGuard>
+                {assets?.rtSignatureData && (
+                  <ActionButtonGuard permission="configuracoes">
+                    <Button
+                      onClick={handleRemoveRtSignature}
+                      variant="destructive"
+                      size="sm"
+                      disabled={isUploading || isSaving}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Remover Tudo RT
+                    </Button>
+                  </ActionButtonGuard>
+                )}
+              </div>
+            </div>
+            <input
+              ref={rtSignatureInputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,image/jpeg,image/jpg,image/png"
+              onChange={handleRtSignatureUpload}
               className="hidden"
             />
           </CardContent>

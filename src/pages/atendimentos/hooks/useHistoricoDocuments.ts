@@ -134,7 +134,7 @@ export const useHistoricoDocuments = () => {
                   phone: (record as any).patients.phone || '',
                   sus: (record as any).patients.sus || ''
                 },
-                attendance_start_at: (record as any).attendance_start_at,
+                attendance_start_at: (record as any).attendance_start_at || (record as any).created_at,
                 attendance_end_at: (record as any).attendance_end_at,
                 created_at: (record as any).created_at,
                 status: 'ready' as const,
@@ -167,7 +167,7 @@ export const useHistoricoDocuments = () => {
                   phone: (record as any).patients.phone || '',
                   sus: (record as any).patients.sus || ''
                 },
-                attendance_start_at: (record as any).attendance_start_at,
+                attendance_start_at: (record as any).attendance_start_at || (record as any).created_at,
                 attendance_end_at: (record as any).attendance_end_at,
                 created_at: (record as any).created_at,
                 status,

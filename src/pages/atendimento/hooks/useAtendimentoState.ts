@@ -1,4 +1,5 @@
 
+import { useMemo } from 'react';
 import { useTabState } from './useTabState';
 import { usePacienteSearch } from './usePacienteSearch';
 import { useProfessionalData } from './useProfessionalData';
@@ -8,8 +9,13 @@ import { useSaveActions } from './useSaveActions';
 import { useAtendimentoHelpers } from './useAtendimentoHelpers';
 import { useLocalStoragePersistence } from './useLocalStoragePersistence';
 
-export const useAtendimentoState = (selectedModelTitle?: string | null, initialPatient?: any, appointmentId?: string, dynamicFields?: Record<string, string>, onDynamicFieldsChange?: (fields: Record<string, string>) => void, updateDynamicFieldsFromAI?: (fields: Record<string, string>) => void) => {
+export const useAtendimentoState = (selectedModelTitle?: string | null, initialPatient?: any, appointmentId?: string, dynamicFields?: Record<string, string>, onDynamicFieldsChange?: (fields: Record<string, string>) => void, updateDynamicFieldsFromAI?: (fields: Record<string, string>) => void, medicalRecordId?: string, existingRecord?: any) => {
   
+  // Garantir um ID estável para todo o atendimento (novo ou existente)
+  const stableMedicalRecordId = useMemo(() => {
+    return medicalRecordId || existingRecord?.id || crypto.randomUUID();
+  }, [medicalRecordId, existingRecord?.id]);
+
   const { activeTab, setActiveTab } = useTabState();
   const { 
     buscarPaciente, 
@@ -21,8 +27,9 @@ export const useAtendimentoState = (selectedModelTitle?: string | null, initialP
     handleSelectPaciente,
     handleClearPaciente,
     handleInputFocus,
-    handleInputBlur
-  } = usePacienteSearch(initialPatient);
+    handleInputBlur,
+    setMostrarResultadosBusca
+  } = usePacienteSearch(initialPatient || existingRecord?.paciente);
   
   const { professional: profissionalAtual, isLoadingProfessional } = useProfessionalData();
   
@@ -52,10 +59,8 @@ export const useAtendimentoState = (selectedModelTitle?: string | null, initialP
   
   const { 
     isSaving, 
-    isGeneratingPDF,
     isSubmittingRecord,
     handleSalvarAtendimento, 
-    handleGerarPDF,
     handleSubmitMedicalRecord
   } = useSaveActions({
     pacienteSelecionado: pacienteSelecionado as any,
@@ -65,7 +70,9 @@ export const useAtendimentoState = (selectedModelTitle?: string | null, initialP
     resetForm, // Passando a função resetForm para o hook
     selectedModelTitle,
     appointmentId,
-    dynamicFields
+    dynamicFields,
+    medicalRecordId: stableMedicalRecordId,
+    existingRecord
   });
 
   // Use our new helper hook to handle AI content processing
@@ -99,7 +106,6 @@ export const useAtendimentoState = (selectedModelTitle?: string | null, initialP
     filteredPacientes,
     isSearchingPacientes,
     isSaving,
-    isGeneratingPDF,
     isSubmittingRecord,
     handleChange,
     handlePacienteSearch,
@@ -107,12 +113,12 @@ export const useAtendimentoState = (selectedModelTitle?: string | null, initialP
     handleClearPaciente,
     handleInputFocus,
     handleInputBlur,
+    setMostrarResultadosBusca,
     handleModeloPrescricaoChange,
     handleModelosPrescricaoChange,
     handleExamesChange,
     processAIContent: processAIContentHelper,
     handleSalvarAtendimento,
-    handleGerarPDF,
     handleSubmitMedicalRecord,
     updateFormField,
     setFormData,

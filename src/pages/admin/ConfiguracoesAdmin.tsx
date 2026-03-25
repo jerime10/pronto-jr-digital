@@ -8,6 +8,7 @@ import WhatsAppTemplateManager from './components/WhatsAppTemplateManager';
 import DocumentAssetsUploader from './components/DocumentAssetsUploader';
 import PublicRegistrationLinksConfig from './components/PublicRegistrationLinksConfig';
 import { IndividualFieldsManager } from './components/IndividualFieldsManager';
+import AIConfig from './components/AIConfig';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 const ConfiguracoesAdmin = () => {
@@ -37,6 +38,7 @@ const ConfiguracoesAdmin = () => {
           <TabsTrigger value="saved-fields" className="text-sm px-3 py-2">Campos Salvos</TabsTrigger>
           <TabsTrigger value="whatsapp-templates" className="text-sm px-3 py-2">WhatsApp</TabsTrigger>
           <TabsTrigger value="envio-prontuario" className="text-sm px-3 py-2">Envio Prontuário</TabsTrigger>
+          <TabsTrigger value="ai-config" className="text-sm px-3 py-2">Inteligência Artificial</TabsTrigger>
           <TabsTrigger value="integrations" className="text-sm px-3 py-2">Integrações</TabsTrigger>
         </TabsList>
         
@@ -67,6 +69,10 @@ const ConfiguracoesAdmin = () => {
               onSave={handleMedicalRecordWebhookSave}
               isSaving={saveMedicalRecordWebhookUrl?.isPending}
             />
+          </TabsContent>
+          
+          <TabsContent value="ai-config" className="mt-8 space-y-6">
+            <AIConfig />
           </TabsContent>
           
           <TabsContent value="integrations" className="mt-8 space-y-6">

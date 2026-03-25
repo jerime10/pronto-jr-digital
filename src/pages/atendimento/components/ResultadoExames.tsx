@@ -6,14 +6,17 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Sparkles, Trash2, Save, Eraser } from 'lucide-react';
+import { Loader2, Sparkles, Trash2, Save, Eraser, Mic, MicOff, Settings2, X, CheckCircle2, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { calculateDUMFromIG } from '@/utils/obstetricUtils';
+import { calculateDUMFromIG, formatDateInput, parseNaturalDate } from '@/utils/obstetricUtils';
 import { calculateFetalPercentile } from '@/utils/fetalCalculations';
 import { useAIProcessing } from '../hooks/useAIProcessing';
+import { useWhisperTranscription } from '@/hooks/useWhisperTranscription';
 import { FieldAutocompleteMulti } from '@/components/ui/field-autocomplete-multi';
 import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AIPromptModal } from './AIPromptModal';
+
 interface ExamModel {
   id: string;
   name: string;
@@ -506,6 +509,137 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   const [selectedFieldValues, setSelectedFieldValues] = useState<Record<string, string[]>>({});
   const [isSavingField, setIsSavingField] = useState<string | null>(null);
   const [isProcessingField, setIsProcessingField] = useState<string | null>(null);
+  const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const [modifiedFields, setModifiedFields] = useState<Set<string>>(new Set());
+  const [missingFields, setMissingFields] = useState<DynamicField[]>([]);
+  const [showMissingModal, setShowMissingModal] = useState(false);
+  const [allModelFields, setAllModelFields] = useState<DynamicField[]>([]);
+  
+  // Estado para arrastar o modal no desktop
+  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (window.innerWidth < 768) return; // Só arrasta no desktop
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - modalPosition.x,
+      y: e.clientY - modalPosition.y
+    });
+  };
+
+  const handleMouseMove = React.useCallback((e: MouseEvent) => {
+    if (!isDragging) return;
+    setModalPosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  }, [isDragging, dragStart]);
+
+  const handleMouseUp = React.useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    } else {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  // Texto fixo para observações
+  const FIXED_OBSERVATIONS = `- A avaliação do bem-estar e a conduta clínica devem ser individualizadas e baseadas na avaliação completa da paciente pelo profissional médico, que deverá tomar a conduta final.\n- Exame realizado conforme Resolução Cofen 679/2021, que autoriza enfermeiros especialistas a executar ultrassonografia à beira do leito e em ambiente pré-hospitalar.`;
+
+  // Hook para transcrição de voz global
+  const {
+    isRecording: isRecordingGlobal,
+    toggleRecording: toggleRecordingGlobal
+  } = useWhisperTranscription({
+    onTranscriptionComplete: async (text) => {
+      console.log('🎙️ [VOICE-GLOBAL] Transcrição recebida:', text);
+      if (!text.trim()) return;
+
+      setIsProcessingVoice(true);
+      const loadingToast = toast.loading('Processando comandos de voz...');
+
+      try {
+        const availableFieldsList = selectedTemplate?.fields.map(f => ({
+          key: f.key,
+          label: f.label
+        })) || [];
+
+        const { data, error } = await supabase.functions.invoke('ai-webhook', {
+          body: {
+            text,
+            type: 'voice_command',
+            availableFields: availableFieldsList,
+            selectedModelTitle: selectedModel?.name || null
+          }
+        });
+
+        if (error) throw error;
+
+        if (data?.individual_fields) {
+          const aiResults = data.individual_fields;
+          const updatedKeys = Object.keys(aiResults);
+          
+          // Verificar se o campo observações deve receber texto fixo
+          if (!aiResults.observacoes && !dynamicFields.observacoes) {
+            aiResults.observacoes = FIXED_OBSERVATIONS;
+            updatedKeys.push('observacoes');
+          }
+
+          // Identificar campos que NÃO foram preenchidos (ignorando Percentil)
+          const missing = selectedTemplate?.fields.filter(f => 
+            !aiResults[f.key] && !dynamicFields[f.key] && !f.key.toLowerCase().includes('percentil')
+          ) || [];
+
+          // Marcar campos modificados para destaque visual
+          setModifiedFields(new Set(updatedKeys));
+          
+          // Limpar destaque após 5 segundos
+          setTimeout(() => setModifiedFields(new Set()), 5000);
+
+          const newFields = {
+            ...dynamicFields,
+            ...aiResults
+          };
+          
+          setDynamicFields(newFields);
+          updateExamResults(newFields);
+          
+          if (onDynamicFieldsChange) {
+            onDynamicFieldsChange(newFields);
+          }
+          
+          if (missing.length > 0) {
+            // Guardar todos os campos do modelo atual para exibição completa se necessário
+            setAllModelFields(selectedTemplate?.fields || []);
+            setMissingFields(missing);
+            setShowMissingModal(true);
+          }
+
+          toast.success(`${updatedKeys.length} campo(s) atualizado(s) via voz!`, { id: loadingToast });
+        } else {
+          toast.info('Nenhuma informação mapeada para os campos.', { id: loadingToast });
+        }
+      } catch (err) {
+        console.error('❌ [VOICE] Erro ao processar comando de voz:', err);
+        toast.error('Erro ao processar comando de voz', { id: loadingToast });
+      } finally {
+        setIsProcessingVoice(false);
+      }
+    }
+  });
 
   // Hook para gerenciar templates salvos
   const {
@@ -570,9 +704,14 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     console.log('🎯 [AI-UPDATE] Timestamp aiUpdateRef.current definido como:', aiUpdateRef.current);
 
     // Mesclar com campos existentes, preservando valores existentes
+    const formattedAIFields: Record<string, string> = {};
+    Object.entries(aiFields).forEach(([key, value]) => {
+      formattedAIFields[key] = formatFieldValue(key, value);
+    });
+
     const mergedFields = {
       ...dynamicFields,
-      ...aiFields
+      ...formattedAIFields
     };
     console.log('🎯 [AI-UPDATE] Campos após mesclagem:', mergedFields);
     console.log('🎯 [AI-UPDATE] Quantidade de campos mesclados:', Object.keys(mergedFields).length);
@@ -858,22 +997,64 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     console.log('🔄 [AUTO-PERCENTIL] ===== FIM VERIFICAÇÃO =====');
   }, [dynamicFields, selectedModel, onDynamicFieldsChange]);
 
+  // Função central para formatar valores de campos
+  const formatFieldValue = (key: string, value: string): string => {
+    if (!value) return '';
+    let finalValue = value;
+
+    const lowerKey = key.toLowerCase();
+
+    // 1. Formatação de Peso: apenas números + "g"
+    if (lowerKey === 'peso') {
+      const numbers = value.replace(/\D/g, '');
+      return numbers ? `${numbers}g` : '';
+    }
+
+    // 2. Formatação de Data
+    if (lowerKey.includes('data') || lowerKey === 'dpp') {
+      // Tentar parsear linguagem natural (ex: "11 de maio de 2026")
+      const naturalParsed = parseNaturalDate(value);
+      if (naturalParsed !== value) {
+        return naturalParsed;
+      }
+      // Se vier no formato YYYY-MM-DD (do input date), converter para DD/MM/AAAA
+      if (value.includes('-') && value.length === 10) {
+        const [y, m, d] = value.split('-');
+        return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+      }
+      // Se vier com barras, normalizar (ex: 1/1/2024 -> 01/01/2024)
+      if (value.includes('/')) {
+        const parts = value.split('/');
+        if (parts.length === 3) {
+          const [d, m, y] = parts;
+          return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+        }
+      }
+    }
+
+    // 3. Formatação de Impressão Diagnóstica: quebra de linha após cada ponto
+    if (lowerKey === 'impressaodiagnostica') {
+      // Substituir ponto seguido de espaço por ponto + nova linha
+      // Mantemos o valor original se não houver espaços após o ponto (para evitar quebras enquanto digita o próximo caractere)
+      // Mas para o resultado final e IA, queremos a quebra.
+      return value
+        .replace(/\.\s+/g, '.\n') // Substitui ponto + espaço(s) por ponto + \n
+        .replace(/\n\s+/g, '\n'); // Limpa espaços no início de novas linhas
+    }
+
+    return finalValue;
+  };
+
   // Handler para mudança direta do texto do campo
   const handleFieldTextChange = (fieldKey: string, value: string) => {
     console.log('📝 [TEXT-CHANGE] ===== INÍCIO handleFieldTextChange =====');
     console.log('📝 [TEXT-CHANGE] Campo:', fieldKey, 'Valor:', value);
-    console.log('📝 [TEXT-CHANGE] dynamicFields ANTES:', dynamicFields);
 
-    // 🔍 DEBUG ESPECÍFICO: Impressão Diagnóstica
-    if (fieldKey === 'impressaodiagnostica') {
-      console.log('🔍🔍🔍 [IMPRESSÃO-DIAGNÓSTICA] ===== CAMPO DETECTADO =====');
-      console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] Valor recebido:', value);
-      console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] Tamanho:', value?.length || 0);
-      console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] dynamicFields ANTES:', dynamicFields);
-    }
+    const finalValue = formatFieldValue(fieldKey, value);
+
     const newFields = {
       ...dynamicFields,
-      [fieldKey]: value
+      [fieldKey]: finalValue
     };
     console.log('📝 [TEXT-CHANGE] newFields DEPOIS:', newFields);
     setDynamicFields(newFields);
@@ -1009,21 +1190,20 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   const updateExamResults = (fields: Record<string, string>, customTemplate?: any) => {
     console.log('🔄 [UPDATE] ===== INÍCIO updateExamResults =====');
     console.log('🔄 [UPDATE] Campos recebidos:', fields);
-    console.log('🔄 [UPDATE] Template customizado recebido:', customTemplate);
-    console.log('🔄 [UPDATE] selectedTemplate:', selectedTemplate);
-    console.log('🔄 [UPDATE] selectedModel:', selectedModel);
+    
     if (!selectedTemplate || !selectedModel) {
       console.log('🔄 [UPDATE] Nenhum template ou modelo selecionado, saindo...');
       return;
     }
 
+    // Aplicar formatação a todos os campos recebidos
+    const enhancedFields: Record<string, string> = {};
+    Object.entries(fields).forEach(([key, value]) => {
+      enhancedFields[key] = formatFieldValue(key, value);
+    });
+
     // Usar o template customizado se fornecido, senão usar o selectedTemplate atual
     const templateToUse = customTemplate || selectedTemplate;
-
-    // Verificar se há campo IG e calcular DUM automaticamente
-    const enhancedFields = {
-      ...fields
-    };
 
     // NOVO: Calcular percentil fetal automaticamente para modelos obstétricos
     const isObstetricModel = selectedModel?.name?.includes('OBSTÉTRICA');
@@ -1151,6 +1331,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   };
 
   // Nova função para processar um campo individual com IA (ENVIO SELETIVO)
+  // Handler para processar um campo individual com IA (ENVIO SELETIVO)
   const handleProcessFieldWithAI = async (field: DynamicField) => {
     const fieldValue = dynamicFields[field.key];
     if (!fieldValue?.trim()) {
@@ -1240,7 +1421,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         // Atualizar apenas este campo específico
         const updatedFields = {
           ...dynamicFields,
-          [field.key]: processedContent
+          [field.key]: formatFieldValue(field.key, processedContent)
         };
         setDynamicFields(updatedFields);
         updateExamResults(updatedFields);
@@ -1257,6 +1438,36 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       console.log('🤖 [AI-FIELD] ===== PROCESSAMENTO CONCLUÍDO =====');
     }
   };
+
+  // Componente para o microfone individual de cada campo
+  const FieldMicrophone = React.useCallback(({ fieldKey, label, onUpdate }: { fieldKey: string, label: string, onUpdate: (val: string) => void }) => {
+    const { isRecording, toggleRecording, isProcessing } = useWhisperTranscription({
+      onTranscriptionComplete: (text) => {
+        if (text.trim()) {
+          console.log(`🎙️ [VOICE-FIELD] Transcrição para ${label}:`, text);
+          onUpdate(text);
+          toast.success(`Campo ${label} preenchido via voz.`);
+        }
+      }
+    });
+
+    return (
+      <Button 
+        type="button" 
+        variant={isRecording ? "destructive" : "outline"} 
+        size="sm" 
+        onClick={(e) => {
+          e.stopPropagation(); // Evita que cliques no botão disparem eventos do pai
+          toggleRecording();
+        }} 
+        disabled={isProcessing}
+        title={`Gravar voz para ${label}`}
+        className={isRecording ? 'animate-pulse' : ''}
+      >
+        {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+      </Button>
+    );
+  }, []);
   return <div className="space-y-6">
       <Card>
         <CardHeader className="bg-purple-400">
@@ -1285,15 +1496,38 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
               </Select>
             </div>
             
-            <Button onClick={handleProcessWithAI} variant="outline" className="w-full md:w-auto" disabled={isProcessingAI.examResults}>
-              {isProcessingAI.examResults ? <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processando...
-                </> : <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Processar com IA
-                </>}
-            </Button>
+            <div className="flex items-center gap-2 w-full md:w-auto mt-4 md:mt-0">
+              <Button
+                type="button"
+                variant={isRecordingGlobal ? "destructive" : "outline"}
+                size="icon"
+                className={`h-10 w-10 shrink-0 ${isRecordingGlobal ? 'animate-pulse' : ''}`}
+                onClick={toggleRecordingGlobal}
+                disabled={isProcessingVoice}
+                title={isRecordingGlobal ? "Parar gravação" : "Gravar comando de voz global para todos os campos"}
+              >
+                {isProcessingVoice ? <Loader2 className="h-4 w-4 animate-spin" /> : isRecordingGlobal ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 shrink-0"
+                onClick={() => setIsPromptModalOpen(true)}
+                title="Configurar instruções da IA"
+              >
+                <Settings2 className="h-4 w-4" />
+              </Button>
+              <Button onClick={handleProcessWithAI} variant="outline" className="flex-1 md:w-auto" disabled={isProcessingAI.examResults}>
+                {isProcessingAI.examResults ? <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processando...
+                  </> : <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Processar com IA
+                  </>}
+              </Button>
+            </div>
           </div>
 
           {/* Campos dinâmicos baseados no template */}
@@ -1319,41 +1553,33 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                 selectedValues: selectedValues,
                 selectedValuesCount: selectedValues.length
               });
-              return field.type === 'date' ? <div key={field.key} className="space-y-2">
-                      <Label htmlFor={field.key}>{field.label}</Label>
-                      <Input id={field.key} type="date" value={(() => {
-                        // Se o valor está em formato DD/MM/AAAA, converter para YYYY-MM-DD para o input
-                        if (fieldValue && fieldValue.includes('/')) {
-                          const parts = fieldValue.split('/');
-                          if (parts.length === 3) {
-                            const [day, month, year] = parts;
-                            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                          }
-                        }
-                        return fieldValue;
-                      })()} onChange={e => {
-                  console.log('🎯 [DATE] Campo alterado:', field.key, 'Valor HTML:', e.target.value);
-                  // Converter de YYYY-MM-DD para DD/MM/AAAA para armazenamento e envio ao n8n
-                  let formattedValue = e.target.value;
-                  if (e.target.value && e.target.value.includes('-') && e.target.value.length === 10) {
-                    const [year, month, day] = e.target.value.split('-');
-                    formattedValue = `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
-                  }
-                  console.log('🎯 [DATE] Valor convertido para DD/MM/AAAA:', formattedValue);
-                  const newFields = {
-                    ...dynamicFields,
-                    [field.key]: formattedValue
-                  };
-                  console.log('🎯 [DATE] Novos campos:', newFields);
-                  setDynamicFields(newFields);
-                  updateExamResults(newFields);
-                  
-                  // Notificar componente pai
-                  if (onDynamicFieldsChange) {
-                    onDynamicFieldsChange(newFields);
-                  }
-                }} className="w-full" />
-                    </div> : <div key={field.key} className="space-y-4">
+              return field.type === 'date' ? <div key={field.key} className={`space-y-2 transition-all duration-500 p-2 rounded-lg ${modifiedFields.has(field.key) ? 'ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-900/20' : ''}`}>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor={field.key}>{field.label}</Label>
+                        <FieldMicrophone 
+                          fieldKey={field.key} 
+                          label={field.label} 
+                          onUpdate={(val) => {
+                            handleFieldTextChange(field.key, val);
+                            setModifiedFields(prev => new Set(prev).add(field.key));
+                          }} 
+                        />
+                      </div>
+                      <div className="relative">
+                        <Input 
+                          id={field.key} 
+                          type="text" 
+                          placeholder="DD/MM/AAAA"
+                          className="w-full pr-10"
+                          value={fieldValue} 
+                          onChange={e => {
+                            const formatted = formatDateInput(e.target.value);
+                            handleFieldTextChange(field.key, formatted);
+                          }} 
+                        />
+                        <CalendarIcon className="absolute right-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div> : <div key={field.key} className={`space-y-4 transition-all duration-500 p-2 rounded-lg ${modifiedFields.has(field.key) ? 'ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-900/20' : ''}`}>
                       {/* Seção de Modelos - Fundo mais escuro e destacado */}
                       <Card className="border-2 border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/50 shadow-md">
                         <CardHeader className="border-b border-slate-300 dark:border-slate-700 bg-stone-950 rounded-3xl">
@@ -1395,14 +1621,23 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                         </CardContent>
                       </Card>
                       
-                      {/* Seção Personalizado - Fundo mais claro */}
+                      {/* Seção Campo - Fundo mais claro */}
                       <Card className="border border-slate-200 dark:border-slate-800 bg-background shadow-sm">
                         <CardHeader className="border-b border-slate-200 dark:border-slate-800 bg-lime-500">
                           <div className="flex items-center justify-between">
                             <CardTitle className="text-base font-semibold">
-                              {field.label} Personalizado
+                              {field.label}
                             </CardTitle>
                             <div className="flex gap-2">
+                              {/* Botão de Voz Individual - Desabilitado para Percentil */}
+                              {!field.key.toLowerCase().includes('percentil') && (
+                                <FieldMicrophone 
+                                  fieldKey={field.key} 
+                                  label={field.label} 
+                                  onUpdate={(val) => handleFieldTextChange(field.key, val)} 
+                                />
+                              )}
+                              
                               {/* Botão para processar campo individual com IA */}
                               <Button type="button" variant="outline" size="sm" onClick={() => handleProcessFieldWithAI(field)} disabled={!fieldValue.trim() || isProcessingField === field.key} title="Processar este campo com IA">
                                 {isProcessingField === field.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
@@ -1507,6 +1742,111 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
           </div>
         </CardContent>
       </Card>
+
+      <AIPromptModal 
+        isOpen={isPromptModalOpen} 
+        onClose={() => setIsPromptModalOpen(false)} 
+        fieldType="exames" 
+      />
+
+      {/* Janela Flutuante de Campos Faltantes */}
+      {showMissingModal && missingFields.length > 0 && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300 pointer-events-none">
+          <Card 
+            className="w-full max-w-lg shadow-2xl border-purple-200 animate-in zoom-in-95 duration-300 overflow-hidden pointer-events-auto select-none"
+            style={{ 
+              transform: `translate(${modalPosition.x}px, ${modalPosition.y}px)`,
+              cursor: isDragging ? 'grabbing' : 'auto'
+            }}
+          >
+            <CardHeader 
+              className="bg-purple-600 text-white p-4 flex flex-row items-center justify-between space-y-0 cursor-grab active:cursor-grabbing"
+              onMouseDown={handleMouseDown}
+            >
+              <div className="flex flex-col">
+                <CardTitle className="text-lg">Campos não identificados</CardTitle>
+                <p className="text-xs text-purple-100 mt-1">Dite ou digite os dados faltantes abaixo (Arraste para mover)</p>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-white hover:bg-purple-700 h-8 w-8 rounded-full" 
+                onClick={() => setShowMissingModal(false)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4 bg-slate-50">
+              <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {missingFields.map(field => (
+                  <div 
+                    key={field.key} 
+                    className="flex flex-col p-3 bg-white rounded-xl border border-slate-200 shadow-sm hover:border-purple-300 transition-all group"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {dynamicFields[field.key]?.trim() ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-500 animate-in zoom-in duration-300" />
+                        ) : (
+                          <div className="h-4 w-4 rounded-full border-2 border-slate-300" />
+                        )}
+                        <span className="text-sm font-bold text-slate-700 uppercase tracking-tight">{field.label}</span>
+                      </div>
+                      <FieldMicrophone 
+                        fieldKey={field.key} 
+                        label={field.label} 
+                        onUpdate={(val) => {
+                          // A IA já retorna DD/MM/AAAA, o handleFieldTextChange normaliza se necessário
+                          handleFieldTextChange(field.key, val);
+                          setModifiedFields(prev => new Set(prev).add(field.key));
+                        }} 
+                      />
+                    </div>
+                    
+                    {field.type === 'date' ? (
+                      <div className="relative">
+                        <Input 
+                          type="text" 
+                          placeholder="DD/MM/AAAA"
+                          className="h-9 text-sm border-slate-200 focus:ring-purple-500 pr-10"
+                          value={dynamicFields[field.key] || ''}
+                          onChange={(e) => {
+                            const formatted = formatDateInput(e.target.value);
+                            handleFieldTextChange(field.key, formatted);
+                          }}
+                        />
+                        <CalendarIcon className="absolute right-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
+                      </div>
+                    ) : (
+                      <Textarea 
+                        placeholder={`Descreva ${field.label.toLowerCase()}...`}
+                        className="min-h-[60px] text-sm border-slate-200 focus:ring-purple-500 resize-none"
+                        value={dynamicFields[field.key] || ''}
+                        onChange={(e) => handleFieldTextChange(field.key, e.target.value)}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              <div className="pt-2 flex flex-col gap-2">
+                <div className="text-[10px] text-center text-slate-400 uppercase font-bold tracking-widest">
+                  {missingFields.filter(f => !dynamicFields[f.key]?.trim()).length} campo(s) pendente(s)
+                </div>
+                <Button 
+                  className="w-full bg-purple-600 hover:bg-purple-700 shadow-lg text-white font-bold h-11 transition-all active:scale-95" 
+                  onClick={() => {
+                    setShowMissingModal(false);
+                    toast.success('Laudo preenchido! Agora você pode clicar em "Processar com IA" para o refinamento final.');
+                  }}
+                >
+                  CONCLUIR LAUDO
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>;
 };
 export default ResultadoExames;

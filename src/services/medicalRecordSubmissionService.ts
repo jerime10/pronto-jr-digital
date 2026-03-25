@@ -135,115 +135,20 @@ export async function submitMedicalRecordToWebhook(params: SubmitMedicalRecordPa
       webhookResponse = { success: true };
     }
 
-    // Determinar a URL correta do documento
+    // Determinar a URL correta do documento (NOVO: Agora centralizado no PDF Premium)
     const medicalRecordId = params.medicalRecord.id;
+    let storageUrl = params.medicalRecord.file_url_storage || '';
     
-    // Preferir URL retornada pelo webhook quando disponível
-    const webhookFileUrl = (webhookData && (
-      (webhookData as any).fileUrl ||
-      (webhookData as any).file_url ||
-      (webhookData as any).publicUrl ||
-      (webhookData as any).url
-    )) as string | undefined;
-    
-    // Inicializar storageUrl com URL do webhook se disponível e válida
-    let storageUrl = webhookFileUrl && typeof webhookFileUrl === 'string' && webhookFileUrl.includes('/storage/')
-      ? webhookFileUrl
-      : '';
-    
-    // SEMPRE buscar o arquivo REAL no Storage para obter a URL correta
-    // Isso evita problemas de formatação de telefone (ex: 91986209143 vs (91)98620-9143)
-    try {
-      const { data: files, error: listError } = await supabase.storage
-        .from('documents')
-        .list('prontuarios', {
-          limit: 100,
-          sortBy: { column: 'created_at', order: 'desc' }
-        });
-      
-      if (!listError && files && files.length > 0) {
-        // Procurar arquivo que contenha o medicalRecordId no nome
-        const foundFile = files.find(file => 
-          file.name.includes(medicalRecordId) && file.name.endsWith('.pdf')
-        );
-        
-        if (foundFile) {
-          const { data: urlData } = supabase.storage
-            .from('documents')
-            .getPublicUrl(`prontuarios/${foundFile.name}`);
-          
-          if (urlData?.publicUrl) {
-            storageUrl = urlData.publicUrl;
-            console.log('URL real do arquivo encontrada no Storage:', storageUrl);
-          }
-        } else {
-          console.log('Arquivo não encontrado no storage ainda para ID:', medicalRecordId);
-          // Se não encontrou, deixar vazio para tentar novamente depois
-          if (!storageUrl) {
-            storageUrl = '';
-          }
-        }
-      }
-    } catch (storageError) {
-      console.error('Erro ao buscar arquivo no Storage:', storageError);
-    }
-    
-    console.log('URL do documento definida para persistência:', storageUrl);
+    console.log('URL do documento (Premium) preservada:', storageUrl);
 
-    // Update medical_records table with the file URL
-    try {
-      console.log('Atualizando medical_records com file_url_storage...');
-      
-      const { error: updateError } = await supabase
-        .from('medical_records')
-        .update({ file_url_storage: storageUrl })
-        .eq('id', medicalRecordId);
-      
-      if (updateError) {
-        console.error('Erro ao atualizar medical_records:', updateError);
-        throw updateError;
-      }
-      
-      console.log('URL salva com sucesso na tabela medical_records');
-      
-      // Update exam_observations with processed observacoes if available
-      if (webhookData?.individual_fields?.observacoes) {
-        console.log('🔄 [OBSERVACOES] Atualizando exam_observations com dados processados do N8N...');
-        console.log('🔄 [OBSERVACOES] Valor original:', params.medicalRecord.exam_observations);
-        console.log('🔄 [OBSERVACOES] Valor processado:', webhookData.individual_fields.observacoes);
-        
-        try {
-          const { error: observacoesUpdateError } = await supabase
-            .from('medical_records')
-            .update({ exam_observations: webhookData.individual_fields.observacoes })
-            .eq('id', medicalRecordId);
-          
-          if (observacoesUpdateError) {
-            console.error('❌ [OBSERVACOES] Erro ao atualizar exam_observations:', observacoesUpdateError);
-          } else {
-            console.log('✅ [OBSERVACOES] exam_observations atualizado com sucesso!');
-          }
-        } catch (observacoesError) {
-          console.error('❌ [OBSERVACOES] Erro ao processar atualização de observações:', observacoesError);
-        }
-      } else {
-        console.log('⚠️ [OBSERVACOES] Nenhuma observação processada encontrada na resposta do webhook');
-        console.log('⚠️ [OBSERVACOES] webhookData:', webhookData);
-        console.log('⚠️ [OBSERVACOES] individual_fields:', webhookData?.individual_fields);
-      }
-      
-      toast.success('Prontuário enviado e processado com sucesso!');
-      
-    } catch (storageError) {
-      console.error('Erro ao salvar URL na medical_records:', storageError);
-      toast.warning('Prontuário enviado, mas houve erro ao salvar a URL. Verifique novamente em alguns instantes.');
-      
-      // Não falhar a operação por causa deste erro
-    }
+    // O sistema antigo de buscar arquivo no Storage e atualizar medical_records foi removido
+    // pois a Edge Function generate-pdf-premium já faz isso de forma mais eficiente e correta.
+    
+    toast.success('Dados sincronizados com sucesso!');
 
     return {
       success: true,
-      message: 'Prontuário gerado e processado com sucesso!',
+      message: 'Prontuário processado com sucesso!',
       document: {
         fileUrl: storageUrl,
         documentType: 'prontuario'

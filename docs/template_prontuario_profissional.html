@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prontuário Médico Profissional</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --bg-light: #f8fafc;
+            --border-color: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --accent-medical: #10b981;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            line-height: 1.5;
+            background-color: #f1f5f9;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 50px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Marca d'água sutil */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 400px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23f1f5f9"><path d="M11.25 4.5v1.5m0 12v1.5m-6-6h1.5m12 0h1.5m-5.255-5.255l1.06-1.06m-9.04 9.04l1.06-1.06m9.04 0l-1.06-1.06m-9.04-9.04l-1.06 1.06M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM12 16.5c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Z" /></svg>') no-repeat center;
+            opacity: 0.4;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--accent-medical);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background-color: var(--accent-medical);
+            color: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .clinic-info h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-main);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .clinic-info p {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .document-title {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .document-title h2 {
+            font-size: 18px;
+            color: white;
+            background-color: var(--text-main);
+            display: inline-block;
+            padding: 8px 30px;
+            border-radius: 50px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--accent-medical);
+            padding-left: 12px;
+        }
+
+        .section-header h3 {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+            text-transform: uppercase;
+        }
+
+        .patient-card {
+            background-color: var(--bg-light);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .data-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .data-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .data-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .content-box {
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            min-height: 60px;
+            background-color: white;
+            white-space: pre-wrap;
+        }
+
+        .footer {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            position: relative;
+            z-index: 1;
+        }
+
+        .footer-info {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .signature-area {
+            text-align: center;
+            width: 250px;
+        }
+
+        .signature-line {
+            border-top: 1px solid var(--text-main);
+            margin-bottom: 5px;
+        }
+
+        .professional-name {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .professional-id {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                max-width: 100%;
+                padding: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="35" height="35">
+                        <path d="M11.25 4.5v1.5m0 12v1.5m-6-6h1.5m12 0h1.5m-5.255-5.255l1.06-1.06m-9.04 9.04l1.06-1.06m9.04 0l-1.06-1.06m-9.04-9.04l-1.06 1.06M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM12 16.5c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Z" />
+                    </svg>
+                </div>
+                <div class="clinic-info">
+                    <h1>Consultório JRS</h1>
+                    <p>Cuidados Especializados em Enfermagem</p>
+                </div>
+            </div>
+            <div class="footer-info" style="text-align: right;">
+                <p>Data: 24/03/2026</p>
+                <p>Hora: 14:17</p>
+            </div>
+        </header>
+
+        <div class="document-title">
+            <h2>Prontuário Médico</h2>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h3>Dados do Paciente</h3>
+            </div>
+            <div class="patient-card">
+                <div class="data-item">
+                    <span class="data-label">Nome Completo</span>
+                    <span class="data-value">KETONY KETH CORDEIRO DA SILVA</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Cartão SUS</span>
+                    <span class="data-value">919.8219.9971</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Telefone</span>
+                    <span class="data-value">(92) 9XXXX-XXXX</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Prontuário ID</span>
+                    <span class="data-value">#565e0a98</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h3>Queixa Principal</h3>
+            </div>
+            <div class="content-box">
+                Apresentou uma queda com 33 semanas de gestação. Relata dor lombar leve após o ocorrido. Sem sangramentos ou perda de líquido.
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h3>Antecedentes</h3>
+            </div>
+            <div class="content-box">
+                G1P0A0. Sem doenças crônicas relatadas. Pré-natal em dia com 6 consultas realizadas.
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h3>Alergias</h3>
+            </div>
+            <div class="content-box">
+                Nenhuma alergia medicamentosa ou alimentar relatada até o momento.
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="footer-info">
+                <p>Documento gerado eletronicamente via Pronto Jr Digital.</p>
+                <p>A autenticidade pode ser confirmada via QR Code no rodapé original.</p>
+            </div>
+            <div class="signature-area">
+                <div class="signature-line"></div>
+                <p class="professional-name">JERIME SILVA</p>
+                <p class="professional-id">Enfermeiro Obstetra - COREN-AM 123.456</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

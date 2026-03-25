@@ -234,3 +234,61 @@ export const calculateDUMFromIG = (ig: string, referenceDate?: Date): string | n
     return null;
   }
 };
+
+/**
+ * Converte uma data em linguagem natural (ex: "11 de maio de 2026") para DD/MM/AAAA
+ */
+export const parseNaturalDate = (text: string): string => {
+  if (!text) return "";
+  
+  // Normalizar: remover pontos extras, vírgulas e espaços excessivos
+  let cleanText = text.toLowerCase().trim()
+    .replace(/\.{2,}/g, '') // Remove reticências (...)
+    .replace(/[.,]$/g, '')  // Remove ponto ou vírgula final
+    .replace(/,/g, ' ')      // Substitui vírgulas por espaços
+    .replace(/\./g, '/');    // Substitui pontos por barras (ex: 8.05.2026 -> 8/05/2026)
+  
+  // Se após a troca de pontos por barras já estiver no formato correto, retorna
+  if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(cleanText)) {
+    const parts = cleanText.split('/');
+    const d = parts[0].padStart(2, '0');
+    const m = parts[1].padStart(2, '0');
+    let y = parts[2];
+    if (y.length === 2) y = "20" + y;
+    return `${d}/${m}/${y}`;
+  }
+
+  const months: Record<string, string> = {
+    janeiro: "01", fevereiro: "02", marco: "03", março: "03", abril: "04", maio: "05", junho: "06",
+    julho: "07", agosto: "08", setembro: "09", outubro: "10", novembro: "11", dezembro: "12"
+  };
+
+  // Padrão: 11 de maio de 2026 ou 11 maio 26 ou 8 de 5 de 2026
+  const match = cleanText.match(/(\d{1,2})\s*(?:de|\/)?\s*([a-zçã\d]{1,10})\s*(?:de|\/)?\s*(\d{2,4})/);
+  if (match) {
+    const day = match[1].padStart(2, '0');
+    const monthPart = match[2];
+    let year = match[3];
+    if (year.length === 2) year = "20" + year;
+    
+    // Tentar converter nome do mês
+    let month = months[monthPart];
+    
+    // Se não for nome, verificar se é número (ex: "8 de 5 de 2026")
+    if (!month && /^\d{1,2}$/.test(monthPart)) {
+      month = monthPart.padStart(2, '0');
+    }
+    
+    if (month) {
+      return `${day}/${month}/${year}`;
+    }
+  }
+
+  // Padrão: apenas números (ex: 11052026)
+  const numbers = cleanText.replace(/\D/g, '');
+  if (numbers.length === 8) {
+    return `${numbers.slice(0, 2)}/${numbers.slice(2, 4)}/${numbers.slice(4, 8)}`;
+  }
+
+  return text;
+};

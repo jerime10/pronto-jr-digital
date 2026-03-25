@@ -97,22 +97,56 @@ export const useAIProcessing = () => {
       
       if (error) {
         console.error('Erro na função Edge Function:', error);
-        toast.error(`Erro ao processar com IA: ${error.message}`);
+        
+        // Try to extract the custom error message we send from the Edge Function
+        let errorMessage = error.message;
+        
+        try {
+          // FunctionsHttpError often contains the body response in its details or context
+          // However, supabase-js v2 might throw an error object where the body is not easily accessible
+          // If we received data but success is false, we can use that error
+          if (data && data.error) {
+            errorMessage = data.error;
+          } else if (error.context && error.context.json) {
+            const errorJson = await error.context.json();
+            if (errorJson && errorJson.error) {
+              errorMessage = errorJson.error;
+            }
+          }
+        } catch (e) {
+          console.error('Erro ao extrair detalhes do erro:', e);
+        }
+
+        // Se a mensagem ainda for genérica, damos uma dica mais clara
+        if (errorMessage.includes('non-2xx status code')) {
+          errorMessage = 'O modelo de Inteligência Artificial recusou a requisição. Isso pode ocorrer se o modelo escolhido for incompatível, estiver fora do ar ou se houver falta de créditos na sua conta OpenRouter.';
+        }
+
+        toast.error(`Falha na Inteligência Artificial: ${errorMessage}`, {
+          duration: 6000,
+        });
+        return;
+      }
+      
+      if (data && !data.success) {
+        console.error('Erro retornado pela IA:', data.error);
+        toast.error(`Falha na Inteligência Artificial: ${data.error || 'Erro desconhecido'}`, {
+          duration: 6000,
+        });
         return;
       }
       
       console.log('Resposta da IA:', data);
       
-      if (data?.success && data?.processed_content) {
+      // Consider success if we have EITHER processed_content OR individual_fields
+      const hasProcessedContent = Boolean(data?.processed_content);
+      const hasIndividualFields = Boolean(data?.individual_fields && Object.keys(data.individual_fields).length > 0);
+      
+      if (data?.success && (hasProcessedContent || hasIndividualFields)) {
         toast.success('Conteúdo processado com IA com sucesso!');
         
-        // Verificar se há campos individuais na resposta
-        const individualFields = data.individual_fields || null;
-        if (individualFields) {
-          console.log('Campos individuais recebidos:', individualFields);
-        }
-        
-        onSuccess(data.processed_content, individualFields);
+        // Pass empty string as fallback for processedContent if only individual_fields exist
+        onSuccess(data.processed_content || '', data.individual_fields || null);
       } else {
         toast.error('Erro: Resposta inválida da IA');
         console.error('Resposta inválida da IA:', data);

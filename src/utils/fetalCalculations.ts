@@ -96,13 +96,22 @@ export function parseGestationalAge(ig: string): number | null {
   const cleaned = ig.trim().toLowerCase();
   console.log('📅 [PARSE-IG] Limpo:', cleaned);
   
-  // Padrão 1: "32s 4d" ou "32S4D"
+  // Padrão 1: "32s 4d" ou "32S4D" ou "32s0d" ou "32s"
   let match = cleaned.match(/(\d+)\s*s\s*(\d+)\s*d/i);
   if (match) {
     const weeks = parseInt(match[1]);
     const days = parseInt(match[2]);
     const result = weeks + (days / 7);
-    console.log('✅ [PARSE-IG] Padrão "32s 4d" encontrado:', result);
+    console.log('✅ [PARSE-IG] Padrão "XSXD" encontrado:', result);
+    return result;
+  }
+  
+  // Padrão 1.1: apenas semanas com "s" (ex: "32s")
+  match = cleaned.match(/(\d+)\s*s/i);
+  if (match) {
+    const weeks = parseInt(match[1]);
+    const result = weeks;
+    console.log('✅ [PARSE-IG] Padrão "XS" encontrado:', result);
     return result;
   }
   

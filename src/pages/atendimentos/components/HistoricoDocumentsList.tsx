@@ -146,7 +146,7 @@ export const HistoricoDocumentsList: React.FC = () => {
             {filteredDocuments.map((doc) => (
               <HistoricoDocumentCard
                 key={doc.id}
-                document={doc}
+                doc={doc}
                 onRefresh={refetch}
               />
             ))}

@@ -107,25 +107,34 @@ export const DraftManager: React.FC<DraftManagerProps> = ({
   }, [drafts, searchTerm, sortBy]);
 
   return (
-    <div className="flex gap-2">
-      {/* Botão para Salvar Rascunho (direto, sem modal) */}
+    <div className="flex items-center gap-1">
+      {/* Botão para Salvar Rascunho */}
       <Button
-        variant="outline"
+        variant="ghost"
         size="sm"
         disabled={!canSaveDraft || isSavingDraft}
         onClick={handleSaveDraft}
-        className="flex items-center gap-2"
+        className="text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg px-3 h-8 flex items-center gap-1.5 transition-all active:scale-95 text-xs"
       >
-        <Save className="w-4 h-4" />
-        {isSavingDraft ? 'Salvando...' : 'Salvar Rascunho'}
+        <Save className="w-3.5 h-3.5" />
+        <span className="font-bold hidden xl:inline">{isSavingDraft ? 'Salvando...' : 'Salvar Rascunho'}</span>
       </Button>
 
       {/* Dialog para Gerenciar Rascunhos */}
       <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Rascunhos {drafts.length > 0 && `(${drafts.length})`}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg px-3 h-8 flex items-center gap-1.5 transition-all active:scale-95 text-xs"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span className="font-bold hidden xl:inline">Rascunhos</span>
+            {drafts.length > 0 && (
+              <Badge variant="secondary" className="bg-slate-200 text-slate-700 hover:bg-slate-200 rounded-full px-1 h-4 min-w-[16px] flex items-center justify-center text-[9px] font-black">
+                {drafts.length}
+              </Badge>
+            )}
           </Button>
         </DialogTrigger>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">

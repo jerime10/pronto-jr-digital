@@ -5,6 +5,11 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FormState } from './useFormData';
 import { submitMedicalRecordToWebhook } from '@/services/medicalRecordSubmissionService';
+import { sendAtendimentoToN8N } from '@/services/n8nWebhookService';
+import { generatePremiumPdf } from '@/services/pdfGenerationService';
+import { PREMIUM_PRONTUARIO_TEMPLATE } from '@/templates/premiumProntuario';
+import { mapAtendimentoToTemplateData } from '../utils/templateMapper';
+import { fetchSiteSettings } from '@/services/siteSettingsService';
 
 // Types for this hook
 interface Patient {
@@ -39,6 +44,8 @@ interface UseSaveActionsProps {
   selectedModelTitle?: string | null;
   appointmentId?: string;
   dynamicFields?: Record<string, string>;
+  medicalRecordId?: string;
+  existingRecord?: any;
 }
 
 export const useSaveActions = ({
@@ -49,10 +56,11 @@ export const useSaveActions = ({
   resetForm,
   selectedModelTitle,
   appointmentId,
-  dynamicFields
+  dynamicFields,
+  medicalRecordId,
+  existingRecord
 }: UseSaveActionsProps) => {
   const [isSaving, setIsSaving] = useState(false);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isSubmittingRecord, setIsSubmittingRecord] = useState(false);
   const navigate = useNavigate();
 
@@ -122,6 +130,20 @@ export const useSaveActions = ({
     }
   };
 
+  // Função auxiliar robusta para converter datas para ISO string sem fallback perigoso
+  const getSafeDateISO = (val: any): string | null => {
+    if (!val) return null;
+    try {
+      if (val instanceof Date) {
+        return isNaN(val.getTime()) ? null : val.toISOString();
+      }
+      const date = new Date(val);
+      return isNaN(date.getTime()) ? (typeof val === 'string' ? val : null) : date.toISOString();
+    } catch {
+      return typeof val === 'string' ? val : null;
+    }
+  };
+
   const handleSalvarAtendimento = async () => {
     // Debug logs para rastrear o problema do UUID
     console.log('🔍 handleSalvarAtendimento - pacienteSelecionado:', pacienteSelecionado);
@@ -166,8 +188,8 @@ export const useSaveActions = ({
         exam_observations: form.observacoesExames,
         exam_results: form.resultadoExames,
         images_data: form.images,
-        attendance_start_at: form.dataInicioAtendimento?.toISOString(),
-        attendance_end_at: form.dataFimAtendimento?.toISOString() || null,
+        attendance_start_at: getSafeDateISO(form.dataInicioAtendimento),
+        attendance_end_at: getSafeDateISO(form.dataFimAtendimento),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -188,20 +210,142 @@ export const useSaveActions = ({
     }
   };
 
-  const handleGerarPDF = async () => {
+  const generateAndSavePremiumPDF = async (isPreview: boolean = false, forcedId?: string) => {
+    // Garantir que temos um ID válido antes de prosseguir
+    const finalId = forcedId || medicalRecordId || existingRecord?.id || crypto.randomUUID();
+    
+    if (!finalId || finalId === 'undefined' || finalId === 'null') {
+      console.error('❌ [PDF] ID inválido detectado:', finalId);
+      throw new Error('Identificador do prontuário inválido. Por favor, reinicie o atendimento.');
+    }
+
+    console.log(`🚀 [PDF] Iniciando geração (Preview: ${isPreview}, ID: ${finalId})...`);
+    console.log('🔍 [PDF] pacienteSelecionado:', pacienteSelecionado?.id);
+    console.log('🔍 [PDF] profissionalAtual:', profissionalAtual?.id);
+
     if (!pacienteSelecionado) {
+      console.warn('⚠️ [PDF] Geração abortada: Paciente não selecionado');
       toast.error('Paciente deve estar selecionado');
-      return;
+      return null;
+    }
+
+    if (!profissionalAtual) {
+      console.warn('⚠️ [PDF] Geração abortada: Profissional não identificado');
+      toast.error('Profissional não identificado. Faça login novamente.');
+      return null;
     }
 
     try {
-      setIsGeneratingPDF(true);
-      toast.info('Funcionalidade de geração de PDF não implementada');
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
-      toast.error('Erro ao gerar PDF. Tente novamente.');
-    } finally {
-      setIsGeneratingPDF(false);
+      // 1. Buscar configurações da clínica para logos e endereços
+      const siteSettings = await fetchSiteSettings();
+
+      // 1.1 Buscar detalhes completos do profissional
+      const { data: profDetails } = await (supabase as any)
+        .from('professionals')
+        .select('*')
+        .eq('custom_user_id', profissionalAtual.id)
+        .maybeSingle();
+      
+      const professionalToUse = profDetails || {
+        ...profissionalAtual,
+        name: profissionalAtual.nome,
+        specialty: 'Enfermeiro Obstetra',
+        license_type: 'Coren',
+        license_number: '542061'
+      };
+      
+      // 1.2 Buscar registro existente se houver ID para garantir datas corretas
+      let finalExistingRecord = existingRecord;
+      if (finalId && !finalExistingRecord) {
+        const { data: fetchedRecord } = await supabase
+          .from('medical_records')
+          .select('*')
+          .eq('id', finalId)
+          .maybeSingle();
+        if (fetchedRecord) finalExistingRecord = fetchedRecord;
+      }
+
+      // Lógica de datas segura: Prioriza SEMPRE o formulário se houver valor
+      const attendanceStart = getSafeDateISO(form.dataInicioAtendimento) || 
+                             finalExistingRecord?.attendance_start_at || 
+                             finalExistingRecord?.created_at || 
+                             new Date().toISOString();
+        
+      const attendanceEnd = getSafeDateISO(form.dataFimAtendimento) || 
+                           finalExistingRecord?.attendance_end_at || 
+                           null;
+
+      console.log('📅 [PDF] Datas capturadas para o banco:', { attendanceStart, attendanceEnd });
+
+      // 2. Preparar dados do prontuário
+      const medicalRecord = {
+        ...finalExistingRecord,
+        id: finalId, // ID único garantido
+        patient_id: pacienteSelecionado.id,
+        professional_id: professionalToUse.id || profissionalAtual.id,
+        main_complaint: form.queixaPrincipal,
+        history: form.antecedentes,
+        allergies: form.alergias,
+        evolution: form.evolucao,
+        custom_prescription: form.prescricaoPersonalizada,
+        exam_requests: form.examesSelecionados,
+        attendance_start_at: attendanceStart,
+        attendance_end_at: attendanceEnd,
+        images_data: form.images,
+        updated_at: new Date().toISOString()
+      };
+
+      // 2.1 Salvar no banco APENAS se não for preview
+      if (!isPreview) {
+        console.log('💾 [PDF] Salvando estado atual no banco (OFFICIAL)...');
+        const { error: upsertError } = await supabase
+          .from('medical_records')
+          .upsert({
+            ...finalExistingRecord,
+            id: finalId,
+            patient_id: medicalRecord.patient_id,
+            professional_id: medicalRecord.professional_id,
+            main_complaint: medicalRecord.main_complaint,
+            history: medicalRecord.history,
+            allergies: medicalRecord.allergies,
+            evolution: medicalRecord.evolution,
+            custom_prescription: medicalRecord.custom_prescription,
+            exam_requests: medicalRecord.exam_requests as any,
+            attendance_start_at: medicalRecord.attendance_start_at,
+            attendance_end_at: medicalRecord.attendance_end_at,
+            images_data: medicalRecord.images_data as any,
+            file_url_storage: finalExistingRecord?.file_url_storage || null,
+            updated_at: medicalRecord.updated_at
+          });
+
+        if (upsertError) {
+          console.error('❌ [PDF] Erro ao salvar registro antes do PDF:', upsertError);
+          toast.error('Erro ao salvar prontuário.');
+          return null;
+        }
+      }
+
+      // 3. Mapear dados para o template
+      const templateData = mapAtendimentoToTemplateData(
+        medicalRecord,
+        pacienteSelecionado,
+        professionalToUse,
+        { ...dynamicFields, modelTitle: selectedModelTitle || 'LAUDO DE EXAME' },
+        siteSettings
+      );
+      
+      // 4. Chamar a Edge Function (Premium)
+      console.log('📡 [PDF] Enviando para Edge Function - ID Final:', finalId);
+      const result = await generatePremiumPdf({
+        medicalRecordId: String(finalId),
+        data: templateData,
+        isPreview: isPreview
+      });
+
+      return result;
+    } catch (error: any) {
+      console.error('❌ [PDF] Erro crítico ao gerar PDF Premium:', error);
+      throw error;
     }
   };
 
@@ -313,20 +457,11 @@ export const useSaveActions = ({
         console.log('Usando profissional existente com ID:', professionalIdToUse);
       }
       
-      // Converter datas para ISO string se forem objetos Date
-      const attendanceStartAt = form.dataInicioAtendimento instanceof Date 
-        ? form.dataInicioAtendimento.toISOString()
-        : typeof form.dataInicioAtendimento === 'string' 
-          ? form.dataInicioAtendimento
-          : new Date(form.dataInicioAtendimento).toISOString();
-
-      const attendanceEndAt = form.dataFimAtendimento 
-        ? (form.dataFimAtendimento instanceof Date 
-           ? form.dataFimAtendimento.toISOString()
-           : typeof form.dataFimAtendimento === 'string'
-             ? form.dataFimAtendimento
-             : new Date(form.dataFimAtendimento).toISOString())
-        : null;
+      // Converter datas para ISO string de forma robusta e unificada
+      const attendanceStartAt = getSafeDateISO(form.dataInicioAtendimento) || new Date().toISOString();
+      const attendanceEndAt = getSafeDateISO(form.dataFimAtendimento);
+      
+      console.log('📅 [FINALIZAR] Datas finais para o banco:', { attendanceStartAt, attendanceEndAt });
       
       // Salvar no banco de dados com o ID correto do paciente e profissional
       console.log('Salvando prontuário no banco de dados...');
@@ -358,9 +493,30 @@ export const useSaveActions = ({
         }
       }
       
+      // 1. Garantir ID Único e Estável (Fonte Única da Verdade)
+      const finalId = medicalRecordId || existingRecord?.id || crypto.randomUUID();
+      console.log('🏁 [FINALIZAR] Usando ID único para o atendimento:', finalId);
+
+      // 1.1 Gerar o PDF Premium OFICIAL antes de concluir
+      // Isso garante que o documento final seja a versão nova e correta
+      toast.info('Gerando documento final...');
+      
+      // Passamos o isPreview como false para que a função atualize o banco
+      const pdfResult = await generateAndSavePremiumPDF(false, finalId);
+      
+      if (!pdfResult?.success) {
+        throw new Error('Falha ao gerar o documento PDF Premium. O atendimento não pode ser finalizado sem o documento.');
+      }
+
+      const finalFileUrl = pdfResult.publicUrl;
+      console.log('✅ [FINALIZAR] PDF Premium gerado e salvo:', finalFileUrl);
+
+      // 2. Salvar/Atualizar no banco (upsert) para concluir o atendimento
+      // O ANTIGO SISTEMA DE WEBHOOK FOI CANCELADO AQUI PARA ELIMINAR DUPLICIDADE
       const { data: savedRecord, error: saveError } = await supabase
         .from('medical_records')
-        .insert({
+        .upsert({
+          id: finalId, // Usando o ID estável garantido
           patient_id: patientIdToUse,
           professional_id: professionalIdToUse,
           appointment_id: appointmentId || null,
@@ -376,7 +532,9 @@ export const useSaveActions = ({
           images_data: imagesDataJson as any,
           attendance_start_at: attendanceStartAt,
           attendance_end_at: attendanceEndAt,
-          dum: dumValue
+          file_url_storage: finalFileUrl, // Link oficial do PDF Premium
+          dum: dumValue,
+          updated_at: new Date().toISOString()
         })
         .select(`
           *,
@@ -390,180 +548,54 @@ export const useSaveActions = ({
         throw new Error(`Erro ao salvar prontuário: ${saveError.message}`);
       }
 
-      if (!savedRecord) {
-        throw new Error('Falha ao salvar o prontuário no banco de dados');
-      }
-
-      console.log('Prontuário salvo no banco:', savedRecord);
-
-      // Preparar dados completos para envio via webhook
-      const medicalRecordData: any = {
-        id: savedRecord.id,
-        patient_id: savedRecord.patient_id,
-        professional_id: savedRecord.professional_id,
-        attendant_id: savedRecord.attendant_id || null,
-        appointment_id: savedRecord.appointment_id || appointmentId || null,
-        main_complaint: savedRecord.main_complaint,
-        history: savedRecord.history,
-        allergies: savedRecord.allergies,
-        evolution: savedRecord.evolution,
-        custom_prescription: savedRecord.custom_prescription,
-        prescription_model_id: savedRecord.prescription_model_id,
-        exam_requests: Array.isArray(savedRecord.exam_requests) 
-          ? savedRecord.exam_requests.map(req => String(req))
-          : savedRecord.exam_requests ? [String(savedRecord.exam_requests)] : [],
-        exam_observations: savedRecord.exam_observations,
-        exam_results: savedRecord.exam_results,
-        attendance_start_at: savedRecord.attendance_start_at,
-        attendance_end_at: savedRecord.attendance_end_at,
-        created_at: savedRecord.created_at,
-        updated_at: savedRecord.updated_at,
-        patient: {
-          name: pacienteSelecionado.name,
-          sus: pacienteSelecionado.sus,
-          phone: pacienteSelecionado.phone,
-          address: pacienteSelecionado.address,
-          gender: pacienteSelecionado.gender,
-          date_of_birth: pacienteSelecionado.date_of_birth
-        },
-        professional: {
-          name: profissionalAtual.nome,
-          specialty: 'Enfermeiro Obstetra',
-          license_type: 'Coren',
-          license_number: '542061'
-        }
-      };
-
-      // ===== VALIDAÇÃO CRÍTICA: BLOQUEAR ENVIO SEM MODELO SELECIONADO =====
-      console.log('🔍 [VALIDATION] ===== VALIDAÇÃO DE ENVIO =====');
-      console.log('🔍 [VALIDATION] selectedModelTitle:', selectedModelTitle);
-      console.log('🔍 [VALIDATION] dynamicFields presentes:', dynamicFields ? Object.keys(dynamicFields).length : 0);
+      console.log('✅ [FINALIZAR] Prontuário concluído com sucesso:', savedRecord);
       
-      if (!selectedModelTitle || selectedModelTitle.trim() === '') {
-        console.error('❌ [VALIDATION] ERRO: Nenhum modelo de exame selecionado!');
-        toast.error("Por favor, selecione um modelo de exame antes de finalizar o atendimento.");
-        setIsSubmittingRecord(false);
-        return;
-      }
-      
-      console.log('✅ [VALIDATION] Modelo selecionado válido:', selectedModelTitle);
-      
-      // FILTRAR campos dinâmicos para enviar apenas os do modelo selecionado
-      let filteredDynamicFields = dynamicFields || {};
-      
-      // Incluir campo observacoes se estiver preenchido
-      if (form.observacoesExames && form.observacoesExames.trim()) {
-        filteredDynamicFields = {
-          ...filteredDynamicFields,
-          observacoes: form.observacoesExames
+      // 2.2 Enviar para o n8n conforme solicitado pelo usuário
+      try {
+        const siteSettings = await fetchSiteSettings();
+        const n8nPayload = {
+          nome: savedRecord.patients?.name || 'Não informado',
+          telefone: savedRecord.patients?.phone || 'Não informado',
+          id_pdf: savedRecord.id,
+          url_pdf: finalFileUrl,
+          nome_profissional: savedRecord.professionals?.name || 'Não informado',
+          nome_consultorio: siteSettings?.clinicName || 'Consultório JRS',
+          data_inicio: savedRecord.attendance_start_at || new Date().toISOString(),
+          data_fim: savedRecord.attendance_end_at || new Date().toISOString()
         };
-        console.log('✅ [OBSERVACOES] Campo observacoes adicionado aos dynamicFields:', form.observacoesExames);
-      }
-      
-      if (selectedModelTitle && dynamicFields && Object.keys(dynamicFields).length > 0) {
-        console.log('🔍 [FILTER] ===== FILTRANDO CAMPOS DINÂMICOS =====');
-        console.log('🔍 [FILTER] Modelo selecionado:', selectedModelTitle);
-        console.log('🔍 [FILTER] Campos antes da filtragem:', Object.keys(dynamicFields));
         
-        try {
-          // Buscar campos válidos do modelo selecionado
-          const { data: validFields, error: fieldsError } = await supabase
-            .from('individual_field_templates')
-            .select('field_key')
-            .eq('model_name', selectedModelTitle);
-
-          if (fieldsError) {
-            console.error('❌ [FILTER] Erro ao buscar campos válidos:', fieldsError);
-          } else if (validFields && validFields.length > 0) {
-            const validFieldKeys = new Set(validFields.map(f => f.field_key));
-            console.log('✅ [FILTER] Campos válidos do modelo:', Array.from(validFieldKeys));
-            
-            // Filtrar apenas campos válidos, mas sempre manter o campo observacoes se existir
-            filteredDynamicFields = Object.entries(filteredDynamicFields)
-              .filter(([key]) => validFieldKeys.has(key) || key === 'observacoes')
-              .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
-            
-            console.log('✅ [FILTER] Campos após filtragem:', Object.keys(filteredDynamicFields));
-            console.log('✅ [FILTER] Total de campos filtrados:', Object.keys(filteredDynamicFields).length);
-          } else {
-            console.log('⚠️ [FILTER] Nenhum campo válido encontrado, mantendo todos');
-          }
-        } catch (error) {
-          console.error('❌ [FILTER] Erro ao filtrar campos:', error);
-        }
-        
-        console.log('🔍 [FILTER] ===== FIM DA FILTRAGEM =====');
-      } else {
-        // Se não há modelo selecionado ou campos dinâmicos, ainda incluir observacoes se existir
-        if (form.observacoesExames && form.observacoesExames.trim()) {
-          filteredDynamicFields = {
-            ...filteredDynamicFields,
-            observacoes: form.observacoesExames
-          };
-          console.log('✅ [OBSERVACOES] Campo observacoes adicionado (sem filtragem):', form.observacoesExames);
-        }
+        console.log('📤 [FINALIZAR] Enviando para n8n...', n8nPayload);
+        await sendAtendimentoToN8N(n8nPayload);
+      } catch (n8nError) {
+        console.error('Erro ao enviar para o n8n:', n8nError);
+        // Não lançamos erro aqui para não travar a finalização se o n8n falhar
       }
-
-      // Enviar via webhook com dados completos e campos filtrados
-      console.log('📋 [WEBHOOK] ===== ENVIANDO PARA N8N =====');
-      console.log('📋 [WEBHOOK] selectedModelTitle:', selectedModelTitle);
-      console.log('📋 [WEBHOOK] selectedModelTitle LENGTH:', selectedModelTitle?.length);
-      console.log('📋 [WEBHOOK] selectedModelTitle TRIM:', selectedModelTitle?.trim());
-      console.log('📋 [WEBHOOK] dynamicFields originais:', dynamicFields ? Object.keys(dynamicFields).length : 0);
-      console.log('📋 [WEBHOOK] dynamicFields filtrados:', Object.keys(filteredDynamicFields).length);
-      console.log('📋 [WEBHOOK] Campos filtrados KEYS:', Object.keys(filteredDynamicFields));
-      console.log('📋 [WEBHOOK] Campos filtrados VALUES:', filteredDynamicFields);
       
-      const webhookResult = await submitMedicalRecordToWebhook({
-        medicalRecord: medicalRecordData,
-        images: form.images,
-        selectedModelTitle: selectedModelTitle,
-        dynamicFields: filteredDynamicFields
-      });
-
-      if (!webhookResult.success) {
-        console.error('Erro no webhook:', webhookResult.error);
-        throw new Error(webhookResult.error || 'Erro ao enviar prontuário via webhook');
-      }
-
-      console.log('Prontuário enviado com sucesso via webhook:', webhookResult);
-      
-      // Atualizar status do agendamento para 'finalizado' se appointmentId estiver disponível
+      // 3. Atualizar status do agendamento para 'finalizado' se appointmentId estiver disponível
       if (appointmentId) {
         console.log('🔍 Atualizando status do agendamento para finalizado:', appointmentId);
         try {
-          const { error: updateError } = await supabase
+          await supabase
             .from('appointments')
             .update({ status: 'finalizado' })
             .eq('id', appointmentId);
-
-          if (updateError) {
-            console.error('Erro ao atualizar status do agendamento:', updateError);
-            // Não interrompe o fluxo, apenas loga o erro
-          } else {
-            console.log('Status do agendamento atualizado para finalizado com sucesso');
-          }
         } catch (error) {
           console.error('Erro ao atualizar status do agendamento:', error);
-          // Não interrompe o fluxo, apenas loga o erro
         }
       }
       
-      // Limpar dados temporários do localStorage após sucesso
+      // 4. Limpar dados temporários e finalizar
       clearLocalStorage();
-      
-      // Resetar o formulário após envio bem-sucedido
       resetForm();
+      toast.success(`Atendimento finalizado com sucesso! PDF Premium gerado.`);
       
-      toast.success(`Prontuário salvo e enviado com sucesso! ${form.images.length > 0 ? `${form.images.length} imagens incluídas.` : ''}`);
-      
-      // Navigate to medical records history page
+      // Navegar para o histórico
       navigate('/historico');
       
     } catch (error) {
-      console.error('Erro ao enviar prontuário:', error);
+      console.error('Erro ao finalizar atendimento:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      toast.error(`Erro ao enviar prontuário: ${errorMessage}`);
+      toast.error(`Erro ao finalizar atendimento: ${errorMessage}`);
     } finally {
       setIsSubmittingRecord(false);
     }
@@ -571,10 +603,8 @@ export const useSaveActions = ({
 
   return {
     isSaving,
-    isGeneratingPDF,
     isSubmittingRecord,
     handleSalvarAtendimento,
-    handleGerarPDF,
     handleSubmitMedicalRecord
   };
 };

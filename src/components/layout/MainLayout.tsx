@@ -189,7 +189,7 @@ const MainLayout: React.FC = () => {
         </header>
         
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
+        <main className={`flex-1 bg-muted/30 ${location.pathname.includes('/atendimento') ? 'p-0 overflow-hidden' : 'p-6 overflow-y-auto'}`}>
           <Outlet />
         </main>
       </div>

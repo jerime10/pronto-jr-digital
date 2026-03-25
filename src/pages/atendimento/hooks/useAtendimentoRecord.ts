@@ -9,13 +9,27 @@ export const useAtendimentoRecord = (id: string | undefined, isEditing: boolean)
   const { setActiveTab: setGlobalActiveTab } = useTabState();
   const [patientData, setPatientData] = useState<Patient | null>(null);
   
-  // Mock query for existing record when editing (since this is a pharmacy system)
+  // Query for existing record when editing
   const { data: existingRecord, isLoading: isLoadingRecord } = useQuery({
     queryKey: ['medical_record', id],
     queryFn: async () => {
       if (!id) return null;
-      // Return null since medical records don't exist in pharmacy system
-      return null;
+      
+      const { data, error } = await supabase
+        .from('medical_records')
+        .select(`
+          *,
+          paciente:patients(*)
+        `)
+        .eq('id', id)
+        .single();
+        
+      if (error) {
+        console.error('Erro ao buscar prontuário:', error);
+        return null;
+      }
+      
+      return data;
     },
     enabled: isEditing,
   });

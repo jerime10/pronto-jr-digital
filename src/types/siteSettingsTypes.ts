@@ -17,6 +17,12 @@ export interface SiteSettings {
   signatureProfessionalTitle: string | null;
   signatureProfessionalRegistry: string | null;
   
+  // Responsible Technician info (RT) (new)
+  rtSignatureData: string | null;
+  rtName: string | null;
+  rtTitle: string | null;
+  rtRegistry: string | null;
+  
   // Clinic settings
   clinicName: string;
   clinicAddress: string;
@@ -39,6 +45,15 @@ export interface SiteSettings {
   
   // PIX key (new)
   pixKey?: string | null;
+
+  // AI Configuration (new)
+  openrouterApiKey?: string | null;
+  openrouterModel?: string | null;
+  openaiApiKey?: string | null;
+  groqApiKey?: string | null;
+  promptQueixa?: string | null;
+  promptEvolucao?: string | null;
+  promptExames?: string | null;
 }
 
 // Theme settings input (used when updating theme)
@@ -68,6 +83,12 @@ export interface DocumentAssetsInput {
   signatureProfessionalName?: string | null;
   signatureProfessionalTitle?: string | null;
   signatureProfessionalRegistry?: string | null;
+  
+  // RT fields
+  rtSignatureData?: string | null;
+  rtName?: string | null;
+  rtTitle?: string | null;
+  rtRegistry?: string | null;
 }
 
 // Professional signature info (new)

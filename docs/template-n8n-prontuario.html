@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Prontuário Profissional</title>
+  <style>
+    /* ========================================
+       CONFIGURAÇÕES GERAIS DA PÁGINA
+       ======================================== */
+    
+    @page {
+      size: A4; 
+      margin: 0; 
+    }
+
+    body {
+      font-family: Arial, sans-serif; 
+      margin: 0; 
+      padding: 0; 
+      background-color: rgb(43, 62, 236); /* Cor de fundo visível apenas na web */
+    }
+
+    /* ========================================
+       ESTRUTURA BÁSICA DA PÁGINA
+       ======================================== */
+
+    .page {
+      position: relative; 
+      width: 210mm; 
+      height: 297mm; 
+      padding: 0; 
+      margin: 0 auto; 
+      background-color: rgb(130, 237, 162); /* Cor de fundo da página */
+      page-break-after: always; /* Garante que cada .page comece em uma nova página impressa */
+    }
+
+    .borda {
+      position: absolute; 
+      top: 20mm; 
+      left: 20mm; 
+      right: 20mm; 
+      bottom: 20mm; 
+      width: auto; 
+      height: auto; 
+      border: 1.5mm solid rgb(0, 12, 12); 
+      pointer-events: none; /* Para não interferir com cliques em elementos abaixo */
+      z-index: 5; 
+    }
+
+    /* ========================================
+       CABEÇALHO DA PÁGINA
+       ======================================== */
+
+    .cabecalho {
+      position: absolute; 
+      top: 20mm; 
+      left: 20mm; 
+      right: 20mm; 
+      width: auto; 
+      height: 35mm; 
+      background-color: rgb(239, 242, 245); 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: center; 
+      align-items: center; 
+      color: rgb(3, 66, 25); 
+      z-index: 10; 
+    }
+
+    .titulo-consultorio {
+      font-size: 20pt; 
+      font-weight: bold; 
+      margin-bottom: 2mm; 
+      text-align: center; 
+    }
+
+    .subtitulo-consultorio {
+      font-size: 12pt; 
+      text-align: center; 
+    }
+
+    /* ========================================
+       ÁREA DAS INFORMAÇÕES PROFISSIONAIS (APENAS NA ÚLTIMA PÁGINA)
+       ======================================== */
+
+    .info-profissional-area {
+      position: absolute; 
+      bottom: 33mm; /* Acima do rodapé */
+      left: 20mm; 
+      right: 20mm; 
+      width: auto; 
+      height: 18mm; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: center; 
+      align-items: center; 
+      z-index: 10; 
+    }
+
+    .assinatura-profissional {
+      width: 25mm; 
+      height: 8mm; 
+      margin-bottom: 0.5mm; 
+      object-fit: contain; 
+    }
+
+    .dados-profissional {
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      margin-top: 0.5mm; 
+    }
+
+    .nome-profissional {
+      font-size: 8pt; 
+      font-weight: bold; 
+      margin-bottom: 0.3mm; 
+      text-align: center; 
+      color: rgb(3, 66, 25); 
+    }
+
+    .titulo-profissional {
+      font-size: 7pt; 
+      margin-bottom: 0.3mm; 
+      text-align: center; 
+      color: rgb(3, 66, 25); 
+    }
+
+    /* ========================================
+       RODAPÉ DA PÁGINA
+       ======================================== */
+
+    .rodape {
+      position: absolute; 
+      bottom: 20mm; 
+      left: 20mm; 
+      right: 20mm; 
+      width: auto; 
+      height: 12mm; 
+      background-color: rgb(25, 55, 80); 
+      color: white; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: center; 
+      align-items: center; 
+      z-index: 10; 
+      padding: 0.5mm; 
+    }
+
+    .endereco {
+      font-size: 7pt; 
+      margin-bottom: 0.3mm; 
+      text-align: center; 
+    }
+
+    .telefone {
+      font-size: 7pt; 
+      text-align: center; 
+    }
+
+    /* ========================================
+       NUMERAÇÃO DAS PÁGINAS
+       ======================================== */
+
+    .pagina-numero {
+      position: absolute; 
+      bottom: 5mm; /* Alinhado com a base das informações de atendimento */
+      right: 10mm; 
+      font-size: 9pt; 
+      font-style: italic; 
+      z-index: 15; 
+    }
+
+    /* ========================================
+       INFORMAÇÕES DE ATENDIMENTO (RODAPÉ)
+       ======================================== */
+
+    .atendimento-info {
+      position: absolute; 
+      bottom: 5mm; /* Alinhado com a base da numeração da página */
+      left: 10mm; 
+      font-size: 9pt; 
+      font-style: italic; 
+      color: rgb(0, 0, 0); /* Cor do texto das informações de atendimento */
+      z-index: 15; 
+      line-height: 1.4; /* Espaçamento entre as linhas de Início e Término */
+    }
+
+    /* ========================================
+       ÁREA DE CONTEÚDO PRINCIPAL (PÁGINAS 1-3)
+       ======================================== */
+
+    .conteudo {
+      position: absolute; 
+      top: 60mm; /* Abaixo do cabeçalho */
+      left: 25mm; /* Margem interna esquerda */
+      right: 25mm; /* Margem interna direita */
+      width: auto; 
+      height: 204mm; /* Altura ajustada para maximizar espaço até 1mm do rodapé */
+      overflow: hidden; /* Evita que conteúdo excedente vaze */
+    }
+
+    /* Página 3 com largura estendida para ocupar toda a extensão A4 */
+    #pagina-3 .conteudo {
+      left: 9mm; /* Margem ajustada para atingir ~20% de largura a mais que as outras páginas */
+      right: 9mm; /* Margem ajustada para atingir ~20% de largura a mais que as outras páginas */
+    }
+
+    /* Ajustar cabeçalho, rodapé e borda da página 3 para acompanhar a largura estendida */
+    #pagina-3 .borda {
+      left: 0mm; /* Linha preta no limite da área verde */
+      right: 0mm; /* Linha preta no limite da área verde */
+      top: 0mm;
+      bottom: 0mm;
+    }
+
+    #pagina-3 .cabecalho {
+      left: 0mm;
+      right: 0mm;
+    }
+
+    #pagina-3 .rodape {
+      left: 0mm;
+      right: 0mm;
+    }
+
+    #pagina-3 .info-profissional-area {
+      left: 0mm;
+      right: 0mm;
+    }
+
+    /* ========================================
+       SEÇÕES DO PRONTUÁRIO
+       ======================================== */
+
+    .secao {
+      margin-bottom: 3mm; 
+      page-break-inside: avoid; /* Tenta evitar quebra de página dentro de uma seção */
+    }
+
+    .secao-titulo {
+      font-size: 12pt; 
+      font-weight: bold; 
+      margin-bottom: 1mm; 
+      display: flex; 
+      align-items: center; 
+    }
+
+    .secao-marcador {
+      display: inline-block; 
+      width: 4mm; 
+      height: 4mm; 
+      border-radius: 50%; 
+      margin-right: 3mm; 
+    }
+
+    .linha-divisoria {
+      height: 1mm; 
+      background-color: rgb(0, 51, 102); 
+      margin: 2mm 0; 
+      width: 100%; 
+    }
+
+    .secao-conteudo {
+      padding: 1mm 3mm; 
+      border-radius: 3mm; 
+      box-shadow: 1mm 1mm 2mm rgba(0, 0, 0, 0.1); 
+      line-height: 5mm; 
+      font-size: 10pt; 
+      align-items: flex-end; 
+      text-indent: 0; 
+    }
+
+    /* Estilo específico para seções de duas colunas dentro dos resultados de exames */
+        #pagina-3 .exam-details-box .grid-two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2mm;
+            position: relative;
+        }
+
+        /* Linha divisória robusta usando pseudo-elemento apenas para seções de duas colunas */
+        #pagina-3 .exam-details-box .grid-two-columns::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 1mm;  /* espessura da linha que divide as colunas*/
+            background-color: rgb(0, 0, 0);  /* cor da linha */
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+
+        /* Adiciona padding às colunas para afastar o texto da linha divisória */
+        #pagina-3 .exam-details-box .grid-two-columns p:nth-child(odd) {
+            padding-right: 2mm !important;
+        }
+        
+        #pagina-3 .exam-details-box .grid-two-columns p:nth-child(even) {
+            padding-left: 2mm !important;
+        }
+
+        /* Restaura o espaçamento original dos parágrafos nas seções de duas colunas */
+        #pagina-3 .exam-details-box .grid-two-columns p {
+            margin: 0.3mm 0 !important;
+            line-height: 1.3 !important;
+        }
+
+    /* Preserva quebras de linha e espaços para a maioria das seções */
+    .page .conteudo .secao .secao-conteudo {
+      white-space: pre-wrap; 
+    }
+
+    /* Exceção para a seção "Dados do Paciente" ter comportamento normal de espaço */
+    .page:first-of-type .conteudo .secao:first-of-type .secao-conteudo {
+      white-space: normal; 
+    }
+
+    /* ========================================
+       ESTILOS ESPECÍFICOS PARA A PÁGINA 3 (RESULTADOS DE EXAMES)
+       ======================================== */
+
+    /* Estilos para a página 3 baseados no primeiro código fornecido */
+    #pagina-3 {
+      background-color: white;
+    }
+
+    #pagina-3 .top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5mm;
+      background-color: rgb(25, 55, 80);
+    }
+
+    #pagina-3 .page-container {
+      position: absolute;
+      top: 6mm;
+      left: 9mm;
+      right: 9mm;
+      bottom: 20mm;
+      background-color: white;
+    }
+
+    #pagina-3 .content-wrapper {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #pagina-3 .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.3mm 1mm;
+      background-color: rgb(12, 166, 38);
+      border-bottom: 2px solid rgb(25, 55, 80);
+    }
+
+    /* Logos específicas da página 3 - altura reduzida */
+    #pagina-3 .header .logo {
+      position: static;
+      width: 60mm;
+      height: 25mm;
+      object-fit: contain;
+    }
+
+    #pagina-3 .header-text {
+      text-align: center;
+      flex: 1;
+    }
+
+    #pagina-3 .header-text h1 {
+      font-size: 16pt;
+      font-weight: bold;
+      margin: 0;
+      color: rgb(25, 55, 80);
+      line-height: 1.1;
+    }
+
+    #pagina-3 .header-text p {
+      font-size: 10pt;
+      margin: 0;
+      color: rgb(25, 55, 80);
+      line-height: 1.1;
+    }
+
+    #pagina-3 .main-content {
+      flex: 1;
+      padding: 1mm;
+      overflow-y: auto;
+    }
+
+    #pagina-3 .section-title-bar {
+      background-color: rgb(25, 55, 80);
+      color: white;
+      padding: 1mm;
+      text-align: center;
+      margin-bottom: 1mm;
+    }
+
+    #pagina-3 .section-title-bar h2 {
+      margin: 0;
+      font-size: 12pt;
+      font-weight: bold;
+    }
+
+    #pagina-3 .exam-details-box {
+      background-color: #ccfc65;
+      border: 1px solid #ddd;
+      border-radius: 3mm;
+      padding: 3mm;
+      line-height: 1.1;
+    }
+
+    #pagina-3 .subtitle {
+      font-size: 12pt;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 2mm;
+      color: rgb(25, 55, 80);
+    }
+
+    #pagina-3 .exam-details-box h3 {
+      font-size: 11pt;
+      font-weight: bold;
+      margin: 1mm 0 0.5mm 0;
+      color: rgb(25, 55, 80);
+    }
+
+    #pagina-3 .exam-details-box ul {
+      margin: 0.5mm 0;
+      padding-left: 5mm;
+    }
+
+    #pagina-3 .exam-details-box li {
+      margin-bottom: 0.2mm;
+      font-size: 9pt;
+    }
+
+    #pagina-3 .bold-label {
+      font-weight: bold;
+    }
+
+    #pagina-3 .exam-details-box p {
+      margin: 0.3mm 0;
+      font-size: 9pt;
+      text-align: justify;
+      line-height: 1.1;
+    }
+
+    #pagina-3 .doctor-info-footer {
+      background-color: rgb(239, 242, 245);
+      padding: 2mm;
+      text-align: center;
+      border-top: 1px solid #ddd;
+      margin-top: auto;
+    }
+
+    #pagina-3 .doctor-name {
+      font-size: 10pt;
+      font-weight: bold;
+      margin-bottom: 0.3mm;
+    }
+
+    #pagina-3 .doctor-info-footer p {
+      margin: 0.2mm 0;
+      font-size: 8pt;
+      line-height: 1.1;
+    }
+
+    #pagina-3 .page-number-footer {
+      position: absolute;
+      bottom: 2mm;
+      right: 5mm;
+      font-size: 8pt;
+      font-style: italic;
+    }
+
+    /* ========================================
+       PÁGINAS DE IMAGENS
+       ======================================== */
+
+    .conteudo-imagens {
+      position: absolute; 
+      top: 65mm; /* Abaixo do cabeçalho, com um pouco mais de espaço para imagens */
+      left: 25mm; 
+      right: 25mm; 
+      width: auto; 
+      height: 199mm; /* Altura ajustada para maximizar espaço até 1mm do rodapé */
+      overflow: hidden; 
+    }
+
+    /* Posicionamento da primeira imagem na página de imagens */
+    .conjunto-imagem:nth-child(1) {
+      position: absolute; 
+      top: 0; 
+      left: 50%; 
+      transform: translateX(-50%); /* Centraliza horizontalmente */
+      width: 100mm; 
+      text-align: center; 
+    }
+
+    /* Posicionamento da segunda imagem na página de imagens */
+    .conjunto-imagem:nth-child(2) {
+      position: absolute; 
+      top: 87mm; /* Espaço para a primeira imagem e sua descrição */
+      left: 50%; 
+      transform: translateX(-50%); 
+      width: 100mm; 
+      text-align: center; 
+    }
+
+    .conjunto-imagem {
+      display: block; 
+      width: 100mm; 
+      text-align: center; 
+    }
+
+    .imagem-exame {
+      width: 100mm !important; 
+      height: 75mm !important; 
+      min-width: 100mm !important; 
+      max-width: 100mm !important; 
+      min-height: 75mm !important; 
+      max-height: 75mm !important; 
+      object-fit: contain; /* Mantém proporção da imagem dentro das dimensões */
+      border: 1mm solid rgb(0, 51, 102); 
+      border-radius: 3mm; 
+      box-shadow: 1mm 1mm 3mm rgba(0, 0, 0, 0.2); 
+      background-color: white; /* Fundo caso a imagem não preencha tudo */
+      display: block !important; 
+      margin: 0 auto !important; 
+      flex: none !important; 
+      flex-shrink: 0 !important; 
+      flex-grow: 0 !important; 
+    }
+
+    .descricao-imagem {
+      width: 100mm !important; 
+      margin: 0 auto 1mm auto !important; /* Espaço abaixo da descrição, antes da imagem */
+      font-size: 9pt; 
+      text-align: center; 
+      color: rgb(0, 51, 102); 
+      font-weight: bold; 
+      line-height: 3.5mm; 
+      padding: 1.5mm; 
+      background-color: rgba(239, 242, 245, 0.8); /* Fundo semi-transparente */
+      border-radius: 2mm; 
+      box-sizing: border-box !important; 
+      display: block !important; 
+    }
+
+    /* ========================================
+       ESQUEMAS DE CORES PARA SEÇÕES
+       ======================================== */
+
+    .cor1 { color: rgb(70, 30, 100); background-color: #f9dbf2; border: 0.5mm solid rgb(70, 30, 100); }
+    .cor2 { color: rgb(20, 60, 90); background-color: #f9dbf2; border: 0.5mm solid rgb(20, 60, 90); }
+    .cor3 { color: rgb(80, 40, 60); background-color: #f9dbf2; border: 0.5mm solid rgb(80, 40, 60); }
+    .cor4 { color: rgb(0, 80, 80); background-color: #f9dbf2; border: 0.5mm solid rgb(0, 80, 80); }
+    .cor5 { color: rgb(60, 50, 10); background-color: #f9dbf2; border: 0.5mm solid rgb(60, 50, 10); }
+    .cor6 { color: rgb(90, 30, 30); background-color: #f9dbf2; border: 0.5mm solid rgb(90, 30, 30); }
+    .cor7 { color: rgb(40, 40, 80); background-color: #f9dbf2; border: 0.5mm solid rgb(40, 40, 80); }
+    .cor8 { color: rgb(60, 0, 60); background-color: #f9dbf2; border: 0.5mm solid rgb(60, 0, 60); }
+    .cor9 { color: rgb(20, 70, 50); background-color: #f9dbf2; border: 0.5mm solid rgb(20, 70, 50); }
+
+    .bg-cor1 { background-color: rgb(199, 62, 3); }
+    .bg-cor2 { background-color: rgb(199, 62, 3); }
+    .bg-cor3 { background-color: rgb(199, 62, 3); }
+    .bg-cor4 { background-color: rgb(199, 62, 3); }
+    .bg-cor5 { background-color: rgb(199, 62, 3); }
+    .bg-cor6 { background-color: rgb(199, 62, 3); }
+    .bg-cor7 { background-color: rgb(199, 62, 3); }
+    .bg-cor8 { background-color: rgb(199, 62, 3); }
+    .bg-cor9 { background-color: rgb(199, 62, 3); }
+
+    /* ========================================
+       LOGOS DO CABEÇALHO
+       ======================================== */
+
+    .logo {
+      /* Remover posicionamento absoluto para não conflitar com o header flex da página 3 */
+      position: absolute;
+      width: 60mm;
+      height: 40mm;
+      top: 15mm;
+      z-index: 20;
+    }
+
+    .logo-left {
+      left: 8mm;
+    }
+
+    .logo-right {
+      right: 8mm;
+    }
+
+    /* ========================================
+       ELEMENTOS DECORATIVOS (CANTOS)
+       ======================================== */
+
+    .canto-inferior-esquerdo {
+      bottom: 20mm;
+      left: 20mm;
+      border-bottom: 1.5mm solid rgb(0, 100, 100);
+      border-left: 1.5mm solid rgb(0, 100, 100);
+    }
+
+    .canto-inferior-direito {
+      bottom: 20mm;
+      right: 20mm;
+      border-bottom: 1.5mm solid rgb(0, 100, 100);
+      border-right: 1.5mm solid rgb(0, 100, 100);
+    }
+
+    /* ========================================
+       CLASSES UTILITÁRIAS
+       ======================================== */
+
+    .page-hidden {
+      display: none; /* Para ocultar páginas se necessário via JS */
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================
+       TEMPLATES REUTILIZÁVEIS
+       ======================================== -->
+
+  <!-- Template para cabeçalho e rodapé padrão (usado nas páginas 1, 2, 3 e páginas de imagens, exceto a última) -->
+  <template id="cabecalho-rodape">
+    <div class="borda"></div>
+    <div class="canto canto-superior-esquerdo"></div>
+    <div class="canto canto-superior-direito"></div>
+    <div class="canto canto-inferior-esquerdo"></div>
+    <div class="canto canto-inferior-direito"></div>
+    <img class="logo logo-left" src="{{ $json['assetsData-logomarca-consultorio'] }}" alt="Logo">
+    <img class="logo logo-right" src="{{ $json['assetsData-logomarca-consultorio'] }}" alt="Logo">
+    <div class="cabecalho">
+      <div class="titulo-consultorio">CONSULTÓRIO JRS</div>
+      <div class="subtitulo-consultorio">Cuidados Especializados em Enfermagem</div>
+    </div>
+    <div class="rodape">
+      <div class="endereco">Endereço: Trav. José Soares, nº 152, Bairro: Fazendão</div>
+      <div class="telefone">Telefone: 91-98595-8042</div>
+    </div>
+    <!-- INFORMAÇÕES DE ATENDIMENTO - CORRIGIDO PARA APARECER EM TODAS AS PÁGINAS QUE USAM ESTE TEMPLATE -->
+    <div class="atendimento-info">
+      Início Atendimento: {{ $json['inicio-atendimento'] }}<br>
+      Término Atendimento: {{ $json['final-atendimento'] }}
+    </div>
+  </template>
+
+  <!-- Template para cabeçalho e rodapé da ÚLTIMA página (COM informações profissionais) -->
+  <template id="cabecalho-rodape-ultima">
+    <div class="borda"></div>
+    <div class="canto canto-superior-esquerdo"></div>
+    <div class="canto canto-superior-direito"></div>
+    <div class="canto canto-inferior-esquerdo"></div>
+    <div class="canto canto-inferior-direito"></div>
+    <img class="logo logo-left" src="{{ $json['assetsData-logomarca-consultorio'] }}" alt="Logo">
+    <img class="logo logo-right" src="{{ $json['assetsData-logomarca-consultorio'] }}" alt="Logo">
+    <div class="cabecalho">
+      <div class="titulo-consultorio">CONSULTÓRIO JRS</div>
+      <div class="subtitulo-consultorio">Cuidados Especializados em Enfermagem</div>
+    </div>
+    <div class="info-profissional-area">
+      <img class="assinatura-profissional" src="{{ $json['assinatura-base64-profissional'] }}" alt="Assinatura">
+      <div style="height: 0.5mm;"></div>
+      <div class="dados-profissional">
+          <div class="nome-profissional">{{ $json['nome-profissional'] }}</div>
+        <div class="titulo-profissional">{{ $json.Profissao }}</div>
+        <div class="titulo-profissional">{{ $json['orgao-classe'] }}</div>
+      </div>
+    </div>
+    <div class="rodape">
+      <div class="endereco">Endereço: {{ $('Webhook').item.json.body.clinicAddress }}</div>
+      <div class="telefone">Telefone: {{ $('Webhook').item.json.body.clinicPhone }}</div>
+    </div>
+    <!-- INFORMAÇÕES DE ATENDIMENTO - PARA A ÚLTIMA PÁGINA -->
+    <div class="atendimento-info">
+      Início Atendimento: {{ $json['inicio-atendimento'] }}<br>
+      Término Atendimento: {{ $json['final-atendimento'] }}
+    </div>
+  </template>
+
+  <!-- ========================================
+       PÁGINAS FIXAS DO PRONTUÁRIO
+       ======================================== -->
+
+  <div class="page">
+    <script>
+      document.currentScript.parentNode.appendChild(
+        document.importNode(document.getElementById('cabecalho-rodape').content, true)
+      );
+    </script>
+    <div class="pagina-numero">Página 1</div>
+    <div class="conteudo">
+      <div class="secao">
+        <div class="secao-titulo cor1">
+          <span class="secao-marcador bg-cor1"></span>
+          DADOS DO PACIENTE
+        </div>
+        <div class="secao-conteudo cor1">
+          Nome: {{ $json['nome-tratado-sem-caracter-especial'] }}<br>
+          SUS: {{ $json.sus }}<br>
+          Telefone: {{ $json.telefone }}</div>
+      </div>
+      <div class="linha-divisoria"></div>
+      <div class="secao">
+        <div class="secao-titulo cor2">
+          <span class="secao-marcador bg-cor2"></span>
+          QUEIXA PRINCIPAL
+        </div>
+        <div class="secao-conteudo cor2">
+{{ $json['QUEIXA PRINCIPAL'] }}
+        </div>
+      </div>
+      <div class="linha-divisoria"></div>
+      <div class="secao">
+        <div class="secao-titulo cor3">
+          <span class="secao-marcador bg-cor3"></span>
+          ANTECEDENTES
+        </div>
+        <div class="secao-conteudo cor3">
+{{ $json.ANTECEDENTES }}
+        </div>
+      </div>
+      <div class="linha-divisoria"></div>
+      <div class="secao">
+        <div class="secao-titulo cor4">
+          <span class="secao-marcador bg-cor4"></span>
+          ALERGIAS
+        </div>
+        <div class="secao-conteudo cor4">
+{{ $json.ALERGIAS }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page">
+    <script>
+      document.currentScript.parentNode.appendChild(
+        document.importNode(document.getElementById('cabecalho-rodape').content, true)
+      );
+    </script>
+    <div class="pagina-numero">Página 2</div>
+    <div class="conteudo">
+      <div class="secao">
+        <div class="secao-titulo cor5">
+          <span class="secao-marcador bg-cor5"></span>
+          EVOLUÇÃO
+        </div>
+        <div class="secao-conteudo cor5">
+{{ $json['EVOLUÇÃO'] }}
+        </div>
+      </div>
+      <div class="linha-divisoria"></div>
+      <div class="secao">
+        <div class="secao-titulo cor6">
+          <span class="secao-marcador bg-cor6"></span>
+          PRESCRIÇÃO
+        </div>
+        <div class="secao-conteudo cor6">
+{{ $json['PRESCRIÇÃO'] }}
+        </div>
+      </div>
+      <div class="linha-divisoria"></div>
+      <div class="secao">
+        <div class="secao-titulo cor7">
+          <span class="secao-marcador bg-cor7"></span>
+          EXAMES SOLICITADOS
+        </div>
+        <div class="secao-conteudo cor7">
+{{ $json['EXAMES SOLICITADOS'] }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="pagina-3">
+    <div class="top-bar"></div>
+    <div class="page-container">
+        <div class="content-wrapper">
+            <header class="header">
+                <img src="{{ $json['assetsData-logomarca-consultorio'] }}" alt="Logo JRS" class="logo left-logo">
+                <div class="header-text">
+                    <h1>CONSULTÓRIO JRS</h1>
+                    <p>Cuidados Especializados em Enfermagem</p>
+                </div>
+                <img src="{{ $json['assetsData-logomarca-consultorio'] }}" alt="Logo JRS" class="logo right-logo">
+            </header>
+
+            <main class="main-content">
+                <div class="section-title-bar">
+                    <h2>RESULTADOS DE EXAMES</h2>
+                </div>
+                <div class="exam-details-box">
+                    <h3 style="text-align: center; margin-bottom: 5mm;">{{ $json['TITULO MODELO RESULTADO EXAME'] }}</h3>
+                    
+                    <div class="grid-two-columns" style="display: grid; grid-template-columns: 2fr 2fr; gap: 1mm; margin-bottom: 2mm;">
+                        <p><span class="bold-label">GRAVIDEZ:</span> {{ $json.GRAVIDEZ }}</p>
+                        <p><span class="bold-label">FETO:</span> {{ $json.FETO }}</p>
+                        <p><span class="bold-label">APRESENTAÇÃO:</span> {{ $json.APRESENTAÇÃO }}</p>
+                        <p><span class="bold-label">SITUAÇÃO:</span> {{ $json.SITUAÇÃO }}</p>
+                        <p><span class="bold-label">IG:</span> {{ $json.IG }}</p>
+                        <p><span class="bold-label">PLACENTA:</span> {{ $json.PLACENTA }}</p>
+                        <p><span class="bold-label">AF:</span> {{ $json['AF MAIO BOLSÃO DE LIQUIDO'] }}</p>
+                        <p><span class="bold-label">CORDÃO UMBILICAL:</span> {{ $json['CORDÃO UMBILICAL'] }}</p>
+                        <p><span class="bold-label">SEXO:</span> {{ $json.SEXO }}</p>
+                    </div>
+                    
+                    <h3 style="margin-top: 5mm;">BIOMETRIA FETAL:</h3>
+                    <div class="grid-two-columns" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1mm; margin-bottom: 2mm;">
+                        <p><span class="bold-label">BPD:</span> {{ $json.BPD }}</p>
+                        <p><span class="bold-label">HC:</span> {{ $json.HC }}</p>
+                        <p><span class="bold-label">AC:</span> {{ $json.AC }}</p>
+                        <p><span class="bold-label">FL:</span> {{ $json.FL }}</p>
+                        <p><span class="bold-label">PESO:</span> {{ $json.PESO }}</p>
+                        <p><span class="bold-label">PERCENTIL:</span> {{ $json.PERCENTIL }}</p>                       
+                        <p><span class="bold-label">DPP:</span> {{ $json.DPP }}</p>
+                        <p><span class="bold-label">BCF:</span> {{ $json.BCF }}</p>
+                    </div>
+                    
+                    <h3 style="margin-top: 5mm;">IMPRESSÃO DIAGNÓSTICA:</h3>
+                    <div style="white-space: pre-line; padding-left: 2mm; line-height: 1.1;">{{ $json['IMPRESSÃO DIAGNÓSTICA'] }}</div>
+                    
+                    <h3 style="margin-top: 5mm;">ACHADOS ADICIONAIS:</h3>
+                    <div style="white-space: pre-line; padding-left: 2mm; line-height: 1.1;">{{ $json['ACHADOS ADICIONAIS'] }}</div>
+                    
+                    <h3 style="margin-top: 5mm;">RECOMENDAÇÕES:</h3>
+                    <div style="white-space: pre-line; padding-left: 2mm; line-height: 1.1;">{{ $json['RECOMENDAÇÕES'] }}</div>
+                    
+                    <h3 style="margin-top: 5mm;">OBSERVAÇÕES:</h3>
+                    <div style="white-space: pre-line; padding-left: 2mm; line-height: 1.1;">{{ $json['OBSERVAÇÕES'] }}</div>
+                </div>
+            </main>
+
+            <footer class="doctor-info-footer">
+                <p class="doctor-name">Jérime Soares</p>
+                <p>Enfermeiro Generalista</p>
+                <p>Coren 542061</p>
+                <p>Endereço: Trav. José Soares, nº 152, Bairro: Fazendão</p>
+                <p>Telefone: 91-98595-8042</p>
+            </footer>
+        </div>
+    </div>
+    <div class="page-number-footer">
+        <p>Página 3</p>
+    </div>
+  </div>
+
+  <!-- ========================================
+       PÁGINAS DINÂMICAS DE IMAGENS
+       ======================================== -->
+
+  <div id="image-pages-container"></div>
+
+  <script>
+    function isValidBase64(str) {
+      if (!str || typeof str !== 'string') return false;
+      if (str.includes('{{') || str.includes('}}')) return false; // Não processado pelo n8n
+      if (str.trim() === '') return false;
+      return str.length > 20; // Tamanho mínimo arbitrário para um base64
+    }
+
+    function createImagePage(images, pageNumber, isLastPage) {
+      const pageDiv = document.createElement('div');
+      pageDiv.className = 'page';
+      
+      // Seleciona o template correto: 'cabecalho-rodape-ultima' para a última página, 'cabecalho-rodape' para as demais
+      const templateId = isLastPage ? 'cabecalho-rodape-ultima' : 'cabecalho-rodape';
+      const template = document.getElementById(templateId);
+      const clone = document.importNode(template.content, true); // Clona o conteúdo do template
+      pageDiv.appendChild(clone);
+      
+      const pageNumberDiv = document.createElement('div');
+      pageNumberDiv.className = 'pagina-numero';
+      pageNumberDiv.textContent = 'Página ' + pageNumber;
+      pageDiv.appendChild(pageNumberDiv);
+      
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'conteudo-imagens'; 
+      
+      images.forEach(function(imageData, index) {
+        const imageSet = document.createElement('div');
+        imageSet.className = 'conjunto-imagem';
+        
+        const desc = document.createElement('div');
+        desc.className = 'descricao-imagem';
+        desc.textContent = imageData.description || 'Imagem de Exame'; // Usa descrição ou um placeholder
+        
+        const img = document.createElement('img');
+        img.className = 'imagem-exame';
+        img.src = imageData.base64;
+        img.alt = 'Exame ' + (index + 1);
+        
+        // Aplica estilos CSS via JS para garantir dimensões (embora o CSS principal deva cobrir)
+        img.style.cssText = `
+          width: 100mm !important; height: 75mm !important;
+          min-width: 100mm !important; max-width: 100mm !important;
+          min-height: 75mm !important; max-height: 75mm !important;
+          display: block !important; margin: 0 auto !important;
+          flex: none !important; flex-shrink: 0 !important; flex-grow: 0 !important;
+          object-fit: contain; border: 1mm solid rgb(0, 51, 102);
+          border-radius: 3mm; box-shadow: 1mm 1mm 3mm rgba(0, 0, 0, 0.2);
+          background-color: white;
+        `;
+        
+        desc.style.cssText = `
+          width: 100mm !important; margin: 0 auto 1mm auto !important;
+          display: block !important; text-align: center; font-size: 9pt;
+          color: rgb(0, 51, 102); font-weight: bold; line-height: 3.5mm;
+          padding: 1.5mm; background-color: rgba(239, 242, 245, 0.8);
+          border-radius: 2mm; box-sizing: border-box;
+        `;
+        
+        imageSet.appendChild(desc); // Descrição primeiro
+        imageSet.appendChild(img);  // Imagem depois
+        contentDiv.appendChild(imageSet);
+      });
+      
+      pageDiv.appendChild(contentDiv);
+      return pageDiv;
+    }
+
+    // Array com dados das imagens vindos do n8n (até 15 imagens)
+    const examImagesData = [
+      { base64: '{{ $json['imagem1-usg'] }}', description: '{{ $json["descricao-img1"] }}' },
+      { base64: '{{ $json["imagem2-usg"] }}', description: '{{ $json["descricao-img2"] }}' },
+      { base64: '{{ $json["imagem3-usg"] }}', description: '{{ $json["descricao-img3"] }}' },
+      { base64: '{{ $json["imagem4-usg"] }}', description: '{{ $json["descricao-img4"] }}' },
+      { base64: '{{ $json["imagem5-usg"] }}', description: '{{ $json["descricao-img5"] }}' },
+      { base64: '{{ $json["imagem6-usg"] }}', description: '{{ $json["descricao-img6"] }}' },
+      { base64: '{{ $json["imagem7-usg"] }}', description: '{{ $json["descricao-img7"] }}' },
+      { base64: '{{ $json["imagem8-usg"] }}', description: '{{ $json["descricao-img8"] }}' },
+      { base64: '{{ $json["imagem9-usg"] }}', description: '{{ $json["descricao-img9"] }}' },
+      { base64: '{{ $json["imagem10-usg"] }}', description: '{{ $json["descricao-img10"] }}' },
+      { base64: '{{ $json["imagem11-usg"] }}', description: '{{ $json["descricao-img11"] }}' },
+      { base64: '{{ $json["imagem12-usg"] }}', description: '{{ $json["descricao-img12"] }}' },
+      { base64: '{{ $json["imagem13-usg"] }}', description: '{{ $json["descricao-img13"] }}' },
+      { base64: '{{ $json["imagem14-usg"] }}', description: '{{ $json["descricao-img14"] }}' },
+      { base64: '{{ $json["imagem15-usg"] }}', description: '{{ $json["descricao-img15"] }}' }
+    ];
+
+    // Filtra apenas as imagens que são válidas (têm base64)
+    const validImages = examImagesData.filter(function(img) {
+      return isValidBase64(img.base64);
+    });
+
+    const container = document.getElementById('image-pages-container'); // Container para as páginas de imagem
+    let pageNumber = 4; // As páginas de imagem começam após as 3 páginas fixas
+    const totalImagePages = Math.ceil(validImages.length / 2); // Total de páginas de imagem necessárias
+    
+    // Loop para criar as páginas de imagem
+    for (let i = 0; i < validImages.length; i += 2) { // Pega 2 imagens por vez
+      const imagesForPage = validImages.slice(i, i + 2); // Array com 1 ou 2 imagens para a página atual
+      const currentImagePageIndex = Math.floor(i / 2) + 1; // Índice da página de imagem atual (1-based)
+      // Verifica se esta é a última página de imagem a ser gerada
+      const isLastDynamicallyGeneratedPage = (currentImagePageIndex === totalImagePages);
+      
+      // Se não houver mais imagens válidas (totalImagePages === 0), 
+      // e esta seria a primeira página de imagem (i === 0),
+      // então a página 3 é a última página do documento.
+      // Senão, a última página é a última página de imagem gerada dinamicamente.
+      let isDocumentLastPage;
+      if (totalImagePages === 0 && i === 0) { // Nenhuma imagem válida, página 3 é a última
+          // Esta lógica é um pouco complexa aqui, pois o script de clonagem da página 3 já usa 'cabecalho-rodape'.
+          // A forma mais simples de garantir que a página 3 seja a "última" (com info profissional) 
+          // se não houver imagens é modificar o script da página 3 para usar 'cabecalho-rodape-ultima'
+          // SE validImages.length === 0. Para este script, focamos nas páginas de imagem.
+          // Se não há imagens, isLastDynamicallyGeneratedPage será false, e o template padrão será usado.
+          // O ideal é que a página 3 use o template 'cabecalho-rodape-ultima' se não houver páginas de imagem.
+          // Essa lógica está fora do escopo deste loop de criação de páginas de imagem.
+          isDocumentLastPage = false; // Neste contexto, focamos nas páginas de imagem.
+      } else {
+          isDocumentLastPage = isLastDynamicallyGeneratedPage;
+      }
+
+           const page = createImagePage(imagesForPage, pageNumber, isDocumentLastPage);
+      container.appendChild(page);
+      pageNumber++;
+    }
+
+    // Lógica para tratar a página 3 como última se não houver imagens:
+    if (validImages.length === 0) {
+        // Se não há imagens válidas, a página 3 é a última - usar template de última página
+        const pagina3 = document.getElementById('pagina-3');
+        if (pagina3) {
+          const templateClone = document.importNode(document.getElementById('cabecalho-rodape-ultima').content, true);
+          const elementosParaRemover = pagina3.querySelectorAll('.borda, .canto, .logo, .cabecalho, .rodape, .atendimento-info');
+          elementosParaRemover.forEach(el => el.remove());
+          pagina3.insertBefore(templateClone, pagina3.firstChild);
+        }
+    }
+
+  </script>
+
+
+</body>
+</html>

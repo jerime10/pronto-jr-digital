@@ -108,6 +108,7 @@ const NovoAtendimento = () => {
     handleClearPaciente,
     handleInputFocus,
     handleInputBlur,
+    setMostrarResultadosBusca,
     handleModeloPrescricaoChange,
     handleModelosPrescricaoChange,
     handleExamesChange,
@@ -116,7 +117,7 @@ const NovoAtendimento = () => {
     handleSubmitMedicalRecord,
     updateFormField,
     setFormData
-  } = useAtendimentoState(selectedModelTitle, patientDataFromNavigation, appointmentIdFromNavigation, dynamicFields, handleDynamicFieldsChange, updateDynamicFieldsFromAI);
+  } = useAtendimentoState(selectedModelTitle, patientDataFromNavigation, appointmentIdFromNavigation, dynamicFields, handleDynamicFieldsChange, updateDynamicFieldsFromAI, id, existingRecord);
   
   // Create a proper change handler for form inputs
   const handleFormChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -140,7 +141,9 @@ const NovoAtendimento = () => {
         observacoesExames: existingRecord.exam_observations || '',
         resultadoExames: existingRecord.exam_results || '',
         images: [], // Para registros existentes, inicia sem imagens (funcionalidade nova)
-        dataInicioAtendimento: existingRecord.attendance_start_at ? new Date(existingRecord.attendance_start_at) : new Date(),
+        dataInicioAtendimento: existingRecord.attendance_start_at 
+          ? new Date(existingRecord.attendance_start_at) 
+          : (existingRecord.created_at ? new Date(existingRecord.created_at) : new Date()),
         dataFimAtendimento: existingRecord.attendance_end_at ? new Date(existingRecord.attendance_end_at) : undefined,
       });
       
@@ -190,7 +193,6 @@ const NovoAtendimento = () => {
     <AtendimentoLayout
       isEditing={isEditing}
       isSaving={isSaving}
-      isGeneratingPDF={false}
       isSubmittingRecord={isSubmittingRecord}
       activeTab={activeTab}
       setActiveTab={setActiveTab}
@@ -214,7 +216,6 @@ const NovoAtendimento = () => {
       handleModelosPrescricaoChange={handleModelosPrescricaoChange}
       updateFormField={updateFormField}
       handleSalvarAtendimento={handleSalvarAtendimento}
-      handleGerarPDF={() => Promise.resolve()}
       handleSubmitMedicalRecord={handleSubmitMedicalRecord}
       profissionalAtual={profissionalAtual}
       setFormData={setFormData}

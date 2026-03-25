@@ -9,6 +9,9 @@ import { FieldAutocompleteMulti } from '@/components/ui/field-autocomplete-multi
 import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
 import { toast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
+import { AIPromptModal } from './AIPromptModal';
+import { AudioRecorderButton } from '@/components/ui/audio-recorder-button';
+import { Settings2 } from 'lucide-react';
 
 interface InformacoesTabProps {
   form: FormState;
@@ -37,6 +40,7 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
   const [selectedQueixas, setSelectedQueixas] = useState<string[]>([]);
   const [selectedAntecedentes, setSelectedAntecedentes] = useState<string[]>([]);
   const [selectedAlergias, setSelectedAlergias] = useState<string[]>([]);
+  const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
 
   // Inicializar valores dos campos se já existirem no formulário
   useEffect(() => {
@@ -172,23 +176,56 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
     onFieldChange('alergias', finalText);
   };
 
+  // Audio Handlers
+  const handleQueixaAudio = (transcribedText: string) => {
+    const currentText = form.queixaPrincipal || '';
+    const separator = currentText.trim() ? '\n' : '';
+    onFieldChange('queixaPrincipal', `${currentText}${separator}${transcribedText}`);
+    toast({ title: "Áudio transcrito", description: "Texto adicionado à queixa principal." });
+  };
+
+  const handleAntecedentesAudio = (transcribedText: string) => {
+    const currentText = form.antecedentes || '';
+    const separator = currentText.trim() ? '\n' : '';
+    onFieldChange('antecedentes', `${currentText}${separator}${transcribedText}`);
+    toast({ title: "Áudio transcrito", description: "Texto adicionado aos antecedentes." });
+  };
+
+  const handleAlergiasAudio = (transcribedText: string) => {
+    const currentText = form.alergias || '';
+    const separator = currentText.trim() ? '\n' : '';
+    onFieldChange('alergias', `${currentText}${separator}${transcribedText}`);
+    toast({ title: "Áudio transcrito", description: "Texto adicionado às alergias." });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Queixa Principal
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onProcessAI('mainComplaint')}
-              disabled={isProcessingAI.mainComplaint || !form.queixaPrincipal.trim()}
-              className="ml-auto"
-            >
-              <Sparkles className="h-4 w-4 mr-1" />
-              {isProcessingAI.mainComplaint ? 'Processando...' : 'Melhorar com IA'}
-            </Button>
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setIsPromptModalOpen(true)}
+                title="Configurar instruções da IA"
+              >
+                <Settings2 className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onProcessAI('mainComplaint')}
+                disabled={isProcessingAI.mainComplaint || !form.queixaPrincipal.trim()}
+              >
+                <Sparkles className="h-4 w-4 mr-1" />
+                {isProcessingAI.mainComplaint ? 'Processando...' : 'Melhorar com IA'}
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -224,6 +261,7 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
                 Edite ou adicione informações adicionais
               </Label>
               <div className="flex gap-2">
+                <AudioRecorderButton onTranscription={handleQueixaAudio} />
                 <Button
                   type="button"
                   variant="outline"
@@ -298,6 +336,7 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
                 Edite ou adicione informações adicionais
               </Label>
               <div className="flex gap-2">
+                <AudioRecorderButton onTranscription={handleAntecedentesAudio} />
                 <Button
                   type="button"
                   variant="outline"
@@ -372,6 +411,7 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
                 Edite ou adicione informações adicionais
               </Label>
               <div className="flex gap-2">
+                <AudioRecorderButton onTranscription={handleAlergiasAudio} />
                 <Button
                   type="button"
                   variant="outline"
@@ -408,6 +448,12 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
           </div>
         </CardContent>
       </Card>
+      
+      <AIPromptModal 
+        isOpen={isPromptModalOpen} 
+        onClose={() => setIsPromptModalOpen(false)} 
+        fieldType="queixa" 
+      />
     </div>
   );
 };

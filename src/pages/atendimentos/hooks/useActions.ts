@@ -16,6 +16,44 @@ export const useActions = () => {
     try {
       console.log('Deletando prontuário médico:', recordId);
       
+      // 1. Fetch the record to get the file_url_storage
+      const { data: record, error: fetchError } = await supabase
+        .from('medical_records')
+        .select('file_url_storage')
+        .eq('id', recordId)
+        .maybeSingle();
+      
+      if (fetchError) {
+        console.warn('Erro ao buscar registro para exclusão de arquivo:', fetchError.message);
+      }
+
+      // 2. Try to delete from storage if URL exists
+      if (record?.file_url_storage) {
+        try {
+          // Extract the filename from the URL, removing any query parameters
+          const urlParts = record.file_url_storage.split('/');
+          const filenameWithParams = urlParts[urlParts.length - 1];
+          const filename = filenameWithParams.split('?')[0];
+          
+          if (filename) {
+            console.log('Deletando arquivo relacionado do storage:', filename);
+            const { error: storageError } = await supabase.storage
+              .from('documents')
+              .remove([`prontuarios/${filename}`]);
+            
+            if (storageError) {
+              console.error('Erro ao excluir do storage:', storageError);
+              throw new Error(`Erro ao excluir arquivo físico do storage: ${storageError.message}. O registro não foi removido.`);
+            }
+          }
+        } catch (storageErr) {
+          console.error('Erro ao excluir do storage:', storageErr);
+          // Relançar o erro para impedir a exclusão da tabela
+          throw storageErr;
+        }
+      }
+
+      // 3. Delete from table
       const { error } = await supabase
         .from('medical_records')
         .delete()

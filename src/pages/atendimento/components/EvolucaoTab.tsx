@@ -9,6 +9,9 @@ import { FieldAutocompleteMulti } from '@/components/ui/field-autocomplete-multi
 import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
 import { toast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
+import { AIPromptModal } from './AIPromptModal';
+import { AudioRecorderButton } from '@/components/ui/audio-recorder-button';
+import { Settings2 } from 'lucide-react';
 
 interface EvolucaoTabProps {
   form: FormState;
@@ -30,6 +33,7 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
   const { searchFieldTemplates, saveFieldTemplate, deleteFieldTemplate } = useIndividualFieldTemplates();
   const [isSavingEvolucao, setIsSavingEvolucao] = useState(false);
   const [selectedEvolucoes, setSelectedEvolucoes] = useState<string[]>([]);
+  const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
 
   // Salvar Evolução
   const handleSaveEvolucao = async () => {
@@ -70,23 +74,44 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
     onFieldChange('evolucao', finalText);
   };
 
+  const handleAudioTranscription = (transcribedText: string) => {
+    const currentText = form.evolucao || '';
+    const separator = currentText.trim() ? '\n' : '';
+    onFieldChange('evolucao', `${currentText}${separator}${transcribedText}`);
+    toast({
+      title: "Áudio transcrito",
+      description: "O texto foi adicionado à sua evolução."
+    });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Evolução do Paciente
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onProcessAI('evolution')}
-              disabled={isProcessingAI.evolution || !form.evolucao.trim()}
-              className="ml-auto"
-            >
-              <Sparkles className="h-4 w-4 mr-1" />
-              {isProcessingAI.evolution ? 'Processando...' : 'Melhorar com IA'}
-            </Button>
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setIsPromptModalOpen(true)}
+                title="Configurar instruções da IA"
+              >
+                <Settings2 className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onProcessAI('evolution')}
+                disabled={isProcessingAI.evolution || !form.evolucao.trim()}
+              >
+                <Sparkles className="h-4 w-4 mr-1" />
+                {isProcessingAI.evolution ? 'Processando...' : 'Melhorar com IA'}
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -121,6 +146,7 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
               Edite ou adicione informações adicionais
             </Label>
             <div className="flex gap-2">
+              <AudioRecorderButton onTranscription={handleAudioTranscription} />
               <Button
                 type="button"
                 variant="outline"
@@ -156,6 +182,12 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
           />
         </CardContent>
       </Card>
+      
+      <AIPromptModal 
+        isOpen={isPromptModalOpen} 
+        onClose={() => setIsPromptModalOpen(false)} 
+        fieldType="evolucao" 
+      />
     </div>
   );
 };
