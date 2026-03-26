@@ -6,6 +6,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { MultiSelectSearch } from '@/components/ui/multi-select-search';
 import { FormState } from '../hooks/useFormData';
 
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
 interface PrescricaoTabProps {
   form: FormState;
   prescriptionModels: Array<{ id: string; name: string; description: string }>;
@@ -23,6 +32,7 @@ const PrescricaoTab: React.FC<PrescricaoTabProps> = ({
   onModelChange,
   onMultiModelChange
 }) => {
+  const isMobile = useIsMobile();
   // Handler para multisseleção de modelos
   const handleModelosPrescricaoChange = (selectedIds: string[]) => {
     // Usar o handler externo se disponível, senão usar o handler local
@@ -68,6 +78,50 @@ const PrescricaoTab: React.FC<PrescricaoTabProps> = ({
       onFieldChange('prescricaoPersonalizada', finalText);
     }
   };
+
+  if (isMobile) {
+    return (
+      <div className="space-y-4">
+        <Accordion type="single" collapsible className="space-y-4">
+          <AccordionItem value="prescricao" className="border-none">
+            <AccordionTrigger className="bg-slate-900 px-6 py-5 rounded-2xl hover:no-underline transition-all">
+              <div className="flex items-center gap-3">
+                <span className="text-white font-black text-lg">Prescrição Médica</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="bg-slate-900/95 mt-1 rounded-2xl p-6 space-y-4 overflow-visible">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="modelos-prescricao" className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 block">
+                    Selecionar Modelos
+                  </Label>
+                  <MultiSelectSearch
+                    options={prescriptionModels}
+                    selectedValues={form.modelosPrescricaoSelecionados || []}
+                    onSelectionChange={handleModelosPrescricaoChange}
+                    placeholder="Buscar modelos..."
+                    disabled={isLoadingPrescriptions}
+                    className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-xl"
+                    tableName="prescription_models"
+                  />
+                </div>
+                
+                <div className="relative">
+                  <Textarea
+                    value={form.prescricaoPersonalizada}
+                    onChange={(e) => onFieldChange('prescricaoPersonalizada', e.target.value)}
+                    placeholder="Digite a prescrição..."
+                    rows={12}
+                    className="w-full bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 rounded-xl p-4 focus:ring-emerald-500/20 transition-all resize-none"
+                  />
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

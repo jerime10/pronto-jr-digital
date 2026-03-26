@@ -6,6 +6,15 @@ import ResultadoExames from './ResultadoExames';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
 interface ExamModel {
   id: string;
   name: string;
@@ -49,7 +58,8 @@ const ExamesTab: React.FC<ExamesTabProps> = ({
   selectedExamModelId,
   onExamModelChange
 }) => {
-  const [activeTab, setActiveTab] = useState("solicitar");
+  const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState("");
   const [availableExams, setAvailableExams] = useState<ExamModel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -77,6 +87,60 @@ const ExamesTab: React.FC<ExamesTabProps> = ({
 
     fetchExamModels();
   }, []);
+
+  if (isMobile) {
+    return (
+      <div className="space-y-4">
+        <Accordion type="single" collapsible className="space-y-4" value={activeTab} onValueChange={setActiveTab}>
+          <AccordionItem value="solicitar" className="border-none">
+            <AccordionTrigger className="bg-slate-900 px-6 py-5 rounded-2xl hover:no-underline transition-all">
+              <div className="flex items-center gap-3">
+                <span className="text-white font-black text-lg">Solicitar Exames</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="bg-slate-900/95 mt-1 rounded-2xl p-6 space-y-4 overflow-visible">
+              <SolicitacaoExames 
+                examRequests={examRequests} 
+                onExamRequestsChange={onExamRequestsChange}
+                availableExams={availableExams.map(exam => ({
+                  id: exam.id,
+                  name: exam.name,
+                  instructions: exam.instructions || ''
+                }))}
+                isLoading={isLoading}
+              />
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="resultados" className="border-none">
+            <AccordionTrigger className="bg-slate-900 px-6 py-5 rounded-2xl hover:no-underline transition-all">
+              <div className="flex items-center gap-3">
+                <span className="text-white font-black text-lg">Resultados de Exames</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="bg-slate-900/95 mt-1 rounded-2xl p-6 space-y-4">
+              <ResultadoExames 
+                patientId={patientId}
+                examResults={examResults}
+                onExamResultsChange={onExamResultsChange}
+                examObservations={examObservations}
+                onExamObservationsChange={onExamObservationsChange}
+                isProcessingAI={isProcessingAI}
+                onProcessWithAI={onProcessWithAI}
+                onSelectedModelChange={onSelectedModelChange}
+                onDynamicFieldsChange={onDynamicFieldsChange}
+                processAIContent={processAIContent}
+                updateDynamicFieldsFromAI={updateDynamicFieldsFromAI}
+                dynamicFields={dynamicFields}
+                initialSelectedModelId={selectedExamModelId}
+                onModelIdChange={onExamModelChange}
+              />
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </div>
+    );
+  }
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

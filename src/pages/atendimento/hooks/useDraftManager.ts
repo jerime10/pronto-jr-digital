@@ -259,6 +259,28 @@ export const useDraftManager = ({
 
       const nowIso = new Date().toISOString();
 
+      // Mapear os campos para as colunas individuais do banco de dados
+      const draftData = {
+        main_complaint: dataToSave.queixaPrincipal,
+        history: dataToSave.antecedentes,
+        allergies: dataToSave.alergias,
+        evolution: dataToSave.evolucao,
+        custom_prescription: dataToSave.prescricaoPersonalizada,
+        prescription_model_id: (dataToSave as any).modeloPrescricao || null,
+        exam_requests: dataToSave.examesSelecionados || [],
+        exam_observations: dataToSave.observacoesExames,
+        exam_results: (dataToSave as any).resultadoExames || '',
+        images_data: dataToSave.images || [],
+        attendance_start_at: dataToSave.dataInicioAtendimento?.toISOString(),
+        attendance_end_at: dataToSave.dataFimAtendimento?.toISOString(),
+        appointment_id: (dataToSave as any).appointment_id || null,
+        dum: (camposDinamicosParaSalvar as any).dum || (dataToSave as any).dum || null,
+        // Manter form_data para compatibilidade se necessário, mas as novas colunas são prioridade
+        form_data: formDataWithDynamicFields as any,
+        title: draftTitle,
+        updated_at: nowIso
+      };
+
       // Sempre buscar rascunho existente do mesmo paciente+profissional (independente do título)
       const { data: existingDraft, error: existingError } = await (supabase as any)
         .from('medical_record_drafts')
@@ -293,11 +315,7 @@ export const useDraftManager = ({
         console.log('♻️ Atualizando rascunho existente do paciente:', existingDraftId);
         const result = await (supabase as any)
           .from('medical_record_drafts')
-          .update({
-            title: draftTitle,
-            form_data: formDataWithDynamicFields as any,
-            updated_at: nowIso
-          })
+          .update(draftData)
           .eq('id', existingDraftId)
           .select()
           .single();
@@ -311,12 +329,10 @@ export const useDraftManager = ({
         const result = await (supabase as any)
           .from('medical_record_drafts')
           .insert({
+            ...draftData,
             patient_id: pacienteSelecionado.id,
             professional_id: profissionalAtual.id,
-            title: draftTitle,
-            form_data: formDataWithDynamicFields as any,
-            created_at: nowIso,
-            updated_at: nowIso
+            created_at: nowIso
           })
           .select()
           .single();
@@ -359,37 +375,62 @@ export const useDraftManager = ({
     try {
       console.log('📂 [useDraftManager] Carregando rascunho:', draft);
 
-      // Buscar o form_data completo do rascunho (evita carregar JSON pesado na listagem)
+      // Buscar todas as colunas individuais e o form_data completo (como fallback)
       const { data: fullDraft, error: fullDraftError } = await (supabase as any)
         .from('medical_record_drafts')
-        .select('id, patient_id, professional_id, title, form_data, created_at, updated_at')
+        .select(`
+          id, patient_id, professional_id, title, 
+          main_complaint, history, allergies, evolution, 
+          custom_prescription, prescription_model_id, 
+          exam_requests, exam_observations, exam_results, 
+          images_data, attendance_start_at, attendance_end_at, 
+          appointment_id, dum, form_data, 
+          created_at, updated_at
+        `)
         .eq('id', draft.id)
         .single();
 
       if (fullDraftError) throw fullDraftError;
 
-      const fullFormData = (fullDraft?.form_data ?? {}) as FormState;
+      // Priorizar colunas individuais, usar form_data como fallback
+      const fallbackData = (fullDraft?.form_data ?? {}) as any;
+      
+      const formDataToLoad: Partial<FormState> = {
+        queixaPrincipal: fullDraft.main_complaint ?? fallbackData.queixaPrincipal ?? '',
+        antecedentes: fullDraft.history ?? fallbackData.antecedentes ?? '',
+        alergias: fullDraft.allergies ?? fallbackData.alergias ?? '',
+        evolucao: fullDraft.evolution ?? fallbackData.evolucao ?? '',
+        prescricaoPersonalizada: fullDraft.custom_prescription ?? fallbackData.prescricaoPersonalizada ?? '',
+        modeloPrescricao: fullDraft.prescription_model_id ?? fallbackData.modeloPrescricao ?? '',
+        examesSelecionados: fullDraft.exam_requests ?? fallbackData.examesSelecionados ?? [],
+        observacoesExames: fullDraft.exam_observations ?? fallbackData.observacoesExames ?? '',
+        resultadoExames: fullDraft.exam_results ?? fallbackData.resultadoExames ?? '',
+        images: fullDraft.images_data ?? fallbackData.images ?? [],
+        dataInicioAtendimento: fullDraft.attendance_start_at ? new Date(fullDraft.attendance_start_at) : (fallbackData.dataInicioAtendimento ? new Date(fallbackData.dataInicioAtendimento) : new Date()),
+        dataFimAtendimento: fullDraft.attendance_end_at ? new Date(fullDraft.attendance_end_at) : (fallbackData.dataFimAtendimento ? new Date(fallbackData.dataFimAtendimento) : null),
+      };
 
-      // Separar dynamicFields do form_data
-      const { dynamicFields: loadedDynamicFields, ...formDataWithoutDynamicFields } = fullFormData as any;
+      // Carregar campos dinâmicos do form_data ou usar o campo dum individual
+      const loadedDynamicFields = fallbackData.dynamicFields || {};
+      if (fullDraft.dum) {
+        loadedDynamicFields.dum = fullDraft.dum;
+      }
+      
+      // Adicionar appointment_id se existir (pode ser útil em outros hooks)
+      if (fullDraft.appointment_id) {
+        (formDataToLoad as any).appointment_id = fullDraft.appointment_id;
+      }
 
-      console.log('📂 [useDraftManager] Campos dinâmicos do rascunho:', loadedDynamicFields);
-      console.log('📂 [useDraftManager] Dados do formulário (sem campos dinâmicos):', formDataWithoutDynamicFields);
+      console.log('📂 [useDraftManager] Campos dinâmicos carregados:', loadedDynamicFields);
+      console.log('📂 [useDraftManager] Dados do formulário montados:', formDataToLoad);
 
       // PRIMEIRO: Carregar campos dinâmicos se existirem e o callback estiver disponível
-      if (loadedDynamicFields && onDynamicFieldsChange) {
-        console.log('📂 [useDraftManager] Chamando onDynamicFieldsChange com:', loadedDynamicFields);
+      if (onDynamicFieldsChange) {
         onDynamicFieldsChange(loadedDynamicFields);
-      } else {
-        console.warn('⚠️ [useDraftManager] Campos dinâmicos não carregados:', {
-          temCamposDinamicos: !!loadedDynamicFields,
-          temCallback: !!onDynamicFieldsChange,
-          campos: loadedDynamicFields
-        });
       }
 
       // DEPOIS: Carregar dados do formulário
-      setFormData(formDataWithoutDynamicFields);
+      setFormData(formDataToLoad as FormState);
 
       // POR ÚLTIMO: Selecionar o paciente
       handleSelectPaciente(draft.patient_data);

@@ -8,6 +8,8 @@ import ExamesTab from './ExamesTab';
 import { ImageUploadTab } from './ImageUploadTab';
 import { TabValue } from '../types';
 import { FormState } from '../hooks/useFormData';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface AtendimentoTabsProps {
   activeTab: TabValue;
@@ -54,8 +56,9 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
   selectedExamModelId,
   onExamModelChange
 }) => {
+  const isMobile = useIsMobile();
   const [selectedModelTitle, setSelectedModelTitle] = useState<string | null>(null);
-  
+
   const handleSelectedModelChange = (modelTitle: string | null) => {
     setSelectedModelTitle(modelTitle);
     onSelectedModelChange?.(modelTitle);
@@ -103,34 +106,68 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <div className="bg-white/50 backdrop-blur-sm p-1.5 rounded-[1.5rem] border border-slate-200/60 shadow-sm mb-8 sticky top-0 z-40">
-        <TabsList className="w-full bg-slate-100/50 rounded-[1.2rem] h-12 p-1">
+      <div className={cn(
+        "z-40 mb-8",
+        isMobile 
+          ? "overflow-x-auto no-scrollbar" 
+          : "bg-white/50 backdrop-blur-sm p-1.5 rounded-[1.5rem] border border-slate-200/60 shadow-sm sticky top-0"
+      )}>
+        <TabsList className={cn(
+          isMobile 
+            ? "flex w-max gap-2 bg-transparent h-auto p-0" 
+            : "w-full bg-slate-100/50 rounded-[1.2rem] h-12 p-1"
+        )}>
           <TabsTrigger 
-            className="flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md transition-all font-bold text-slate-500 text-sm md:text-base tracking-tight" 
+            className={cn(
+              "transition-all font-bold tracking-tight",
+              isMobile 
+                ? "rounded-full px-6 py-3 h-auto border border-slate-200 bg-white text-slate-500 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 shadow-none" 
+                : "flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md text-slate-500 text-sm md:text-base h-10"
+            )}
             value="info"
           >
             Informações
           </TabsTrigger>
           <TabsTrigger 
-            className="flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md transition-all font-bold text-slate-500 text-sm md:text-base tracking-tight" 
+            className={cn(
+              "transition-all font-bold tracking-tight",
+              isMobile 
+                ? "rounded-full px-6 py-3 h-auto border border-slate-200 bg-white text-slate-500 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 shadow-none" 
+                : "flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md text-slate-500 text-sm md:text-base h-10"
+            )}
             value="evolucao"
           >
             Evolução
           </TabsTrigger>
           <TabsTrigger 
-            className="flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md transition-all font-bold text-slate-500 text-sm md:text-base tracking-tight" 
+            className={cn(
+              "transition-all font-bold tracking-tight",
+              isMobile 
+                ? "rounded-full px-6 py-3 h-auto border border-slate-200 bg-white text-slate-500 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 shadow-none" 
+                : "flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md text-slate-500 text-sm md:text-base h-10"
+            )}
             value="prescricao"
           >
             Prescrição
           </TabsTrigger>
           <TabsTrigger 
-            className="flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md transition-all font-bold text-slate-500 text-sm md:text-base tracking-tight" 
+            className={cn(
+              "transition-all font-bold tracking-tight",
+              isMobile 
+                ? "rounded-full px-6 py-3 h-auto border border-slate-200 bg-white text-slate-500 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 shadow-none" 
+                : "flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md text-slate-500 text-sm md:text-base h-10"
+            )}
             value="exames"
           >
             Exames
           </TabsTrigger>
           <TabsTrigger 
-            className="flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md transition-all font-bold text-slate-500 text-sm md:text-base tracking-tight" 
+            className={cn(
+              "transition-all font-bold tracking-tight",
+              isMobile 
+                ? "rounded-full px-6 py-3 h-auto border border-slate-200 bg-white text-slate-500 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 shadow-none" 
+                : "flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md text-slate-500 text-sm md:text-base h-10"
+            )}
             value="imagens"
           >
             Imagens

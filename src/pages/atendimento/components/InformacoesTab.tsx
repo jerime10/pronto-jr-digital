@@ -11,7 +11,15 @@ import { toast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { AIPromptModal } from './AIPromptModal';
 import { AudioRecorderButton } from '@/components/ui/audio-recorder-button';
-import { Settings2 } from 'lucide-react';
+import { Settings2, ChevronDown } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface InformacoesTabProps {
   form: FormState;
@@ -30,6 +38,7 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
   onProcessAI,
   isProcessingAI
 }) => {
+  const isMobile = useIsMobile();
   const { searchFieldTemplates, saveFieldTemplate, deleteFieldTemplate } = useIndividualFieldTemplates();
   
   const [isSavingQueixa, setIsSavingQueixa] = useState(false);
@@ -197,6 +206,117 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
     onFieldChange('alergias', `${currentText}${separator}${transcribedText}`);
     toast({ title: "Áudio transcrito", description: "Texto adicionado às alergias." });
   };
+
+  if (isMobile) {
+    return (
+      <div className="space-y-4">
+        <Accordion type="single" collapsible className="space-y-4">
+          <AccordionItem value="queixa" className="border-none">
+            <AccordionTrigger className="bg-slate-900 px-6 py-5 rounded-2xl hover:no-underline transition-all">
+              <div className="flex items-center gap-3">
+                <span className="text-white font-black text-lg">Queixa Principal</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="bg-slate-900/95 mt-1 rounded-2xl p-6 space-y-4 overflow-visible">
+              <div className="space-y-4">
+                <FieldAutocompleteMulti
+                  selectedValues={selectedQueixas}
+                  onChange={handleQueixaModelChange}
+                  onSearch={(searchTerm) => searchFieldTemplates('queixa_principal', searchTerm, 'ATENDIMENTO')}
+                  placeholder="Digite para buscar e selecionar múltiplas queixas..."
+                  fieldName="queixa_principal"
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-xl"
+                />
+                
+                <div className="relative">
+                  <Textarea
+                    value={form.queixaPrincipal}
+                    onChange={(e) => onFieldChange('queixaPrincipal', e.target.value)}
+                    placeholder="Alô, santo!"
+                    rows={6}
+                    className="w-full bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 rounded-xl p-4 focus:ring-emerald-500/20 transition-all resize-none"
+                  />
+                  <div className="absolute bottom-3 right-3 flex gap-2">
+                    <AudioRecorderButton onTranscription={handleQueixaAudio} />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 text-slate-400 hover:text-white hover:bg-white/10"
+                      onClick={() => onProcessAI('mainComplaint')}
+                      disabled={isProcessingAI.mainComplaint || !form.queixaPrincipal.trim()}
+                    >
+                      <Sparkles className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="antecedentes" className="border-none">
+            <AccordionTrigger className="bg-slate-900 px-6 py-5 rounded-2xl hover:no-underline transition-all">
+              <div className="flex items-center gap-3">
+                <span className="text-white font-black text-lg">Antecedentes</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="bg-slate-900/95 mt-1 rounded-2xl p-6 space-y-4">
+              <div className="space-y-4">
+                <FieldAutocompleteMulti
+                  selectedValues={selectedAntecedentes}
+                  onChange={handleAntecedentesModelChange}
+                  onSearch={(searchTerm) => searchFieldTemplates('antecedentes', searchTerm, 'ATENDIMENTO')}
+                  placeholder="Digite para buscar e selecionar múltiplos antecedentes..."
+                  fieldName="antecedentes"
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-xl"
+                />
+                <Textarea
+                  value={form.antecedentes}
+                  onChange={(e) => onFieldChange('antecedentes', e.target.value)}
+                  placeholder="Digite os antecedentes..."
+                  rows={6}
+                  className="w-full bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 rounded-xl p-4 resize-none"
+                />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="alergias" className="border-none">
+            <AccordionTrigger className="bg-slate-900 px-6 py-5 rounded-2xl hover:no-underline transition-all">
+              <div className="flex items-center gap-3">
+                <span className="text-white font-black text-lg">Alergias</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="bg-slate-900/95 mt-1 rounded-2xl p-6 space-y-4">
+              <div className="space-y-4">
+                <FieldAutocompleteMulti
+                  selectedValues={selectedAlergias}
+                  onChange={handleAlergiasModelChange}
+                  onSearch={(searchTerm) => searchFieldTemplates('alergias', searchTerm, 'ATENDIMENTO')}
+                  placeholder="Digite para buscar e selecionar múltiplas alergias..."
+                  fieldName="alergias"
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-xl"
+                />
+                <Textarea
+                  value={form.alergias}
+                  onChange={(e) => onFieldChange('alergias', e.target.value)}
+                  placeholder="Digite as alergias..."
+                  rows={6}
+                  className="w-full bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 rounded-xl p-4 resize-none"
+                />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+        
+        <AIPromptModal 
+          isOpen={isPromptModalOpen} 
+          onClose={() => setIsPromptModalOpen(false)} 
+          fieldType="queixa" 
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

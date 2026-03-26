@@ -16,6 +16,8 @@ import { FieldAutocompleteMulti } from '@/components/ui/field-autocomplete-multi
 import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AIPromptModal } from './AIPromptModal';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface ExamModel {
   id: string;
@@ -493,6 +495,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   initialSelectedModelId,
   onModelIdChange
 }) => {
+  const isMobile = useIsMobile();
   console.log('🚀 ResultadoExames renderizado - PatientId:', patientId);
   console.log('🔧 [INIT] initialSelectedModelId recebido:', initialSelectedModelId);
   const [completedExams, setCompletedExams] = useState<ExamModel[]>([]);
@@ -1468,6 +1471,165 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       </Button>
     );
   }, []);
+  if (isMobile) {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Modelo de Exame
+            </Label>
+            <Select value={selectedModelId} onValueChange={handleModelSelect} disabled={isLoading}>
+              <SelectTrigger className="w-full bg-slate-800 border-slate-700 text-white rounded-xl h-12">
+                <SelectValue placeholder="Selecione um modelo..." />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-900 border-slate-800 text-white">
+                {completedExams.map(model => (
+                  <SelectItem key={model.id} value={model.id} className="focus:bg-slate-800 focus:text-white">
+                    {model.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant={isRecordingGlobal ? "destructive" : "outline"}
+              className={cn(
+                "h-12 flex-1 rounded-xl font-bold transition-all",
+                isRecordingGlobal ? "animate-pulse" : "bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
+              )}
+              onClick={toggleRecordingGlobal}
+              disabled={isProcessingVoice}
+            >
+              {isProcessingVoice ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : isRecordingGlobal ? <MicOff className="h-5 w-5 mr-2" /> : <Mic className="h-5 w-5 mr-2" />}
+              {isRecordingGlobal ? "Parar Gravação" : "Comando de Voz"}
+            </Button>
+            
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-12 w-12 rounded-xl bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
+              onClick={() => setIsPromptModalOpen(true)}
+            >
+              <Settings2 className="h-5 w-5" />
+            </Button>
+          </div>
+
+          <Button 
+            onClick={handleProcessWithAI} 
+            disabled={isProcessingAI.examResults || !selectedModel}
+            className="w-full h-12 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black shadow-lg shadow-emerald-900/20 transition-all active:scale-[0.98]"
+          >
+            {isProcessingAI.examResults ? (
+              <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processando...</>
+            ) : (
+              <><Sparkles className="mr-2 h-5 w-5" /> Refinar Laudo com IA</>
+            )}
+          </Button>
+        </div>
+
+        {selectedTemplate && selectedTemplate.fields.length > 0 && (
+          <div className="space-y-6">
+            <div className="h-px bg-slate-800 w-full my-2" />
+            <div className="space-y-8">
+              {selectedTemplate.fields.map(field => {
+                const fieldValue = dynamicFields[field.key] || '';
+                const selectedValues = selectedFieldValues[field.key] || [];
+                
+                return (
+                  <div key={field.key} className={cn(
+                    "space-y-3 transition-all duration-500",
+                    modifiedFields.has(field.key) && "bg-emerald-500/10 p-3 rounded-2xl ring-1 ring-emerald-500/30"
+                  )}>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-black text-slate-200 uppercase tracking-tight">
+                        {field.label}
+                      </Label>
+                      <div className="flex gap-2">
+                        {!field.key.toLowerCase().includes('percentil') && (
+                          <FieldMicrophone 
+                            fieldKey={field.key} 
+                            label={field.label} 
+                            onUpdate={(val) => handleFieldTextChange(field.key, val)} 
+                          />
+                        )}
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-slate-400 hover:text-white"
+                          onClick={() => handleProcessFieldWithAI(field)} 
+                          disabled={!fieldValue.trim() || isProcessingField === field.key}
+                        >
+                          {isProcessingField === field.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <FieldAutocompleteMulti 
+                      key={`${selectedModel?.id || 'no-model'}-${field.key}`} 
+                      selectedValues={selectedValues} 
+                      onChange={selectedContents => handleFieldModelChange(field.key, selectedContents)} 
+                      onSearch={searchTerm => searchFieldTemplates(field.key, searchTerm, selectedModel?.name || '')} 
+                      placeholder={`Modelos de ${field.label.toLowerCase()}...`} 
+                      fieldName={field.key} 
+                      className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-xl" 
+                    />
+
+                    {field.type === 'date' ? (
+                      <div className="relative">
+                        <Input 
+                          type="text" 
+                          placeholder="DD/MM/AAAA"
+                          className="w-full h-12 bg-slate-800/50 border-slate-700 text-white rounded-xl pr-10"
+                          value={fieldValue} 
+                          onChange={e => handleFieldTextChange(field.key, formatDateInput(e.target.value))} 
+                        />
+                        <CalendarIcon className="absolute right-3 top-3.5 h-5 w-5 text-slate-500" />
+                      </div>
+                    ) : (
+                      <Textarea 
+                        value={fieldValue} 
+                        onChange={e => handleFieldTextChange(field.key, e.target.value)} 
+                        placeholder={field.placeholder} 
+                        rows={field.key === 'percentil' ? 4 : 6} 
+                        className={cn(
+                          "w-full bg-slate-800/50 border-slate-700 text-white rounded-xl p-4 focus:ring-emerald-500/20 transition-all resize-none",
+                          field.key === 'percentil' && "font-bold"
+                        )} 
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="pt-6 space-y-3">
+          <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            Resultado Final (Laudo)
+          </Label>
+          <Textarea 
+            value={examResults} 
+            onChange={e => onExamResultsChange(e.target.value)} 
+            placeholder="O laudo será gerado automaticamente..." 
+            className="min-h-[300px] bg-slate-900 border-slate-800 text-emerald-400 font-mono text-sm rounded-2xl p-4" 
+            readOnly 
+          />
+        </div>
+
+        {/* Reutilizar Dialogs e Modais existentes */}
+        <AIPromptModal isOpen={isPromptModalOpen} onClose={() => setIsPromptModalOpen(false)} fieldType="exames" />
+        {/* ... manter outros modais se necessário ... */}
+      </div>
+    );
+  }
+
   return <div className="space-y-6">
       <Card>
         <CardHeader className="bg-purple-400">

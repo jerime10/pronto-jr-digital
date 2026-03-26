@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Sparkles, Save, Eraser, Loader2 } from 'lucide-react';
+import { Settings2, Sparkles, Save, Eraser, Loader2 } from 'lucide-react';
 import { FormState } from '../hooks/useFormData';
 import { FieldAutocompleteMulti } from '@/components/ui/field-autocomplete-multi';
 import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
@@ -11,7 +11,14 @@ import { toast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { AIPromptModal } from './AIPromptModal';
 import { AudioRecorderButton } from '@/components/ui/audio-recorder-button';
-import { Settings2 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface EvolucaoTabProps {
   form: FormState;
@@ -30,6 +37,7 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
   onProcessAI,
   isProcessingAI
 }) => {
+  const isMobile = useIsMobile();
   const { searchFieldTemplates, saveFieldTemplate, deleteFieldTemplate } = useIndividualFieldTemplates();
   const [isSavingEvolucao, setIsSavingEvolucao] = useState(false);
   const [selectedEvolucoes, setSelectedEvolucoes] = useState<string[]>([]);
@@ -83,6 +91,63 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
       description: "O texto foi adicionado à sua evolução."
     });
   };
+
+  if (isMobile) {
+    return (
+      <div className="space-y-4">
+        <Accordion type="single" collapsible className="space-y-4">
+          <AccordionItem value="evolucao" className="border-none">
+            <AccordionTrigger className="bg-slate-900 px-6 py-5 rounded-2xl hover:no-underline transition-all">
+              <div className="flex items-center gap-3">
+                <span className="text-white font-black text-lg">Evolução do Paciente</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="bg-slate-900/95 mt-1 rounded-2xl p-6 space-y-4 overflow-visible">
+              <div className="space-y-4">
+                <FieldAutocompleteMulti
+                  selectedValues={selectedEvolucoes}
+                  onChange={handleEvolucaoModelChange}
+                  onSearch={(searchTerm) => searchFieldTemplates('evolucao', searchTerm, 'ATENDIMENTO')}
+                  placeholder="Digite para buscar e selecionar múltiplas evoluções..."
+                  fieldName="evolucao"
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-xl"
+                />
+                
+                <div className="relative">
+                  <Textarea
+                    value={form.evolucao}
+                    onChange={(e) => onFieldChange('evolucao', e.target.value)}
+                    placeholder="Digite a evolução personalizada..."
+                    rows={8}
+                    className="w-full bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 rounded-xl p-4 focus:ring-emerald-500/20 transition-all resize-none"
+                  />
+                  <div className="absolute bottom-3 right-3 flex gap-2">
+                    <AudioRecorderButton onTranscription={handleAudioTranscription} />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 text-slate-400 hover:text-white hover:bg-white/10"
+                      onClick={() => onProcessAI('evolution')}
+                      disabled={isProcessingAI.evolution || !form.evolucao.trim()}
+                    >
+                      <Sparkles className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+        
+        <AIPromptModal 
+          isOpen={isPromptModalOpen} 
+          onClose={() => setIsPromptModalOpen(false)} 
+          fieldType="evolucao" 
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

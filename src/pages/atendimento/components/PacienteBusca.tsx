@@ -137,6 +137,66 @@ const PacienteBusca: React.FC<PacienteBuscaProps> = ({
     </div>
   );
 
+  if (pacienteSelecionado && isMobile) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-slate-900 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden group">
+          {/* Efeito de brilho no fundo */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full -mr-16 -mt-16 blur-3xl transition-transform group-hover:scale-150 duration-700" />
+          
+          <div className="flex items-center space-x-4 relative z-10">
+            <Avatar className="h-20 w-20 border-4 border-slate-800 shadow-2xl transition-all group-hover:scale-105">
+              <AvatarImage src={`https://avatar.vercel.sh/${pacienteSelecionado.name}.png`} />
+              <AvatarFallback className="bg-gradient-to-br from-slate-700 to-slate-800 text-white font-black text-2xl">
+                {pacienteSelecionado.name ? pacienteSelecionado.name.substring(0, 2).toUpperCase() : 'PA'}
+              </AvatarFallback>
+            </Avatar>
+            
+            <div className="flex-1 min-w-0">
+              <h3 className="font-black text-xl text-white tracking-tight truncate leading-tight">
+                {pacienteSelecionado.name}
+              </h3>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                <div className="flex items-center bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700/50">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2" />
+                  <span className="text-slate-500 font-black text-[8px] uppercase tracking-wider mr-1.5">SUS</span>
+                  <span className="text-slate-200 text-[10px] font-bold">{pacienteSelecionado.sus}</span>
+                </div>
+                <div className="flex items-center bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700/50">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2" />
+                  <span className="text-slate-500 font-black text-[8px] uppercase tracking-wider mr-1.5">IDADE</span>
+                  <span className="text-slate-200 text-[10px] font-bold">{pacienteSelecionado.age ? `${pacienteSelecionado.age} anos` : 'N/I'}</span>
+                </div>
+              </div>
+            </div>
+
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onClearPaciente} 
+              disabled={disabled} 
+              className="rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-all h-10 w-10 shrink-0"
+            >
+              <X className="h-6 w-6" />
+            </Button>
+          </div>
+        </div>
+
+        {onStartDateTimeChange && onEndDateTimeChange && (
+          <div className="bg-white rounded-[2rem] p-2 border border-slate-200/60 shadow-sm overflow-hidden transition-all hover:border-emerald-200/50">
+            <AttendanceDateTime 
+              startDateTime={startDateTime} 
+              endDateTime={endDateTime} 
+              onStartDateTimeChange={onStartDateTimeChange} 
+              onEndDateTimeChange={onEndDateTimeChange} 
+              disabled={disabled} 
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {pacienteSelecionado ? (
