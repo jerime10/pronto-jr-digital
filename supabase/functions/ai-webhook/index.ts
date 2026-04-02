@@ -26,30 +26,53 @@ serve(async (req) => {
     console.log("Corpo da requisição:", requestBody);
     
     const text = requestBody.text || requestBody.content;
-    const type = requestBody.type; // 'main_complaint', 'evolution', 'exam_result', 'voice_command'
+    let type = requestBody.type; // 'main_complaint', 'evolution', 'exam_result', 'voice_command'
     const fieldKey = requestBody.fieldKey; 
     const availableFields = requestBody.availableFields; // Lista de {key, label} para comando de voz
+    const selectedModelId = requestBody.selectedModelId;
+    const selectedFieldsKeys = requestBody.selectedFieldsKeys; // Keys dos campos selecionados pelo checkbox
+
+    console.log(`Tipo: ${type}, ModelID: ${selectedModelId}, FieldKey: ${fieldKey}`);
+    console.log(`SelectedFieldsKeys: ${JSON.stringify(selectedFieldsKeys)}`);
+
+    // Se tiver selectedModelId, inferir que é um resultado de exame se o tipo não estiver definido
+    if (selectedModelId && !type) {
+      type = 'exam_result';
+      console.log("Tipo inferido como exam_result devido ao selectedModelId");
+    }
     
     const dynamicFields = Object.keys(requestBody).filter(key => 
-      !['text', 'content', 'type', 'selectedModelTitle', 'resultadoFinal', 'timestamp', 'fieldKey', 'availableFields'].includes(key)
+      !['text', 'content', 'type', 'selectedModelId', 'selectedModelTitle', 'resultadoFinal', 'timestamp', 'fieldKey', 'availableFields', 'selectedFieldsKeys'].includes(key)
     );
+    
     const hasDynamicFields = (dynamicFields.length > 0 && 
       dynamicFields.some(key => requestBody[key] && requestBody[key].toString().trim())) || type === 'voice_command';
+
+    console.log(`HasDynamicFields: ${hasDynamicFields}, DynamicFields: ${JSON.stringify(dynamicFields)}`);
 
     if (!hasDynamicFields && !text) {
       return new Response(JSON.stringify({ error: 'Conteúdo ou campos dinâmicos são obrigatórios', success: false }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     
-    // Buscar configurações da IA
+    // Buscar configurações da IA (com lógica robusta para evitar reset de chaves)
     const { data: settingsData, error: settingsError } = await supabase
       .from('site_settings')
       .select('openrouter_api_key, openrouter_model, prompt_queixa, prompt_evolucao, prompt_exames')
+      .not('openrouter_api_key', 'is', null)
       .order('updated_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
     
     if (settingsError || !settingsData?.openrouter_api_key) {
-      return new Response(JSON.stringify({ error: 'Chave do OpenRouter não configurada no painel de configurações.', success: false }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      console.error("Erro ao buscar configurações:", settingsError);
+      return new Response(JSON.stringify({ 
+        error: 'Chave do OpenRouter não configurada. Verifique o painel administrativo.', 
+        success: false,
+        details: settingsError?.message
+      }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
     const apiKey = settingsData.openrouter_api_key;
@@ -57,28 +80,66 @@ serve(async (req) => {
     
     // Determinar o prompt base
     let systemPrompt = "";
+    
+    // Buscar prompt específico se for exame e tiver modelo selecionado
+    let specificExamPrompt = null;
+    if (selectedModelId && (type === 'exam_result' || type === 'voice_command')) {
+      console.log(`Buscando prompt específico para o modelo: ${selectedModelId}`);
+      const { data: modelData, error: modelError } = await supabase
+        .from('modelo-result-exames')
+        .select('ai_prompt')
+        .eq('id', selectedModelId)
+        .maybeSingle(); // Usar maybeSingle para evitar erros se não encontrar
+      
+      if (modelError) {
+        console.error("Erro ao buscar prompt do modelo:", modelError);
+      } else if (modelData?.ai_prompt) {
+        specificExamPrompt = modelData.ai_prompt;
+        console.log(`Prompt específico ENCONTRADO para o modelo ${selectedModelId}: ${specificExamPrompt.substring(0, 50)}...`);
+      } else {
+        console.log(`Modelo ${selectedModelId} não possui prompt específico (ai_prompt está vazio).`);
+      }
+    }
+
     if (type === 'main_complaint') systemPrompt = settingsData.prompt_queixa || 'Você é um assistente médico. Melhore a queixa principal.';
     else if (type === 'evolution') systemPrompt = settingsData.prompt_evolucao || 'Você é um assistente médico. Melhore a evolução clínica.';
-    else if (type === 'exam_result') systemPrompt = settingsData.prompt_exames || 'Você é um assistente médico. Estruture o laudo de exames.';
-    else if (type === 'voice_command') {
-      systemPrompt = `Você é um assistente médico especializado em extrair informações de transcrições de áudio para laudos de exames de Ultrassonografia Obstétrica.
-      Sua tarefa é identificar no texto quais partes pertencem a quais campos do laudo.
-      
-      CAMPOS DISPONÍVEIS (ID: NOME):
-      ${availableFields ? availableFields.map((f: any) => `${f.key}: ${f.label}`).join('\n') : 'Nenhum campo disponível'}
-      
-      REGRAS CRÍTICAS:
-      1. Se o usuário disser o nome do campo (ex: "Gravidez", "Feto", "Placenta"), atribua o texto subsequente a esse campo.
-      2. Se o texto for genérico (ex: "tópica e única"), deduza que pertence ao campo "gravidez" pelo contexto médico.
-      3. DATA (DPP): Se ouvir uma data, converta OBRIGATORIAMENTE para o formato DD/MM/AAAA. Exemplo: "vinte de março de dois mil e vinte e seis" vira "20/03/2026".
-      4. IG (IDADE GESTACIONAL): Converta OBRIGATORIAMENTE para o formato XSXD (S maiúsculo, D maiúsculo). Exemplo: "33 semanas e 0 dias" vira "33S0D". "32 semanas e 4 dias" vira "32S4D".
-      5. PESO: Converta OBRIGATORIAMENTE para um número inteiro seguido da letra "g" no final. JAMAIS use vírgula ou ponto. Exemplo: "mil e quinhentos gramas" vira "1500g". "duzentos gramas" vira "200g".
-      6. Retorne APENAS um JSON onde as chaves são os IDs dos campos e os valores são os textos extraídos e formatados clinicamente.
-      7. NÃO invente campos. Se uma informação não se encaixar em nenhum campo, ignore-a.
-      8. Se o campo "observacoes" (ID: observacoes) for mencionado, transcreva a narração. Se não for mencionado, NÃO retorne nada para ele (o sistema cuidará do texto fixo).
-      9. Mantenha a terminologia médica correta.`;
+    else if (type === 'exam_result') {
+      systemPrompt = specificExamPrompt || settingsData.prompt_exames || 'Você é um assistente médico. Estruture o laudo de exames.';
+      console.log(`System Prompt definido para exam_result. Usando prompt ${specificExamPrompt ? 'DO MODELO' : 'GLOBAL'}.`);
     }
-    else systemPrompt = 'Você é um assistente médico especializado.';
+    else if (type === 'voice_command') {
+      // Instruções técnicas de mapeamento (sempre necessárias para comando de voz)
+      const mappingInstructions = `
+Sua tarefa é identificar no texto quais partes pertencem a quais campos do laudo.
+
+CAMPOS DISPONÍVEIS (ID: NOME):
+${availableFields ? availableFields.map((f: any) => `${f.key}: ${f.label}`).join('\n') : 'Nenhum campo disponível'}
+
+REGRAS CRÍTICAS:
+1. Se o usuário disser o nome do campo (ex: "Gravidez", "Feto", "Placenta"), atribua o texto subsequente a esse campo.
+2. Se o texto for genérico (ex: "tópica e única"), deduza que pertence ao campo "gravidez" pelo contexto médico.
+3. DATA (DPP): Se ouvir uma data, converta OBRIGATORIAMENTE para o formato DD/MM/AAAA. Exemplo: "vinte de março de dois mil e vinte e seis" vira "20/03/2026".
+4. IG (IDADE GESTACIONAL): Converta OBRIGATORIAMENTE para o formato XSXD (S maiúsculo, D maiúsculo). Exemplo: "33 semanas e 0 dias" vira "33S0D". "32 semanas e 4 dias" vira "32S4D".
+5. PESO: Converta OBRIGATORIAMENTE para um número inteiro seguido da letra "g" no final. JAMAIS use vírgula ou ponto. Exemplo: "mil e quinhentos gramas" vira "1500g". "duzentos gramas" vira "200g".
+6. Retorne APENAS um JSON onde as chaves são os IDs dos campos e os valores são os textos extraídos e formatados clinicamente.
+7. NÃO invente campos. Se uma informação não se encaixar em nenhum campo, ignore-a.
+8. Se o campo "observacoes" (ID: observacoes) for mencionado, transcreva a narração. Se não for mencionado, NÃO retorne nada para ele (o sistema cuidará do texto fixo).
+9. Mantenha a terminologia médica correta.`;
+
+      if (specificExamPrompt) {
+        // Mesclar prompt do modelo com instruções técnicas
+        systemPrompt = `${specificExamPrompt}\n\nINSTRUÇÕES TÉCNICAS PARA MAPEAMENTO DE CAMPOS (JSON):\n${mappingInstructions}`;
+        console.log("System Prompt definido para voice_command mesclando Prompt do Modelo + Instruções Técnicas.");
+      } else {
+        // Usar prompt padrão de obstetrícia se não houver prompt específico
+        systemPrompt = `Você é um assistente médico especializado em extrair informações de transcrições de áudio para laudos de exames de Ultrassonografia Obstétrica.\n${mappingInstructions}`;
+        console.log("System Prompt definido para voice_command usando Prompt Padrão (Obstetrícia).");
+      }
+    }
+    else {
+      systemPrompt = 'Você é um assistente médico especializado.';
+      console.log(`Tipo desconhecido (${type}). Usando prompt genérico.`);
+    }
 
     let userMessage = "";
     let expectedOutput = "texto";
@@ -93,6 +154,12 @@ serve(async (req) => {
       const fieldsData = dynamicFields.map(key => `"${key}": "${requestBody[key]}"`).join('\n');
       userMessage = `Aqui estão os campos a serem processados e melhorados clinicamente:\n${fieldsData}\n\nRetorne um JSON com os mesmos nomes de campos (chaves), mas com os valores melhorados e formatados clinicamente.`;
       
+      // Se houver campos selecionados via checkbox, orientar a IA a usá-los para a conclusão
+      if (selectedFieldsKeys && Array.isArray(selectedFieldsKeys) && selectedFieldsKeys.length > 0) {
+        const selectedLabels = selectedFieldsKeys.join(', ');
+        userMessage += `\n\nIMPORTANTE: Para a formulação dos campos de conclusão (como "impressaodiagnostica", "achadosadicionais", "recomendacoes"), considere PRIORITARIAMENTE os seguintes campos que foram marcados pelo usuário: ${selectedLabels}.`;
+      }
+
       if (fieldKey) {
         userMessage += `\n\nFOCO ESPECIAL NO CAMPO: "${fieldKey}".`;
       }
@@ -164,7 +231,8 @@ serve(async (req) => {
           success: true,
           processed_content: fieldKey ? parsedJson[fieldKey] : null,
           individual_fields: parsedJson,
-          fieldKey: fieldKey
+          fieldKey: fieldKey,
+          debug_prompt: systemPrompt // Retornar o prompt para fins de teste
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       } catch (e) {
         console.error("A IA não retornou um JSON válido:", e);
@@ -174,15 +242,17 @@ serve(async (req) => {
             success: true,
             processed_content: contentResponse,
             individual_fields: { [fieldKey]: contentResponse },
-            fieldKey: fieldKey
+            fieldKey: fieldKey,
+            debug_prompt: systemPrompt // Retornar o prompt para fins de teste
           }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
-        return new Response(JSON.stringify({ error: 'A IA não retornou um JSON válido.', success: false }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: 'A IA não retornou um JSON válido.', success: false, debug_prompt: systemPrompt }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
     } else {
       return new Response(JSON.stringify({
         success: true,
-        processed_content: contentResponse
+        processed_content: contentResponse,
+        debug_prompt: systemPrompt // Retornar o prompt para fins de teste
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     

@@ -8,14 +8,15 @@ import { fetchWebhookSettings } from '@/services/webhookSettingsService';
 export interface SystemHealthStatus {
   overall: 'healthy' | 'warning' | 'error';
   components: {
-    siteSettings: ComponentStatus;
-    authentication: ComponentStatus;
-    medicalRecordWebhook: ComponentStatus;
-    clinicSettings: ComponentStatus;
-    themeSettings: ComponentStatus;
-    webhookSettings: ComponentStatus;
-    database: ComponentStatus;
-  };
+      siteSettings: ComponentStatus;
+      authentication: ComponentStatus;
+      medicalRecordWebhook: ComponentStatus;
+      clinicSettings: ComponentStatus;
+      themeSettings: ComponentStatus;
+      webhookSettings: ComponentStatus;
+      database: ComponentStatus;
+      aiServices: ComponentStatus;
+    };
   errors: string[];
   warnings: string[];
 }
@@ -38,7 +39,8 @@ export async function performSystemHealthCheck(): Promise<SystemHealthStatus> {
       clinicSettings: { status: 'healthy', message: '', lastChecked: new Date().toISOString() },
       themeSettings: { status: 'healthy', message: '', lastChecked: new Date().toISOString() },
       webhookSettings: { status: 'healthy', message: '', lastChecked: new Date().toISOString() },
-      database: { status: 'healthy', message: '', lastChecked: new Date().toISOString() }
+      database: { status: 'healthy', message: '', lastChecked: new Date().toISOString() },
+      aiServices: { status: 'healthy', message: '', lastChecked: new Date().toISOString() }
     },
     errors: [],
     warnings: []
@@ -153,6 +155,30 @@ export async function performSystemHealthCheck(): Promise<SystemHealthStatus> {
     healthStatus.components.authentication.status = 'error';
     healthStatus.components.authentication.message = `Erro: ${error.message}`;
     healthStatus.errors.push(`Authentication: ${error.message}`);
+  }
+
+  // 8. Test AI Services (Groq Key)
+  try {
+    console.log('🔍 [Health Check] Verificando chaves de IA...');
+    const siteSettings = await fetchSiteSettings();
+    
+    if (!siteSettings.groqApiKey) {
+      healthStatus.components.aiServices.status = 'warning';
+      healthStatus.components.aiServices.message = 'Chave Groq não configurada (Transcrição de voz inativa)';
+      healthStatus.warnings.push('AI: Chave Groq ausente');
+    } else if (!siteSettings.groqApiKey.startsWith('gsk_')) {
+      healthStatus.components.aiServices.status = 'error';
+      healthStatus.components.aiServices.message = 'Chave Groq inválida (Formato incorreto)';
+      healthStatus.errors.push('AI: Chave Groq com formato inválido');
+    } else {
+      healthStatus.components.aiServices.status = 'healthy';
+      healthStatus.components.aiServices.message = 'Chave Groq configurada corretamente';
+      console.log('✅ [Health Check] AI Keys OK');
+    }
+  } catch (error: any) {
+    healthStatus.components.aiServices.status = 'error';
+    healthStatus.components.aiServices.message = `Erro ao verificar IA: ${error.message}`;
+    healthStatus.errors.push(`AI Check: ${error.message}`);
   }
 
   // Calculate overall status

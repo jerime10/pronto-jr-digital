@@ -18,11 +18,18 @@ export const useAIProcessing = () => {
     type: 'main_complaint' | 'evolution' | 'exam_result',
     onSuccess: (processedContent: string, individualFields?: Record<string, string>) => void,
     selectedModelTitle?: string | null,
-    dynamicFields?: Record<string, string>
+    dynamicFields?: Record<string, string>,
+    selectedModelId?: string | null,
+    selectedFieldsKeys?: string[]
   ) => {
     // Early validation - aceitar campos dinâmicos mesmo com content vazio ou null
-    const hasValidContent = content && content !== null && content.trim() !== '';
-    const hasDynamicFields = dynamicFields && Object.values(dynamicFields).some(value => value?.trim());
+    const safeContent = (content === null || content === undefined) ? '' : String(content);
+    const hasValidContent = safeContent.trim() !== '';
+    
+    const hasDynamicFields = dynamicFields && Object.values(dynamicFields).some(value => {
+      const stringValue = (value === null || value === undefined) ? '' : String(value);
+      return stringValue.trim() !== '';
+    });
     
     if (!hasValidContent && !hasDynamicFields) {
       toast.error('Por favor, forneça algum conteúdo para processar com IA.');
@@ -34,42 +41,75 @@ export const useAIProcessing = () => {
       const fieldKey = type === 'main_complaint' ? 'mainComplaint' : type === 'evolution' ? 'evolution' : 'examResults';
       setIsProcessingAI(prev => ({ ...prev, [fieldKey]: true }));
       
-      console.log(`🤖 Processando ${type} com IA:`, content);
+      console.log(`🤖 Processando ${type} with IA:`, content);
       console.log('🔍 [useAIProcessing] Análise de entrada:');
       console.log('   content:', content);
-      console.log('   content type:', typeof content);
-      console.log('   content === null:', content === null);
-      console.log('   content === "":', content === '');
       console.log('   dynamicFields:', dynamicFields);
+      console.log('   selectedModelId:', selectedModelId);
+      console.log('   selectedFieldsKeys:', selectedFieldsKeys);
       
       // Verificar se há campos dinâmicos válidos
-      const hasDynamicFields = dynamicFields && Object.keys(dynamicFields).length > 0 && 
-        Object.values(dynamicFields).some(value => value && value.trim());
+      const hasDynamicFieldsCheck = dynamicFields && Object.keys(dynamicFields).length > 0 && 
+        Object.values(dynamicFields).some(value => {
+          const stringValue = (value === null || value === undefined) ? '' : String(value);
+          return stringValue.trim() !== '';
+        });
       
-      // Verificar se há conteúdo válido (não vazio e não null)
-      const hasValidContent = content && content !== null && content.trim();
+      // Verificar se há conteúdo válido
+      const hasValidContentCheck = safeContent.trim() !== '';
       
       console.log('🔍 [useAIProcessing] Resultado da análise:');
-      console.log('   hasDynamicFields:', hasDynamicFields);
-      console.log('   hasValidContent:', hasValidContent);
+      console.log('   hasDynamicFields:', hasDynamicFieldsCheck);
+      console.log('   hasValidContent:', hasValidContentCheck);
+      
+      // LOG DE PREVISÃO (Útil se a Edge Function não retornar o debug_prompt)
+      console.log('%c 🔍 PREVISÃO DE PROMPT ', 'background: #333; color: #ffeb3b; font-weight: bold;');
+      console.log('   Prompt esperado:', selectedModelId ? 'PERSONALIZADO DO MODELO' : 'GLOBAL');
       
       // Call the Edge Function ai-webhook
       const requestBody: any = {};
       
-      if (hasDynamicFields) {
+      if (hasDynamicFieldsCheck) {
         // Se há campos dinâmicos, enviar apenas eles (comportamento novo)
-        console.log("🎯 Enviando apenas campos dinâmicos (sem content/type)");
-        console.log("🔍 Campos dinâmicos detectados:", Object.keys(dynamicFields).filter(key => dynamicFields[key]?.trim()));
+        console.log("🎯 Enviando apenas campos dinâmicos");
+        
+        // Sempre incluir o tipo para que a Edge Function saiba qual prompt base usar
+        requestBody.type = type;
+
         Object.entries(dynamicFields).forEach(([key, value]) => {
-          if (value && value.trim()) {
-            requestBody[key] = value;
+          let stringValue = (value === null || value === undefined) ? '' : String(value);
+          if (stringValue.trim() !== '') {
+            // Nota: O título do campo agora já é injetado no componente ResultadoExames.tsx 
+            // no formato "NOME_DO_CAMPO: valor". 
+            
+            // SOLUÇÃO: Injeção de Instrução Direta
+            // Se o campo estiver na lista de selecionados (via checkbox), anexar instrução
+            const cleanKeyForCheck = key.startsWith('titulo_campo_') ? key.replace('titulo_campo_', '') : key;
+            if (selectedFieldsKeys && Array.isArray(selectedFieldsKeys) && selectedFieldsKeys.includes(cleanKeyForCheck)) {
+              console.log(`💉 [useAIProcessing] Injetando instrução no campo: ${key}`);
+              // Verifica se a string já não contém a instrução para não duplicar
+              if (!stringValue.includes("INFORME EM IMPRESSÃO DIAGNÓSTICA.")) {
+                stringValue = `${stringValue.trim()} (INFORME EM IMPRESSÃO DIAGNÓSTICA.)`;
+              }
+            }
+            requestBody[key] = stringValue;
           }
         });
         
-        // Incluir selectedModelTitle também para campos dinâmicos
+        // Incluir selectedModelTitle e selectedModelId também para campos dinâmicos
         if (selectedModelTitle) {
           console.log("🔍 Incluindo selectedModelTitle:", selectedModelTitle);
           requestBody.selectedModelTitle = selectedModelTitle;
+        }
+        if (selectedModelId) {
+          console.log("🔍 Incluindo selectedModelId:", selectedModelId);
+          requestBody.selectedModelId = selectedModelId;
+        }
+        
+        // Incluir campos selecionados para análise se fornecido
+        if (selectedFieldsKeys && selectedFieldsKeys.length > 0) {
+          console.log("🔍 Incluindo selectedFieldsKeys:", selectedFieldsKeys);
+          requestBody.selectedFieldsKeys = selectedFieldsKeys;
         }
         
         // NÃO incluir Resultado Final - apenas campos dinâmicos individuais
@@ -80,9 +120,12 @@ export const useAIProcessing = () => {
         requestBody.content = content;
         requestBody.type = type;
         
-        // Incluir selectedModelTitle se disponível
+        // Incluir selectedModelTitle e selectedModelId se disponível
         if (selectedModelTitle) {
           requestBody.selectedModelTitle = selectedModelTitle;
+        }
+        if (selectedModelId) {
+          requestBody.selectedModelId = selectedModelId;
         }
       } else {
         // Nenhum conteúdo válido para processar
@@ -137,6 +180,16 @@ export const useAIProcessing = () => {
       }
       
       console.log('Resposta da IA:', data);
+      
+      // LOG DE AUDITORIA DO PROMPT (Para fins de teste)
+      if (data?.debug_prompt) {
+        console.group('%c 🧪 AUDITORIA DE PROMPT IA ', 'background: #222; color: #bada55; font-size: 12px; font-weight: bold;');
+        console.log('%c Prompt de Sistema Utilizado:', 'font-weight: bold; color: #4CAF50;');
+        console.log(data.debug_prompt);
+        console.log('%c Tipo de Processamento:', 'font-weight: bold; color: #2196F3;', type);
+        console.log('%c ID do Modelo:', 'font-weight: bold; color: #FF9800;', selectedModelId || 'Nenhum (Global)');
+        console.groupEnd();
+      }
       
       // Consider success if we have EITHER processed_content OR individual_fields
       const hasProcessedContent = Boolean(data?.processed_content);

@@ -62,7 +62,23 @@ export const ResultForm: React.FC<ResultFormProps> = ({
             placeholder="Template para resultado do exame."
             value={currentResult.result_template || ''}
             onChange={onChange}
-            rows={6}
+            rows={4}
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="ai_prompt" className="flex items-center gap-2">
+            System Prompt IA
+            <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold uppercase">Personalizado</span>
+          </Label>
+          <Textarea
+            id="ai_prompt"
+            name="ai_prompt"
+            placeholder="Instruções específicas para a IA processar este modelo de exame."
+            value={currentResult.ai_prompt || ''}
+            onChange={onChange}
+            rows={4}
             disabled={isLoading}
           />
         </div>

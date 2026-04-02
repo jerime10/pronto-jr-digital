@@ -8,6 +8,8 @@ import { useSiteSettings } from '@/hooks/useSiteSettings';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
+import { toast } from 'sonner';
+
 const POPULAR_MODELS = [
   { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini (OpenAI) - Rápido e barato', type: 'chat' },
   { id: 'openai/gpt-4o', name: 'GPT-4o (OpenAI) - Alta capacidade', type: 'chat' },
@@ -24,6 +26,7 @@ const AIConfig: React.FC = () => {
   const [groqKey, setGroqKey] = useState('');
   const [model, setModel] = useState('openai/gpt-4o-mini');
   const [isCustomModel, setIsCustomModel] = useState(false);
+  const [isTestingGroq, setIsTestingGroq] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -42,6 +45,12 @@ const AIConfig: React.FC = () => {
   }, [settings]);
 
   const handleSave = () => {
+    // Validação básica
+    if (groqKey && !groqKey.startsWith('gsk_')) {
+      toast.error('A chave da Groq deve começar com "gsk_". Verifique o valor inserido.');
+      return;
+    }
+
     saveAIPrompts.mutate({
       openrouterApiKey: apiKey,
       openrouterModel: model,
@@ -52,6 +61,34 @@ const AIConfig: React.FC = () => {
       promptExames: settings?.promptExames || null,
       settingsId: settings?.id
     });
+  };
+
+  const handleTestGroq = async () => {
+    if (!groqKey) {
+      toast.error('Insira a chave da Groq antes de testar.');
+      return;
+    }
+
+    setIsTestingGroq(true);
+    try {
+      // Testar a chave via Groq API (apenas uma chamada simples de modelos)
+      const response = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${groqKey}`
+        }
+      });
+
+      if (response.ok) {
+        toast.success('Chave da Groq validada com sucesso!');
+      } else {
+        const errorData = await response.json();
+        toast.error(`Chave inválida: ${errorData.error?.message || 'Erro desconhecido'}`);
+      }
+    } catch (err) {
+      toast.error('Erro ao conectar com a API da Groq.');
+    } finally {
+      setIsTestingGroq(false);
+    }
   };
 
   const handleModelSelect = (value: string) => {
@@ -145,10 +182,22 @@ const AIConfig: React.FC = () => {
 
         <div className="space-y-4 pt-4 border-t border-slate-100">
           <div className="space-y-2">
-            <Label htmlFor="groq_key" className="flex items-center gap-2">
-              <Key className="h-4 w-4" />
-              Chave de API Groq (Transcrição de Áudio/Whisper Grátis)
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="groq_key" className="flex items-center gap-2">
+                <Key className="h-4 w-4" />
+                Chave de API Groq (Transcrição de Áudio/Whisper Grátis)
+              </Label>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleTestGroq}
+                disabled={isTestingGroq || !groqKey}
+                className="h-8 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+              >
+                {isTestingGroq ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                Testar Chave
+              </Button>
+            </div>
             <Input
               id="groq_key"
               type="password"

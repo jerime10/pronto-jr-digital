@@ -21,7 +21,7 @@ interface AtendimentoTabsProps {
     evolution: boolean;
     examResults: boolean;
   };
-  processAIContent: (field: string, content: string, dynamicFields?: Record<string, string>) => Promise<void>;
+  processAIContent: (field: string, content: string, dynamicFields?: Record<string, string>, selectedFieldsKeys?: string[]) => Promise<void>;
   prescriptionModels: any[];
   isLoadingPrescriptions: boolean;
   handleModeloPrescricaoChange: (value: string) => void;
@@ -68,7 +68,7 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
     updateFormField(field as string, value);
   };
 
-  const handleProcessAI = async (field: 'mainComplaint' | 'evolution' | 'examResults') => {
+  const handleProcessAI = async (field: 'mainComplaint' | 'evolution' | 'examResults', selectedFieldsKeys?: string[]) => {
     const fieldMap = {
       'mainComplaint': 'queixaPrincipal',
       'evolution': 'evolucao', 
@@ -80,11 +80,16 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
     // Para exames, enviar apenas os campos dinâmicos separadamente (sem texto concatenado)
     if (field === 'examResults' && dynamicFields) {
       // Verificar se há campos dinâmicos preenchidos
-      const hasFilledFields = Object.values(dynamicFields).some(value => value?.trim());
+      const hasFilledFields = Object.values(dynamicFields).some(value => {
+        const stringValue = (value === null || value === undefined) ? '' : String(value);
+        return stringValue.trim() !== '';
+      });
       if (hasFilledFields) {
         // Enviar apenas os campos dinâmicos, SEM NENHUM CONTEÚDO
-        console.log('🎯 [AtendimentoTabs] Enviando apenas campos dinâmicos:', Object.keys(dynamicFields).filter(k => dynamicFields[k]?.trim()));
-        await processAIContent(formField, null, dynamicFields);
+        console.log('🎯 [AtendimentoTabs] GLOBAL - Enviando apenas campos dinâmicos:', Object.keys(dynamicFields).filter(k => dynamicFields[k]?.trim()));
+        console.log('🎯 [AtendimentoTabs] GLOBAL - selectedExamModelId:', selectedExamModelId);
+        console.log('🎯 [AtendimentoTabs] GLOBAL - selectedFieldsKeys:', selectedFieldsKeys);
+        await processAIContent(formField, null, dynamicFields, selectedFieldsKeys);
       } else {
         // Se não há campos dinâmicos, usar o conteúdo do textarea
         const content = form[formField] as string;
@@ -109,30 +114,30 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
       <div className={cn(
         "z-40 mb-8",
         isMobile 
-          ? "overflow-x-auto no-scrollbar" 
+          ? "bg-white/80 backdrop-blur-md p-1 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto no-scrollbar" 
           : "bg-white/50 backdrop-blur-sm p-1.5 rounded-[1.5rem] border border-slate-200/60 shadow-sm sticky top-0"
       )}>
         <TabsList className={cn(
           isMobile 
-            ? "flex w-max gap-2 bg-transparent h-auto p-0" 
+            ? "flex w-full min-w-max justify-between gap-1 bg-transparent h-auto p-0" 
             : "w-full bg-slate-100/50 rounded-[1.2rem] h-12 p-1"
         )}>
           <TabsTrigger 
             className={cn(
               "transition-all font-bold tracking-tight",
               isMobile 
-                ? "rounded-full px-6 py-3 h-auto border border-slate-200 bg-white text-slate-500 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 shadow-none" 
+                ? "rounded-xl px-3 py-2.5 h-auto text-[11px] uppercase bg-transparent text-slate-400 data-[state=active]:bg-slate-900 data-[state=active]:text-white shadow-none border-none" 
                 : "flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md text-slate-500 text-sm md:text-base h-10"
             )}
             value="info"
           >
-            Informações
+            Info
           </TabsTrigger>
           <TabsTrigger 
             className={cn(
               "transition-all font-bold tracking-tight",
               isMobile 
-                ? "rounded-full px-6 py-3 h-auto border border-slate-200 bg-white text-slate-500 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 shadow-none" 
+                ? "rounded-xl px-3 py-2.5 h-auto text-[11px] uppercase bg-transparent text-slate-400 data-[state=active]:bg-slate-900 data-[state=active]:text-white shadow-none border-none" 
                 : "flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md text-slate-500 text-sm md:text-base h-10"
             )}
             value="evolucao"
@@ -143,7 +148,7 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
             className={cn(
               "transition-all font-bold tracking-tight",
               isMobile 
-                ? "rounded-full px-6 py-3 h-auto border border-slate-200 bg-white text-slate-500 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 shadow-none" 
+                ? "rounded-xl px-3 py-2.5 h-auto text-[11px] uppercase bg-transparent text-slate-400 data-[state=active]:bg-slate-900 data-[state=active]:text-white shadow-none border-none" 
                 : "flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md text-slate-500 text-sm md:text-base h-10"
             )}
             value="prescricao"
@@ -154,7 +159,7 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
             className={cn(
               "transition-all font-bold tracking-tight",
               isMobile 
-                ? "rounded-full px-6 py-3 h-auto border border-slate-200 bg-white text-slate-500 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 shadow-none" 
+                ? "rounded-xl px-3 py-2.5 h-auto text-[11px] uppercase bg-transparent text-slate-400 data-[state=active]:bg-slate-900 data-[state=active]:text-white shadow-none border-none" 
                 : "flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md text-slate-500 text-sm md:text-base h-10"
             )}
             value="exames"
@@ -165,7 +170,7 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
             className={cn(
               "transition-all font-bold tracking-tight",
               isMobile 
-                ? "rounded-full px-6 py-3 h-auto border border-slate-200 bg-white text-slate-500 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 shadow-none" 
+                ? "rounded-xl px-3 py-2.5 h-auto text-[11px] uppercase bg-transparent text-slate-400 data-[state=active]:bg-slate-900 data-[state=active]:text-white shadow-none border-none" 
                 : "flex-1 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md text-slate-500 text-sm md:text-base h-10"
             )}
             value="imagens"
@@ -213,7 +218,7 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
           examObservations={form.observacoesExames}
           onExamObservationsChange={(value: string) => updateFormField('observacoesExames', value)}
           isProcessingAI={{ examResults: isProcessingAI.examResults }}
-          onProcessWithAI={() => handleProcessAI('examResults')}
+          onProcessWithAI={(selectedFieldsKeys) => handleProcessAI('examResults', selectedFieldsKeys)}
           onSelectedModelChange={handleSelectedModelChange}
           patientId={patientId}
           onDynamicFieldsChange={onDynamicFieldsChange}

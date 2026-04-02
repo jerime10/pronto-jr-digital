@@ -394,6 +394,8 @@ export const useDraftManager = ({
 
       // Priorizar colunas individuais, usar form_data como fallback
       const fallbackData = (fullDraft?.form_data ?? {}) as any;
+      console.log('📂 [useDraftManager] Rascunho completo carregado:', fullDraft);
+      console.log('📂 [useDraftManager] fallbackData (form_data) carregada:', fallbackData);
       
       const formDataToLoad: Partial<FormState> = {
         queixaPrincipal: fullDraft.main_complaint ?? fallbackData.queixaPrincipal ?? '',
@@ -406,6 +408,7 @@ export const useDraftManager = ({
         observacoesExames: fullDraft.exam_observations ?? fallbackData.observacoesExames ?? '',
         resultadoExames: fullDraft.exam_results ?? fallbackData.resultadoExames ?? '',
         images: fullDraft.images_data ?? fallbackData.images ?? [],
+        selectedExamModelId: fallbackData.selectedExamModelId || '',
         dataInicioAtendimento: fullDraft.attendance_start_at ? new Date(fullDraft.attendance_start_at) : (fallbackData.dataInicioAtendimento ? new Date(fallbackData.dataInicioAtendimento) : new Date()),
         dataFimAtendimento: fullDraft.attendance_end_at ? new Date(fullDraft.attendance_end_at) : (fallbackData.dataFimAtendimento ? new Date(fallbackData.dataFimAtendimento) : null),
       };
@@ -421,8 +424,9 @@ export const useDraftManager = ({
         (formDataToLoad as any).appointment_id = fullDraft.appointment_id;
       }
 
+      console.log('📂 [useDraftManager] selectedExamModelId extraído:', formDataToLoad.selectedExamModelId);
       console.log('📂 [useDraftManager] Campos dinâmicos carregados:', loadedDynamicFields);
-      console.log('📂 [useDraftManager] Dados do formulário montados:', formDataToLoad);
+      console.log('📂 [useDraftManager] Dados do formulário montados para setFormData:', formDataToLoad);
 
       // PRIMEIRO: Carregar campos dinâmicos se existirem e o callback estiver disponível
       if (onDynamicFieldsChange) {

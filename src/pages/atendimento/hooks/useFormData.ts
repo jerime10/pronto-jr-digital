@@ -35,6 +35,7 @@ const initialFormState: FormState = {
   images: [],
   dataInicioAtendimento: new Date(),
   dataFimAtendimento: null,
+  selectedExamModelId: '',
 };
 
 export const useFormData = () => {

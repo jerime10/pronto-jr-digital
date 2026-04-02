@@ -13,6 +13,7 @@ import { CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
+import { AdvancedSelect } from '@/components/ui/advanced-select';
 import { formatDate, parseDate } from '@/utils/dateUtils';
 import { formatPhoneNumber, isValidPhoneNumber } from '@/utils/phoneUtils';
 import { formatCpfOrSus, isValidCpfOrSus } from '@/utils/cpfSusUtils';
@@ -212,20 +213,18 @@ export const PatientFormFields: React.FC<PatientFormFieldsProps> = ({
         <Label htmlFor="gender" className="text-foreground font-semibold text-sm tracking-wide">
           SEXO
         </Label>
-        <Select value={formData.gender || ''} onValueChange={handleGenderChange} disabled={readOnlyFields.includes('gender')}>
-          <SelectTrigger id="gender" className={`h-11 sm:h-12 text-base font-medium transition-all duration-200 ${
-            readOnlyFields.includes('gender') 
-              ? 'bg-slate-600/30 cursor-not-allowed opacity-70 text-slate-400 border-slate-600/50' 
-              : 'bg-white text-slate-900 border-slate-300 hover:border-purple-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20'
-          }`}>
-            <SelectValue placeholder="SELECIONE O SEXO" className="text-slate-500" />
-          </SelectTrigger>
-          <SelectContent className="bg-white border-slate-300">
-            <SelectItem value="Masculino" className="text-slate-900 hover:bg-slate-100 focus:bg-slate-100">MASCULINO</SelectItem>
-            <SelectItem value="Feminino" className="text-slate-900 hover:bg-slate-100 focus:bg-slate-100">FEMININO</SelectItem>
-            <SelectItem value="Outro" className="text-slate-900 hover:bg-slate-100 focus:bg-slate-100">OUTRO</SelectItem>
-          </SelectContent>
-        </Select>
+        <AdvancedSelect
+          options={[
+            { label: "MASCULINO", value: "Masculino" },
+            { label: "FEMININO", value: "Feminino" },
+            { label: "OUTRO", value: "Outro" },
+          ]}
+          value={formData.gender || ''}
+          onChange={(value) => handleGenderChange(value as string)}
+          placeholder="SELECIONE O SEXO"
+          title="Selecionar Sexo"
+          disabled={readOnlyFields.includes('gender')}
+        />
       </div>
       
       <div className="space-y-3">

@@ -446,40 +446,111 @@ Deno.serve(async (req) => {
         }
       });
     } else {
-      data['TITULO MODELO RESULTADO EXAME'] = 'RESULTADO DE USG POCUS';
-      const sideBySideKeys = ['figado', 'viasbiliares', 'vesiculabiliar', 'pancreaseretroperitonio', 'baco', 'rins', 'bexiga', 'apendicececal', 'cavidadeabdominal', 'aortaabdominal'];
-      let gridHtml = `<div class="exam-grid-two-cols">`;
-      let hasGridContent = false;
+      data['TITULO MODELO RESULTADO EXAME'] = data['TITULO MODELO RESULTADO EXAME'] || 'RESULTADO DE EXAME';
       
-      sideBySideKeys.forEach(key => {
-        if (dynamicFields[key]) {
-          const labelMap: Record<string, string> = { 'figado': 'FÍGADO', 'viasbiliares': 'VIAS BILIARES', 'vesiculabiliar': 'VESÍCULA BILIAR', 'pancreaseretroperitonio': 'PÂNCREAS E RETROPERITÔNIO', 'baco': 'BAÇO', 'rins': 'RINS', 'bexiga': 'BEXIGA', 'apendicececal': 'APÊNDICE CECAL', 'cavidadeabdominal': 'CAVIDADE ABDOMINAL', 'aortaabdominal': 'AORTA ABDOMINAL' };
-          gridHtml += `<div class="section"><div class="section-title">${labelMap[key]}</div><div class="content-box">${String(dynamicFields[key])}</div></div>`;
-          hasGridContent = true;
-          ignoreKeys.push(key);
+      const stackedKeys = ['impressaodiagnostica', 'recomendacoes', 'observacoes'];
+      const ignoreKeys = ['modelTitle', 'modelId', '_ordered_keys', ...stackedKeys];
+      
+      // Usar a ordem definida pelo frontend, ou fallback para as chaves do objeto
+      let keysToProcess: string[] = [];
+      if (dynamicFields._ordered_keys && typeof dynamicFields._ordered_keys === 'string') {
+        keysToProcess = dynamicFields._ordered_keys.split(',');
+        // Garantir que não perdemos chaves preenchidas que não estavam em _ordered_keys
+        Object.keys(dynamicFields).forEach(k => {
+          if (!keysToProcess.includes(k) && !ignoreKeys.some(ik => k.toLowerCase().includes(ik.toLowerCase()))) {
+            keysToProcess.push(k);
+          }
+        });
+      } else {
+        keysToProcess = Object.keys(dynamicFields);
+        
+        // Fallback: Ordenar as chaves com base na ordem preferida (referência Imagem 2 do painel)
+        // para garantir que PDFs antigos ou gerados sem _ordered_keys fiquem na ordem correta
+        const preferredOrder = [
+          'rins',
+          'rimdireito',
+          'rimesquerdo',
+          'medidadosrins',
+          'bexiga',
+          'prostata',
+          'achadosadicionais'
+        ];
+        
+        keysToProcess.sort((a, b) => {
+          const lowerA = a.toLowerCase().replace(/[\s_]/g, '');
+          const lowerB = b.toLowerCase().replace(/[\s_]/g, '');
+          
+          const indexA = preferredOrder.indexOf(lowerA);
+          const indexB = preferredOrder.indexOf(lowerB);
+          
+          if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+          if (indexA !== -1) return -1;
+          if (indexB !== -1) return 1;
+          return 0;
+        });
+      }
+      
+      // Coletar todos os outros campos mantendo a ordem do array
+      const otherFields: {key: string, val: any}[] = [];
+      keysToProcess.forEach(key => {
+        const val = dynamicFields[key];
+        // Tratar as chaves ignorando case para evitar duplicidade ou perda
+        const lowerKey = key.toLowerCase().replace(/[\s_]/g, '');
+        const isStacked = stackedKeys.some(sk => lowerKey.includes(sk));
+        const isIgnore = ignoreKeys.some(ik => lowerKey.includes(ik.toLowerCase()));
+        
+        if (!isStacked && !isIgnore && val && String(val).trim()) {
+          otherFields.push({key, val});
         }
       });
-      gridHtml += `</div>`;
-      if (hasGridContent) examSectionsHtml += gridHtml;
 
+      // Gerar a grid lado a lado para os demais campos
+      if (otherFields.length > 0) {
+        let gridHtml = `<div class="exam-grid-two-cols">`;
+        
+        for (let i = 0; i < otherFields.length; i++) {
+          const field = otherFields[i];
+          let label = field.key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+          
+          const labelMap: Record<string, string> = { 
+            'figado': 'FÍGADO', 'viasbiliares': 'VIAS BILIARES', 'vesiculabiliar': 'VESÍCULA BILIAR', 
+            'pancreaseretroperitonio': 'PÂNCREAS E RETROPERITÔNIO', 'baco': 'BAÇO', 
+            'rins': 'RINS', 'bexiga': 'BEXIGA', 'apendicececal': 'APÊNDICE CECAL', 
+            'cavidadeabdominal': 'CAVIDADE ABDOMINAL', 'aortaabdominal': 'AORTA ABDOMINAL',
+            'rimdireito': 'RIM DIREITO', 'rimesquerdo': 'RIM ESQUERDO', 'medidadosrins': 'MEDIDA DOS RINS',
+            'prostata': 'PRÓSTATA', 'achadosadicionais': 'ACHADOS ADICIONAIS'
+          };
+          
+          const lowerKey = field.key.toLowerCase().replace(/[\s_]/g, '');
+          if (labelMap[lowerKey]) {
+            label = labelMap[lowerKey];
+          }
+
+          // Centralizar se for o último e for ímpar
+          if (i === otherFields.length - 1 && otherFields.length % 2 !== 0) {
+             gridHtml += `<div class="section" style="grid-column: 1 / -1; width: calc(50% - 4px); margin: 0 auto;"><div class="section-title">${label.toUpperCase()}</div><div class="content-box">${String(field.val)}</div></div>`;
+          } else {
+             gridHtml += `<div class="section"><div class="section-title">${label.toUpperCase()}</div><div class="content-box">${String(field.val)}</div></div>`;
+          }
+        }
+        gridHtml += `</div>`;
+        examSectionsHtml += gridHtml;
+      }
+
+      // Adicionar os 3 campos no final, um sob o outro
       const stackedSections = [
-        { key: 'impressaodiagnostica', label: 'IMPRESSÃO DIAGNÓSTICA', style: 'style="background:#f0fdf4; font-weight:600;"' },
-        { key: 'achadosadicionais', label: 'ACHADOS ADICIONAIS', style: '' },
-        { key: 'recomendacoes', label: 'RECOMENDAÇÕES', style: '' },
-        { key: 'observacoes', label: 'OBSERVAÇÕES', style: '' }
+        { searchKey: 'impressaodiagnostica', label: 'IMPRESSÃO DIAGNÓSTICA', style: 'style="background:#f0fdf4; font-weight:600;"' },
+        { searchKey: 'recomendacoes', label: 'RECOMENDAÇÕES', style: '' },
+        { searchKey: 'observacoes', label: 'OBSERVAÇÕES', style: '' }
       ];
 
       stackedSections.forEach(sec => {
-        if (dynamicFields[sec.key]) {
-          examSectionsHtml += `<div class="section"><div class="section-title">${sec.label}</div><div class="content-box" ${sec.style}>${String(dynamicFields[sec.key])}</div></div>`;
-          ignoreKeys.push(sec.key);
+        const actualKey = Object.keys(dynamicFields).find(k => 
+          k.toLowerCase().replace(/[\s_]/g, '').includes(sec.searchKey)
+        );
+        if (actualKey && dynamicFields[actualKey]) {
+          examSectionsHtml += `<div class="section" style="margin-top: 8px;"><div class="section-title">${sec.label}</div><div class="content-box" ${sec.style}>${String(dynamicFields[actualKey])}</div></div>`;
         }
-      });
-
-      Object.entries(dynamicFields).forEach(([key, val]) => {
-        if (ignoreKeys.includes(key) || !val) return;
-        let label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
-        examSectionsHtml += `<div class="section"><div class="section-title">${label.toUpperCase()}</div><div class="content-box">${String(val)}</div></div>`;
       });
     }
 

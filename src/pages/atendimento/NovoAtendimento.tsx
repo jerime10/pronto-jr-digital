@@ -37,36 +37,14 @@ const NovoAtendimento = () => {
     });
   }, []);
   
-  // Handler para capturar mudanças no modelo de exame selecionado
-  const handleExamModelChange = React.useCallback((modelId: string) => {
-    console.log('🎯 [NovoAtendimento] Modelo de exame selecionado:', modelId);
-    setSelectedExamModelId(modelId);
-    // Atualizar também no form para salvar no rascunho
-    updateFormField('selectedExamModelId', modelId);
-  }, []);
-  
   // Função para validar se o paciente tem dados válidos
   const isValidPatient = (patient: any): boolean => {
-    if (!patient) {
-      return false;
-    }
-    
-    if (!patient.id) {
-      return false;
-    }
-    
-    // Aceitar tanto UUIDs quanto IDs temporários
+    if (!patient) return false;
+    if (!patient.id) return false;
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(patient.id);
     const isTempId = patient.id.toString().startsWith('temp-');
-    
-    if (!isUUID && !isTempId) {
-      return false;
-    }
-    
-    if (!patient.name || patient.name.trim() === '') {
-      return false;
-    }
-    
+    if (!isUUID && !isTempId) return false;
+    if (!patient.name || patient.name.trim() === '') return false;
     return true;
   };
 
@@ -113,11 +91,20 @@ const NovoAtendimento = () => {
     handleModelosPrescricaoChange,
     handleExamesChange,
     processAIContent,
-    handleSalvarAtendimento,
     handleSubmitMedicalRecord,
     updateFormField,
     setFormData
-  } = useAtendimentoState(selectedModelTitle, patientDataFromNavigation, appointmentIdFromNavigation, dynamicFields, handleDynamicFieldsChange, updateDynamicFieldsFromAI, id, existingRecord);
+  } = useAtendimentoState(selectedModelTitle, patientDataFromNavigation, appointmentIdFromNavigation, dynamicFields, handleDynamicFieldsChange, updateDynamicFieldsFromAI, id, existingRecord, selectedExamModelId);
+
+  // Handler para capturar mudanças no modelo de exame selecionado
+  const handleExamModelChange = React.useCallback((modelId: string) => {
+    console.log('🎯 [NovoAtendimento] Modelo de exame selecionado:', modelId);
+    setSelectedExamModelId(modelId);
+    // Atualizar também no form para salvar no rascunho
+    updateFormField('selectedExamModelId', modelId);
+  }, [updateFormField]);
+  
+  // Função para validar se o paciente tem dados válidos
   
   // Create a proper change handler for form inputs
   const handleFormChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -175,6 +162,7 @@ const NovoAtendimento = () => {
   
   // Sincronizar selectedExamModelId quando o formulário mudar (incluindo ao carregar rascunho)
   React.useEffect(() => {
+    console.log('🔄 [NovoAtendimento] Sync Effect - Form:', form.selectedExamModelId, 'Local:', selectedExamModelId);
     if (form.selectedExamModelId && form.selectedExamModelId !== selectedExamModelId) {
       console.log('🔄 [NovoAtendimento] Sincronizando selectedExamModelId do form:', form.selectedExamModelId);
       setSelectedExamModelId(form.selectedExamModelId);
@@ -215,7 +203,6 @@ const NovoAtendimento = () => {
       handleModeloPrescricaoChange={handleModeloPrescricaoChange}
       handleModelosPrescricaoChange={handleModelosPrescricaoChange}
       updateFormField={updateFormField}
-      handleSalvarAtendimento={handleSalvarAtendimento}
       handleSubmitMedicalRecord={handleSubmitMedicalRecord}
       profissionalAtual={profissionalAtual}
       setFormData={setFormData}

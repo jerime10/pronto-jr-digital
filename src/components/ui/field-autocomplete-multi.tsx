@@ -304,31 +304,31 @@ export const FieldAutocompleteMulti: React.FC<FieldAutocompleteMultiProps> = ({
 
       {/* Suggestions dropdown */}
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute z-[100] w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-auto">
-          <div className="text-xs text-muted-foreground p-2 bg-muted/30 border-b">
+        <div className="absolute z-[100] w-full mt-1 bg-white border border-slate-200 rounded-md shadow-xl max-h-60 overflow-auto">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 p-2 bg-slate-50 border-b">
             {suggestions.length} sugestão(ões) encontrada(s)
           </div>
           {suggestions.map((suggestion, index) => (
             <div
               key={suggestion.id}
               className={`
-                px-3 py-2 cursor-pointer hover:bg-accent flex items-center justify-between group
-                ${highlightedIndex === index ? 'bg-accent' : ''}
+                px-3 py-2.5 cursor-pointer hover:bg-slate-100 flex items-center justify-between group
+                ${highlightedIndex === index ? 'bg-slate-100' : ''}
               `}
               onClick={() => {
                 handleSelectSuggestion(suggestion);
               }}
             >
-              <span className="flex-1 text-sm truncate">
+              <span className="flex-1 text-sm font-medium text-slate-900 leading-tight">
                 {suggestion.field_content}
               </span>
               <button
                 type="button"
                 onClick={(e) => handleDeleteSuggestion(suggestion, e)}
-                className="ml-2 p-1 hover:bg-destructive/10 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                className="ml-2 p-1.5 hover:bg-rose-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
                 title="Excluir permanentemente"
               >
-                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                <Trash2 className="h-4 w-4 text-rose-500" />
               </button>
             </div>
           ))}

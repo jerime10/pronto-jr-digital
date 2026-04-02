@@ -9,7 +9,7 @@ import { useSaveActions } from './useSaveActions';
 import { useAtendimentoHelpers } from './useAtendimentoHelpers';
 import { useLocalStoragePersistence } from './useLocalStoragePersistence';
 
-export const useAtendimentoState = (selectedModelTitle?: string | null, initialPatient?: any, appointmentId?: string, dynamicFields?: Record<string, string>, onDynamicFieldsChange?: (fields: Record<string, string>) => void, updateDynamicFieldsFromAI?: (fields: Record<string, string>) => void, medicalRecordId?: string, existingRecord?: any) => {
+export const useAtendimentoState = (selectedModelTitle?: string | null, initialPatient?: any, appointmentId?: string, dynamicFields?: Record<string, string>, onDynamicFieldsChange?: (fields: Record<string, string>) => void, updateDynamicFieldsFromAI?: (fields: Record<string, string>) => void, medicalRecordId?: string, existingRecord?: any, selectedExamModelId?: string | null) => {
   
   // Garantir um ID estável para todo o atendimento (novo ou existente)
   const stableMedicalRecordId = useMemo(() => {
@@ -60,7 +60,6 @@ export const useAtendimentoState = (selectedModelTitle?: string | null, initialP
   const { 
     isSaving, 
     isSubmittingRecord,
-    handleSalvarAtendimento, 
     handleSubmitMedicalRecord
   } = useSaveActions({
     pacienteSelecionado: pacienteSelecionado as any,
@@ -83,7 +82,8 @@ export const useAtendimentoState = (selectedModelTitle?: string | null, initialP
     selectedModelTitle,
     dynamicFields,
     onIndividualFieldsUpdate: onDynamicFieldsChange,
-    updateDynamicFieldsFromAI: updateDynamicFieldsFromAI
+    updateDynamicFieldsFromAI: updateDynamicFieldsFromAI,
+    selectedModelId: selectedExamModelId
   });
 
   return {
@@ -118,7 +118,6 @@ export const useAtendimentoState = (selectedModelTitle?: string | null, initialP
     handleModelosPrescricaoChange,
     handleExamesChange,
     processAIContent: processAIContentHelper,
-    handleSalvarAtendimento,
     handleSubmitMedicalRecord,
     updateFormField,
     setFormData,

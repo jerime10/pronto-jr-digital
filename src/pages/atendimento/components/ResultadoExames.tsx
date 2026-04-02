@@ -1,21 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AdvancedSelect } from '@/components/ui/advanced-select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Sparkles, Trash2, Save, Eraser, Mic, MicOff, Settings2, X, CheckCircle2, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Sparkles, Trash2, Save, Eraser, Mic, MicOff, Settings2, X, CheckCircle2, Calendar as CalendarIcon, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { calculateDUMFromIG, formatDateInput, parseNaturalDate } from '@/utils/obstetricUtils';
 import { calculateFetalPercentile } from '@/utils/fetalCalculations';
-import { useAIProcessing } from '../hooks/useAIProcessing';
-import { useWhisperTranscription } from '@/hooks/useWhisperTranscription';
-import { FieldAutocompleteMulti } from '@/components/ui/field-autocomplete-multi';
-import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AIPromptModal } from './AIPromptModal';
+import { useWhisperTranscription } from '@/hooks/useWhisperTranscription';
+import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
+import { useAIProcessing } from '@/pages/atendimento/hooks/useAIProcessing';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
@@ -121,8 +128,21 @@ const parseTemplateToFields = (template: string, modelName: string): ParsedTempl
   console.log('🔍 [PARSE] Linhas:', lines);
 
   // Função auxiliar para normalizar chaves
-  const normalizeKey = (text: string): string => {
-    return text.toLowerCase().replace(/[áàâãä]/g, 'a').replace(/[éèêë]/g, 'e').replace(/[íìîï]/g, 'i').replace(/[óòôõö]/g, 'o').replace(/[úùûü]/g, 'u').replace(/ç/g, 'c').replace(/[^a-z0-9]/g, '').replace(/\s+/g, '');
+  const normalizeKey = (text: any): string => {
+    try {
+      if (!text || typeof text !== 'string') return '';
+      return text.toLowerCase()
+        .replace(/[áàâãä]/g, 'a')
+        .replace(/[éèêë]/g, 'e')
+        .replace(/[íìîï]/g, 'i')
+        .replace(/[óòôõö]/g, 'o')
+        .replace(/[úùûü]/g, 'u')
+        .replace(/ç/g, 'c')
+        .replace(/[^a-z0-9]/g, '')
+        .replace(/\s+/g, '');
+    } catch (e) {
+      return '';
+    }
   };
 
   // Função auxiliar para determinar tipo de campo
@@ -470,10 +490,10 @@ interface ResultadoExamesProps {
   isProcessingAI: {
     examResults: boolean;
   };
-  onProcessWithAI: () => void;
+  onProcessWithAI: (selectedFieldsKeys?: string[]) => void;
   onSelectedModelChange?: (modelTitle: string | null) => void;
   onDynamicFieldsChange?: (fields: Record<string, string>) => void;
-  processAIContent?: (field: string, content: string, dynamicFields?: Record<string, string>) => Promise<void>;
+  processAIContent?: (field: string, content: string, dynamicFields?: Record<string, string>, selectedFieldsKeys?: string[]) => Promise<void>;
   updateDynamicFieldsFromAI?: (fields: Record<string, string>) => void;
   dynamicFields?: Record<string, string>;
   initialSelectedModelId?: string;
@@ -518,6 +538,10 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   const [missingFields, setMissingFields] = useState<DynamicField[]>([]);
   const [showMissingModal, setShowMissingModal] = useState(false);
   const [allModelFields, setAllModelFields] = useState<DynamicField[]>([]);
+  const [lastUsedPrompt, setLastUsedPrompt] = useState<string | null>(null);
+  const [showPromptDebug, setShowPromptDebug] = useState(false);
+  const [selectedAIFields, setSelectedAIFields] = useState<Set<string>>(new Set());
+  const isUpdatingRef = useRef(false);
   
   // Estado para arrastar o modal no desktop
   const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
@@ -562,6 +586,49 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   // Texto fixo para observações
   const FIXED_OBSERVATIONS = `- A avaliação do bem-estar e a conduta clínica devem ser individualizadas e baseadas na avaliação completa da paciente pelo profissional médico, que deverá tomar a conduta final.\n- Exame realizado conforme Resolução Cofen 679/2021, que autoriza enfermeiros especialistas a executar ultrassonografia à beira do leito e em ambiente pré-hospitalar.`;
 
+  const hasInitializedAIFields = useRef<string | null>(null);
+
+  // Inicializar selectedAIFields quando o template mudar ou campos forem carregados (rascunho)
+  useEffect(() => {
+    if (selectedTemplate && hasInitializedAIFields.current !== selectedTemplate.id) {
+      const instruction = '(INFORME EM IMPRESSÃO DIAGNÓSTICA.)';
+      const initialSelected = new Set<string>();
+      let hasFoundDraftInstructions = false;
+
+      // Verificar se algum campo já tem a instrução (caso de rascunho)
+      selectedTemplate.fields.forEach(field => {
+        const value = dynamicFields[field.key] || '';
+        if (value.includes(instruction)) {
+          initialSelected.add(field.key);
+          hasFoundDraftInstructions = true;
+        }
+      });
+
+      // Só marcamos o modelo como "inicializado" se:
+      // 1. Encontramos instruções de rascunho (rascunho carregado)
+      // 2. OU se os dynamicFields estão vazios (novo modelo sendo selecionado)
+      const isNewModel = Object.keys(dynamicFields).length === 0;
+      
+      if (hasFoundDraftInstructions || isNewModel) {
+        console.log('🎯 [AI-SELECT] Inicializando checkboxes:', { 
+          model: selectedTemplate.name, 
+          isNewModel, 
+          hasFoundDraftInstructions,
+          selected: Array.from(initialSelected)
+        });
+        setSelectedAIFields(initialSelected);
+        hasInitializedAIFields.current = selectedTemplate.id;
+      }
+    }
+  }, [selectedTemplate, dynamicFields]);
+
+  // Resetar o ref de inicialização se o modelo mudar para string vazia
+  useEffect(() => {
+    if (!selectedModelId) {
+      hasInitializedAIFields.current = null;
+    }
+  }, [selectedModelId]);
+
   // Hook para transcrição de voz global
   const {
     isRecording: isRecordingGlobal,
@@ -585,6 +652,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
             text,
             type: 'voice_command',
             availableFields: availableFieldsList,
+            selectedModelId: selectedModel?.id || null,
             selectedModelTitle: selectedModel?.name || null
           }
         });
@@ -620,10 +688,6 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
           setDynamicFields(newFields);
           updateExamResults(newFields);
           
-          if (onDynamicFieldsChange) {
-            onDynamicFieldsChange(newFields);
-          }
-          
           if (missing.length > 0) {
             // Guardar todos os campos do modelo atual para exibição completa se necessário
             setAllModelFields(selectedTemplate?.fields || []);
@@ -646,6 +710,8 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
 
   // Hook para gerenciar templates salvos
   const {
+    templates,
+    isLoading: isLoadingTemplates,
     searchFieldTemplates,
     saveFieldTemplate,
     deleteFieldTemplate,
@@ -659,17 +725,17 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   } = useAIProcessing();
 
   // Criar processAIContent customizado que inclui updateDynamicFieldsFromAI
-  const processAIContentWithCallback = React.useCallback(async (field: 'main_complaint' | 'evolution' | 'exam_result', content: string, dynamicFieldsParam?: Record<string, string>) => {
+  const processAIContentWithCallback = React.useCallback(async (field: 'main_complaint' | 'evolution' | 'exam_result', content: string, dynamicFieldsParam?: Record<string, string>, selectedFieldsKeys?: string[]) => {
     if (processAIContentProp) {
-      // processAIContentProp tem assinatura: (field: string, content: string, dynamicFields?: Record<string, string>)
+      // processAIContentProp tem assinatura: (field: string, content: string, dynamicFields?: Record<string, string>, selectedFieldsKeys?: string[])
       console.log('🔄 [ResultadoExames] Usando processAIContent das props');
-      await processAIContentProp(field, content, dynamicFieldsParam);
+      await processAIContentProp(field, content, dynamicFieldsParam, selectedFieldsKeys);
     } else {
-      // processAIContentLocal tem assinatura: (content, type, onSuccess, selectedModelTitle, dynamicFields)
+      // processAIContentLocal tem assinatura: (content, type, onSuccess, selectedModelTitle, dynamicFields, selectedModelId, selectedFieldsKeys)
       console.log('🔄 [ResultadoExames] Usando processAIContent local');
       await processAIContentLocal(content, field, processed => {
         console.log('✅ Conteúdo processado via local');
-      }, null, dynamicFieldsParam);
+      }, null, dynamicFieldsParam, null, selectedFieldsKeys);
     }
   }, [processAIContentProp, processAIContentLocal]);
 
@@ -709,7 +775,24 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     // Mesclar com campos existentes, preservando valores existentes
     const formattedAIFields: Record<string, string> = {};
     Object.entries(aiFields).forEach(([key, value]) => {
-      formattedAIFields[key] = formatFieldValue(key, value);
+      // Se a chave for explicitamente "titulo_campo_NOME", vamos mapear de volta para "NOME"
+      const cleanKey = key.startsWith('titulo_campo_') ? key.replace('titulo_campo_', '') : key;
+      
+      let cleanValue = value;
+      // Procura o label real do campo nos campos do modelo (se existir)
+      const targetField = selectedTemplate?.fields?.find(f => f.key === cleanKey);
+      if (targetField && targetField.label) {
+        const escapedLabel = targetField.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escapar caracteres especiais
+        const prefixRegex = new RegExp(`^${escapedLabel}[\\s:]*`, 'i');
+        cleanValue = cleanValue.replace(prefixRegex, '').trim();
+      }
+      
+      // Maiúscula na primeira letra
+      if (cleanValue.length > 0) {
+        cleanValue = cleanValue.charAt(0).toUpperCase() + cleanValue.slice(1);
+      }
+
+      formattedAIFields[cleanKey] = formatFieldValue(cleanKey, cleanValue);
     });
 
     const mergedFields = {
@@ -731,13 +814,8 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       console.log('⚠️ [AI-UPDATE] Template ou modelo não disponível para atualização');
     }
 
-    // Notificar componente pai
-    if (onDynamicFieldsChange) {
-      console.log('🎯 [AI-UPDATE] Notificando componente pai...');
-      onDynamicFieldsChange(mergedFields);
-    }
     console.log('🎯 [AI-UPDATE] ===== FIM updateLocalDynamicFieldsFromAI =====');
-  }, [dynamicFields, selectedTemplate, selectedModel, onDynamicFieldsChange]);
+  }, [dynamicFields, selectedTemplate, selectedModel, onDynamicFieldsChange, dynamicFieldsFromProps]);
 
   // SOLUÇÃO: Sempre usar a função local, ignorando a das props
   // Isso garante que os campos sejam atualizados corretamente
@@ -758,8 +836,20 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
 
     console.log('🔄 [SYNC] Tempo desde última atualização da IA:', timeSinceAIUpdate, 'ms');
     console.log('🔄 [SYNC] É atualização recente da IA:', isRecentAIUpdate);
+
     if (dynamicFieldsFromProps && !isRecentAIUpdate) {
       console.log('🔄 [SYNC] Condições atendidas para sincronização');
+
+      // Verificar se as props são realmente diferentes dos campos locais atuais para evitar loops infinitos
+      const hasChanges = Object.entries(dynamicFieldsFromProps).some(([key, value]) => {
+        return dynamicFields[key] !== value;
+      });
+
+      if (!hasChanges) {
+        console.log('⏭️ [SYNC] Campos idênticos aos locais, ignorando para evitar loop');
+        console.log('🔄 [SYNC] ===== FIM Sincronização =====');
+        return;
+      }
 
       // Verificar se as props têm conteúdo válido
       const hasValidContent = Object.values(dynamicFieldsFromProps).some(value => value && value.trim());
@@ -769,10 +859,27 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         console.log('✅ [SYNC] Campos locais antes:', dynamicFields);
         console.log('✅ [SYNC] Campos da IA:', dynamicFieldsFromProps);
 
+        // Limpar possíveis prefixos de rótulos dos valores vindos da IA global
+        const cleanedPropsFields: Record<string, string> = {};
+        Object.entries(dynamicFieldsFromProps).forEach(([key, value]) => {
+          let cleanValue = value;
+          const targetField = selectedTemplate?.fields?.find(f => f.key === key);
+          if (targetField && targetField.label && cleanValue) {
+            const escapedLabel = targetField.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const prefixRegex = new RegExp(`^${escapedLabel}[\\s:]*`, 'i');
+            cleanValue = cleanValue.replace(prefixRegex, '').trim();
+            
+            if (cleanValue.length > 0) {
+              cleanValue = cleanValue.charAt(0).toUpperCase() + cleanValue.slice(1);
+            }
+          }
+          cleanedPropsFields[key] = cleanValue;
+        });
+
         // MESCLAR em vez de sobrescrever - preservar campos existentes
         const mergedFields = {
           ...dynamicFields,
-          ...dynamicFieldsFromProps
+          ...cleanedPropsFields
         };
         console.log('✅ [SYNC] Campos mesclados:', mergedFields);
         setDynamicFields(mergedFields);
@@ -790,7 +897,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       console.log('⚠️ [SYNC] dynamicFieldsFromProps é null/undefined');
     }
     console.log('🔄 [SYNC] ===== FIM Sincronização =====');
-  }, [dynamicFieldsFromProps]);
+  }, [dynamicFieldsFromProps, dynamicFields, selectedTemplate, selectedModel]);
   useEffect(() => {
     const fetchCompletedExams = async () => {
       try {
@@ -801,7 +908,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         const {
           data,
           error
-        } = await supabase.from('modelo-result-exames').select('id, name, result_template').order('name');
+        } = await supabase.from('modelo-result-exames').select('id, name, result_template, ai_prompt').order('name');
         console.log('📥 [FETCH] Resposta do banco:', {
           data,
           error
@@ -859,14 +966,17 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         if (modelToRestore.result_template) {
           const parsedTemplate = parseTemplateToFields(modelToRestore.result_template, modelToRestore.name);
           setSelectedTemplate(parsedTemplate);
+          
+          const orderedKeys = parsedTemplate.fields.map(f => f.key).join(',');
 
           // Se tiver dynamicFieldsFromProps, usar eles; senão inicializar vazio
           if (dynamicFieldsFromProps && Object.keys(dynamicFieldsFromProps).length > 0) {
             console.log('🔧 [RESTORE] Restaurando campos dinâmicos das props:', dynamicFieldsFromProps);
-            setDynamicFields(dynamicFieldsFromProps);
+            const restoredFields = { ...dynamicFieldsFromProps, _ordered_keys: orderedKeys };
+            setDynamicFields(restoredFields);
           } else {
             console.log('🔧 [RESTORE] Inicializando campos dinâmicos vazios');
-            const newFields: Record<string, string> = {};
+            const newFields: Record<string, string> = { _ordered_keys: orderedKeys };
             parsedTemplate.fields.forEach(field => {
               newFields[field.key] = '';
             });
@@ -919,11 +1029,6 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     setDynamicFields(newFields);
     updateExamResults(newFields);
 
-    // Notificar componente pai
-    if (onDynamicFieldsChange) {
-      console.log('📤 [MULTI-SELECT] Notificando componente pai');
-      onDynamicFieldsChange(newFields);
-    }
     console.log('📝 [MULTI-SELECT] ===== FIM handleFieldModelChange =====');
   };
 
@@ -985,10 +1090,6 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         setDynamicFields(newFields);
         updateExamResults(newFields);
 
-        // Notificar componente pai
-        if (onDynamicFieldsChange) {
-          onDynamicFieldsChange(newFields);
-        }
         toast.success(`Percentil calculado: ${calculation.formattedResult}`);
         console.log('✅ [AUTO-PERCENTIL] Campo PERCENTIL atualizado com sucesso!');
       } else {
@@ -1001,57 +1102,81 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
   }, [dynamicFields, selectedModel, onDynamicFieldsChange]);
 
   // Função central para formatar valores de campos
-  const formatFieldValue = (key: string, value: string): string => {
-    if (!value) return '';
-    let finalValue = value;
+  const formatFieldValue = (key: string, value: any): string => {
+    try {
+      // Conversão ultra-segura para string
+      const stringValue = (value === null || value === undefined) ? '' : String(value);
+      
+      if (!stringValue || stringValue.trim() === '') return '';
 
-    const lowerKey = key.toLowerCase();
+      const lowerKey = (key || '').toLowerCase();
 
-    // 1. Formatação de Peso: apenas números + "g"
-    if (lowerKey === 'peso') {
-      const numbers = value.replace(/\D/g, '');
-      return numbers ? `${numbers}g` : '';
-    }
-
-    // 2. Formatação de Data
-    if (lowerKey.includes('data') || lowerKey === 'dpp') {
-      // Tentar parsear linguagem natural (ex: "11 de maio de 2026")
-      const naturalParsed = parseNaturalDate(value);
-      if (naturalParsed !== value) {
-        return naturalParsed;
+      // 1. Formatação de Peso: apenas números + "g"
+      if (lowerKey === 'peso') {
+        const numbers = stringValue.replace(/\D/g, '');
+        return numbers ? `${numbers}g` : '';
       }
-      // Se vier no formato YYYY-MM-DD (do input date), converter para DD/MM/AAAA
-      if (value.includes('-') && value.length === 10) {
-        const [y, m, d] = value.split('-');
-        return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
-      }
-      // Se vier com barras, normalizar (ex: 1/1/2024 -> 01/01/2024)
-      if (value.includes('/')) {
-        const parts = value.split('/');
-        if (parts.length === 3) {
-          const [d, m, y] = parts;
+
+      // 2. Formatação de Data
+      if (lowerKey.includes('data') || lowerKey === 'dpp') {
+        const naturalParsed = parseNaturalDate(stringValue);
+        if (naturalParsed !== stringValue) {
+          return naturalParsed;
+        }
+        if (stringValue.includes('-') && stringValue.length === 10) {
+          const [y, m, d] = stringValue.split('-');
           return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
         }
+        if (stringValue.includes('/')) {
+          const parts = stringValue.split('/');
+          if (parts.length === 3) {
+            const [d, m, y] = parts;
+            return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+          }
+        }
       }
-    }
 
-    // 3. Formatação de Impressão Diagnóstica: quebra de linha após cada ponto
-    if (lowerKey === 'impressaodiagnostica') {
-      // Substituir ponto seguido de espaço por ponto + nova linha
-      // Mantemos o valor original se não houver espaços após o ponto (para evitar quebras enquanto digita o próximo caractere)
-      // Mas para o resultado final e IA, queremos a quebra.
-      return value
-        .replace(/\.\s+/g, '.\n') // Substitui ponto + espaço(s) por ponto + \n
-        .replace(/\n\s+/g, '\n'); // Limpa espaços no início de novas linhas
-    }
+      // 3. Formatação de Impressão Diagnóstica: quebra de linha após cada ponto
+      if (lowerKey === 'impressaodiagnostica') {
+        return stringValue
+          .replace(/\.\s+/g, '.\n')
+          .replace(/\n\s+/g, '\n');
+      }
 
-    return finalValue;
+      return stringValue;
+    } catch (error) {
+      console.error(`❌ Erro ao formatar campo ${key}:`, error);
+      return String(value || '');
+    }
   };
 
   // Handler para mudança direta do texto do campo
   const handleFieldTextChange = (fieldKey: string, value: string) => {
     console.log('📝 [TEXT-CHANGE] ===== INÍCIO handleFieldTextChange =====');
     console.log('📝 [TEXT-CHANGE] Campo:', fieldKey, 'Valor:', value);
+
+    const instruction = '(INFORME EM IMPRESSÃO DIAGNÓSTICA.)';
+    
+    // Sincronizar o checkbox se o usuário digitar ou apagar a instrução manualmente
+    if (value.includes(instruction)) {
+      if (!selectedAIFields.has(fieldKey)) {
+        console.log(`✅ [TEXT-CHANGE] Instrução detectada manualmente, marcando checkbox para ${fieldKey}`);
+        setSelectedAIFields(prev => {
+          const next = new Set(prev);
+          next.add(fieldKey);
+          return next;
+        });
+      }
+    } else {
+      if (selectedAIFields.has(fieldKey)) {
+        console.log(`❌ [TEXT-CHANGE] Instrução removida manualmente, desmarcando checkbox para ${fieldKey}`);
+        setSelectedAIFields(prev => {
+          const next = new Set(prev);
+          next.delete(fieldKey);
+          return next;
+        });
+      }
+    }
 
     const finalValue = formatFieldValue(fieldKey, value);
 
@@ -1113,14 +1238,6 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     }
     updateExamResults(newFields);
 
-    // Notificar componente pai
-    if (onDynamicFieldsChange) {
-      console.log('📤 [TEXT-CHANGE] Notificando componente pai com campos:', Object.keys(newFields));
-      if (fieldKey === 'impressaodiagnostica') {
-        console.log('🔍 [IMPRESSÃO-DIAGNÓSTICA] Notificando pai com impressaodiagnostica:', newFields.impressaodiagnostica);
-      }
-      onDynamicFieldsChange(newFields);
-    }
     console.log('📝 [TEXT-CHANGE] ===== FIM handleFieldTextChange =====');
   };
   const handleModelSelect = (modelId: string) => {
@@ -1165,8 +1282,10 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         console.log('🎯 [SELECT] Template parseado:', parsedTemplate);
         setSelectedTemplate(parsedTemplate);
 
+        const orderedKeys = parsedTemplate.fields.map(f => f.key).join(',');
+
         // Inicializar novos campos vazios para o novo modelo
-        const newFields: Record<string, string> = {};
+        const newFields: Record<string, string> = { _ordered_keys: orderedKeys };
         parsedTemplate.fields.forEach(field => {
           newFields[field.key] = '';
         });
@@ -1191,19 +1310,26 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     console.log('🎯 [SELECT] ===== FIM SELEÇÃO =====');
   };
   const updateExamResults = (fields: Record<string, string>, customTemplate?: any) => {
-    console.log('🔄 [UPDATE] ===== INÍCIO updateExamResults =====');
-    console.log('🔄 [UPDATE] Campos recebidos:', fields);
-    
-    if (!selectedTemplate || !selectedModel) {
-      console.log('🔄 [UPDATE] Nenhum template ou modelo selecionado, saindo...');
-      return;
-    }
+    try {
+      if (isUpdatingRef.current) return;
+      isUpdatingRef.current = true;
+      
+      console.log('🔄 [UPDATE] ===== INÍCIO updateExamResults =====');
+      console.log('🔄 [UPDATE] Campos recebidos:', fields);
+      
+      if (!selectedTemplate || !selectedModel) {
+        console.log('🔄 [UPDATE] Nenhum template ou modelo selecionado, saindo...');
+        return;
+      }
 
-    // Aplicar formatação a todos os campos recebidos
-    const enhancedFields: Record<string, string> = {};
-    Object.entries(fields).forEach(([key, value]) => {
-      enhancedFields[key] = formatFieldValue(key, value);
-    });
+      // Garantir que fields seja um objeto
+      const safeFields = fields && typeof fields === 'object' ? fields : {};
+
+      // Aplicar formatação a todos os campos recebidos
+      const enhancedFields: Record<string, string> = {};
+      Object.entries(safeFields).forEach(([key, value]) => {
+        enhancedFields[key] = formatFieldValue(key, value);
+      });
 
     // Usar o template customizado se fornecido, senão usar o selectedTemplate atual
     const templateToUse = customTemplate || selectedTemplate;
@@ -1316,9 +1442,23 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     
     onExamResultsChange(result);
 
-    // Notificar o componente pai sobre os campos dinâmicos
+    // Notificar o componente pai sobre os campos dinâmicos apenas se houver mudança real
     if (onDynamicFieldsChange) {
-      onDynamicFieldsChange(enhancedFields);
+      const hasRealChanges = Object.entries(enhancedFields).some(([key, value]) => {
+        return dynamicFieldsFromProps?.[key] !== value;
+      });
+
+      if (hasRealChanges) {
+        console.log('📤 [UPDATE] Notificando componente pai sobre mudanças nos campos dinâmicos');
+        onDynamicFieldsChange(enhancedFields);
+      } else {
+        console.log('⏭️ [UPDATE] Sem mudanças reais nos campos em relação às props, pulando notificação ao pai');
+      }
+    }
+    } catch (error) {
+      console.error('❌ Erro crítico em updateExamResults:', error);
+    } finally {
+      isUpdatingRef.current = false;
     }
   };
   const handleProcessWithAI = async () => {
@@ -1329,74 +1469,119 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       return;
     }
 
-    // Usar o callback das props para processar com IA
-    onProcessWithAI();
+    // A CAIXA DE SELEÇÃO NÃO DEVE INFLUENCIAR NO FLUXO ANTERIOR (ENVIAR TODOS OS CAMPOS PREENCHIDOS)
+    const allFilledFields: Record<string, string> = {};
+    if (selectedTemplate) {
+      selectedTemplate.fields.forEach(field => {
+        let value = dynamicFields[field.key];
+        if (value && value.trim()) {
+          // O usuário solicitou que o valor não contenha o prefixo do título, 
+          // apenas a chave deve ser explícita.
+          let finalValue = value.trim();
+          
+          // SOLUÇÃO: Se o campo estiver marcado no checkbox, anexar a instrução para a IA
+          if (selectedAIFields.has(field.key)) {
+            finalValue = `${finalValue} (INFORME EM IMPRESSÃO DIAGNÓSTICA.)`;
+          }
+          
+          // Enviando o nome do campo de forma ultra explícita como chave do JSON
+          const explicitKey = `titulo_campo_${field.key}`;
+          allFilledFields[explicitKey] = finalValue;
+        }
+      });
+    }
+
+    // Identificar quais campos estão selecionados via checkbox
+    const selectedFieldsKeys = Array.from(selectedAIFields);
+
+    console.log('🤖 [AI-GLOBAL] Processando todos os campos preenchidos:', Object.keys(allFilledFields));
+    console.log('🤖 [AI-GLOBAL] Campos selecionados para análise de conclusão:', selectedFieldsKeys);
+
+    // Log para verificar a injeção da instrução
+    selectedFieldsKeys.forEach(key => {
+      if (allFilledFields[key]) {
+        console.log(`💉 [AI-GLOBAL] Injeção confirmada no campo ${key}:`, allFilledFields[key].substring(Math.max(0, allFilledFields[key].length - 40)));
+      }
+    });
+
+    // Se temos a prop processAIContentProp, usamos ela com todos os campos e a lista de selecionados
+    if (processAIContentProp) {
+      await processAIContentProp('resultadoExames', '', allFilledFields, selectedFieldsKeys);
+    } else {
+      // Fallback para onProcessWithAI
+      onProcessWithAI(selectedFieldsKeys);
+    }
   };
 
   // Nova função para processar um campo individual com IA (ENVIO SELETIVO)
   // Handler para processar um campo individual com IA (ENVIO SELETIVO)
+  useEffect(() => {
+    if (selectedModel) {
+      console.log(`%c 🎯 [PROMPT-CHECK] Modelo: ${selectedModel.name} `, 'background: #222; color: #00bcd4; font-weight: bold;');
+      console.log('%c Prompt Personalizado do Modelo:', 'color: #00bcd4;', selectedModel.ai_prompt || 'NENHUM (Usará o global)');
+    }
+  }, [selectedModel]);
+
   const handleProcessFieldWithAI = async (field: DynamicField) => {
+    // Para o campo de impressão diagnóstica, não exigimos que ele mesmo esteja preenchido,
+    // pois ele será formulado a partir dos outros campos selecionados.
+    const isImpressao = field.key === 'impressaodiagnostica';
     const fieldValue = dynamicFields[field.key];
-    if (!fieldValue?.trim()) {
+    
+    if (!isImpressao && !fieldValue?.trim()) {
       toast.error(`Por favor, preencha o campo ${field.label} primeiro`);
       return;
     }
+    
     console.log('🤖 [AI-FIELD] ===== PROCESSANDO CAMPO INDIVIDUAL (ENVIO SELETIVO) =====');
     console.log('🤖 [AI-FIELD] Campo:', field.label, '(', field.key, ')');
-    console.log('🤖 [AI-FIELD] Valor:', fieldValue);
+    
     setIsProcessingField(field.key);
     try {
-      // Campos que precisam de contexto completo (TODOS os campos)
-      const fieldsWithFullContext = ['impressaodiagnostica', 'achadosadicionais', 'recomendacoes'];
-
-      // Determinar quais campos enviar
-      let fieldsToSend: Record<string, string> = {};
-      if (fieldsWithFullContext.includes(field.key)) {
-        // ===== ENVIAR TODOS OS CAMPOS =====
-        console.log('🎯 [AI-FIELD] Campo especial detectado - Enviando TODOS os campos');
-        if (selectedTemplate) {
-          selectedTemplate.fields.forEach(f => {
-            const value = dynamicFields[f.key];
-            if (value) {
-              fieldsToSend[f.key] = `${f.label}: ${value}`;
+      // Determinar quais campos enviar (comportamento anterior: enviar todos os preenchidos para contexto)
+      const allFilledFields: Record<string, string> = {};
+      if (selectedTemplate) {
+        selectedTemplate.fields.forEach(f => {
+          let value = dynamicFields[f.key];
+          if (value && value.trim()) {
+            // O usuário solicitou que o valor não contenha o prefixo do título
+            let finalValue = value.trim();
+            
+            // SOLUÇÃO: Se o campo estiver marcado no checkbox, anexar a instrução para a IA
+            if (selectedAIFields.has(f.key)) {
+              finalValue = `${finalValue} (INFORME EM IMPRESSÃO DIAGNÓSTICA.)`;
             }
-          });
-        }
-      } else if (field.key === 'percentil') {
-        // ===== PERCENTIL: Enviar apenas PERCENTIL + PESO + IG =====
-        console.log('🎯 [AI-FIELD] Campo PERCENTIL - Enviando PERCENTIL + PESO + IG');
-        fieldsToSend[field.key] = `${field.label}: ${fieldValue}`;
-
-        // Adicionar PESO se existir
-        const pesoField = selectedTemplate?.fields.find(f => f.key === 'peso');
-        const pesoValue = dynamicFields['peso'];
-        if (pesoField && pesoValue) {
-          fieldsToSend['peso'] = `${pesoField.label}: ${pesoValue}`;
-          console.log('  ✓ PESO incluído:', pesoValue);
-        }
-
-        // Adicionar IG se existir
-        const igField = selectedTemplate?.fields.find(f => f.key === 'ig');
-        const igValue = dynamicFields['ig'];
-        if (igField && igValue) {
-          fieldsToSend['ig'] = `${igField.label}: ${igValue}`;
-          console.log('  ✓ IG incluído:', igValue);
-        }
-      } else {
-        // ===== DEMAIS CAMPOS: Enviar apenas o campo atual =====
-        console.log('🎯 [AI-FIELD] Campo padrão - Enviando apenas o campo atual');
-        fieldsToSend[field.key] = `${field.label}: ${fieldValue}`;
+            
+            // Enviando o nome do campo de forma ultra explícita como chave do JSON
+            const explicitKey = `titulo_campo_${f.key}`;
+            allFilledFields[explicitKey] = finalValue;
+          }
+        });
       }
-      console.log('🤖 [AI-FIELD] Campos sendo enviados:', Object.keys(fieldsToSend));
-      console.log('🤖 [AI-FIELD] Campo a ser processado:', field.key);
 
-      // Chamar a edge function com os campos seletivos
+      // Identificar quais campos estão selecionados via checkbox
+      const selectedFieldsKeys = Array.from(selectedAIFields);
+
+      console.log('🤖 [AI-FIELD] Enviando todos os campos preenchidos para contexto:', Object.keys(allFilledFields));
+      console.log('🤖 [AI-FIELD] Campos selecionados via checkbox:', selectedFieldsKeys);
+      console.log('🤖 [AI-FIELD] Campo a ser processado:', field.key);
+      
+      // Log para verificar a injeção da instrução
+      selectedFieldsKeys.forEach(key => {
+        if (allFilledFields[key]) {
+          console.log(`💉 [AI-FIELD] Injeção confirmada no campo ${key}:`, allFilledFields[key].substring(Math.max(0, allFilledFields[key].length - 40)));
+        }
+      });
+
+      // Chamar a edge function com todos os campos e a informação de seleção
       const {
         data,
         error
       } = await supabase.functions.invoke('ai-webhook', {
         body: {
-          ...fieldsToSend,
+          ...allFilledFields,
+          selectedFieldsKeys,
+          selectedModelId: selectedModel?.id || null,
           selectedModelTitle: selectedModel?.name || null,
           fieldKey: field.key,
           type: 'exam_result'
@@ -1408,23 +1593,60 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         return;
       }
       console.log('🤖 [AI-FIELD] Resposta da IA:', data);
-
+      
+      // Armazenar o prompt para o debug na tela
+      if (data?.debug_prompt) {
+        setLastUsedPrompt(data.debug_prompt);
+      }
+      
+      // LOG DE AUDITORIA DO PROMPT (Para fins de teste)
+      if (data?.debug_prompt) {
+        console.group('%c 🧪 AUDITORIA DE PROMPT IA (CAMPO INDIVIDUAL) ', 'background: #222; color: #bada55; font-size: 12px; font-weight: bold;');
+        console.log('%c Prompt de Sistema Utilizado:', 'font-weight: bold; color: #4CAF50;');
+        console.log(data.debug_prompt);
+        console.log('%c Campo:', 'font-weight: bold; color: #2196F3;', field.label);
+        console.log('%c ID do Modelo:', 'font-weight: bold; color: #FF9800;', selectedModel?.id || 'Nenhum (Global)');
+        console.groupEnd();
+      }
+      
       // Extrair o conteúdo processado da resposta
       let processedContent = '';
-      if (data.individual_fields && data.individual_fields[field.key]) {
+      const explicitKey = `titulo_campo_${field.key}`;
+      
+      if (data.individual_fields && data.individual_fields[explicitKey]) {
+        processedContent = data.individual_fields[explicitKey];
+      } else if (data.individual_fields && data.individual_fields[field.key]) {
         processedContent = data.individual_fields[field.key];
       } else if (data.processed_content) {
         processedContent = data.processed_content;
+      } else if (data[explicitKey]) {
+        processedContent = data[explicitKey];
       } else if (data[field.key]) {
         processedContent = data[field.key];
       }
+      
       if (processedContent) {
         console.log('🤖 [AI-FIELD] Conteúdo processado:', processedContent);
+
+        // Limpar possíveis instruções que a IA possa ter retornado no texto
+        let cleanContent = processedContent.replace(/INFORME EM IMPRESSÃO DIAGNÓSTICA\.?/gi, '').trim();
+        cleanContent = cleanContent.replace(/\( \)/g, '').trim(); // Remove parênteses vazios se sobrarem
+
+        // Remover o título caso a IA ainda teime em repeti-lo (ex: "RIM DIREITO: ...")
+        // Também lidamos com variações onde a IA não colocou os dois pontos.
+        const escapedLabel = field.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escapar caracteres especiais
+        const labelPrefixRegex = new RegExp(`^${escapedLabel}[\\s:]*`, 'i');
+        cleanContent = cleanContent.replace(labelPrefixRegex, '').trim();
+
+        // Opcional: Se a string após a remoção começar com minúscula, torná-la maiúscula
+        if (cleanContent.length > 0) {
+          cleanContent = cleanContent.charAt(0).toUpperCase() + cleanContent.slice(1);
+        }
 
         // Atualizar apenas este campo específico
         const updatedFields = {
           ...dynamicFields,
-          [field.key]: formatFieldValue(field.key, processedContent)
+          [field.key]: formatFieldValue(field.key, cleanContent)
         };
         setDynamicFields(updatedFields);
         updateExamResults(updatedFields);
@@ -1442,8 +1664,61 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     }
   };
 
+  // Função para alternar a seleção de um campo para a IA
+  const toggleFieldAISelection = (fieldKey: string) => {
+    console.log(`🎯 [AI-SELECT] Alternando seleção do campo: ${fieldKey}`);
+    
+    const instruction = '(INFORME EM IMPRESSÃO DIAGNÓSTICA.)';
+    
+    setSelectedAIFields(prev => {
+      const next = new Set(prev);
+      const isRemoving = next.has(fieldKey);
+      
+      let newFields = { ...dynamicFields };
+      let changed = false;
+
+      if (isRemoving) {
+        next.delete(fieldKey);
+        console.log(`❌ [AI-SELECT] Campo ${fieldKey} REMOVIDO da análise de conclusão`);
+        
+        const currentText = dynamicFields[fieldKey] || '';
+        if (currentText.includes(instruction)) {
+          const newText = currentText.replace(instruction, '').replace(/\s\s+/g, ' ').trim();
+          newFields[fieldKey] = newText;
+          changed = true;
+        }
+      } else {
+        next.add(fieldKey);
+        console.log(`✅ [AI-SELECT] Campo ${fieldKey} ADICIONADO para análise de conclusão`);
+        
+        const currentText = dynamicFields[fieldKey] || '';
+        if (!currentText.includes(instruction)) {
+          const separator = currentText.trim() ? ' ' : '';
+          const newText = `${currentText.trim()}${separator}${instruction}`;
+          newFields[fieldKey] = newText;
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        setDynamicFields(newFields);
+        if (onDynamicFieldsChange) {
+          onDynamicFieldsChange(newFields);
+        }
+      }
+
+      return next;
+    });
+  };
+
   // Componente para o microfone individual de cada campo
-  const FieldMicrophone = React.useCallback(({ fieldKey, label, onUpdate }: { fieldKey: string, label: string, onUpdate: (val: string) => void }) => {
+  const FieldMicrophone = React.useCallback(({ fieldKey, label, onUpdate, variant, className }: { 
+    fieldKey: string, 
+    label: string, 
+    onUpdate: (val: string) => void,
+    variant?: any,
+    className?: string
+  }) => {
     const { isRecording, toggleRecording, isProcessing } = useWhisperTranscription({
       onTranscriptionComplete: (text) => {
         if (text.trim()) {
@@ -1456,18 +1731,35 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
 
     return (
       <Button 
-        type="button" 
-        variant={isRecording ? "destructive" : "outline"} 
+        asChild
+        variant={variant || (isRecording ? "destructive" : "outline")} 
         size="sm" 
-        onClick={(e) => {
-          e.stopPropagation(); // Evita que cliques no botão disparem eventos do pai
-          toggleRecording();
-        }} 
-        disabled={isProcessing}
-        title={`Gravar voz para ${label}`}
-        className={isRecording ? 'animate-pulse' : ''}
+        className={cn(isRecording ? 'animate-pulse' : '', className)}
       >
-        {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+        <span
+          role="button"
+          tabIndex={0}
+          title={`Gravar voz para ${label}`}
+          onClick={(e) => {
+            e.stopPropagation(); // Evita que cliques no botão disparem eventos do pai
+            if (isProcessing) return;
+            toggleRecording();
+          }} 
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              if (isProcessing) return;
+              toggleRecording();
+            }
+          }}
+          className={cn(
+            "cursor-pointer flex items-center justify-center w-full h-full",
+            isProcessing && "opacity-50 cursor-not-allowed"
+          )}
+        >
+          {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+        </span>
       </Button>
     );
   }, []);
@@ -1479,18 +1771,15 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
             <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Modelo de Exame
             </Label>
-            <Select value={selectedModelId} onValueChange={handleModelSelect} disabled={isLoading}>
-              <SelectTrigger className="w-full bg-slate-800 border-slate-700 text-white rounded-xl h-12">
-                <SelectValue placeholder="Selecione um modelo..." />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-900 border-slate-800 text-white">
-                {completedExams.map(model => (
-                  <SelectItem key={model.id} value={model.id} className="focus:bg-slate-800 focus:text-white">
-                    {model.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AdvancedSelect
+              options={completedExams.map(model => ({ label: model.name, value: model.id }))}
+              value={selectedModelId}
+              onChange={(value) => handleModelSelect(value as string)}
+              disabled={isLoading}
+              placeholder="Selecione um modelo..."
+              title="Modelos de Exame"
+              className="w-full bg-slate-800 border-slate-700 text-white rounded-xl h-12"
+            />
           </div>
 
           <div className="flex items-center gap-2">
@@ -1537,7 +1826,9 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
             <div className="h-px bg-slate-800 w-full my-2" />
             <div className="space-y-8">
               {selectedTemplate.fields.map(field => {
-                const fieldValue = dynamicFields[field.key] || '';
+                // Garantir que o valor do campo seja sempre uma string para evitar erros de renderização
+                const rawValue = dynamicFields[field.key];
+                const fieldValue = (rawValue === null || rawValue === undefined) ? '' : String(rawValue);
                 const selectedValues = selectedFieldValues[field.key] || [];
                 
                 return (
@@ -1546,9 +1837,19 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                     modifiedFields.has(field.key) && "bg-emerald-500/10 p-3 rounded-2xl ring-1 ring-emerald-500/30"
                   )}>
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-black text-slate-200 uppercase tracking-tight">
-                        {field.label}
-                      </Label>
+                      <div className="flex items-center gap-2">
+                        {field.key !== 'impressaodiagnostica' && field.key !== 'recomendacoes' && field.key !== 'observacoes' && (
+                          <Checkbox 
+                            id={`ai-select-mobile-${field.key}`}
+                            checked={selectedAIFields.has(field.key)}
+                            onCheckedChange={() => toggleFieldAISelection(field.key)}
+                            className="border-slate-500 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                          />
+                        )}
+                        <Label className="text-sm font-black text-slate-200 uppercase tracking-tight">
+                          {field.label}
+                        </Label>
+                      </div>
                       <div className="flex gap-2">
                         {!field.key.toLowerCase().includes('percentil') && (
                           <FieldMicrophone 
@@ -1563,21 +1864,26 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                           size="icon" 
                           className="h-8 w-8 text-slate-400 hover:text-white"
                           onClick={() => handleProcessFieldWithAI(field)} 
-                          disabled={!fieldValue.trim() || isProcessingField === field.key}
+                          disabled={isProcessingField === field.key || (field.key !== 'impressaodiagnostica' && !fieldValue.trim())}
                         >
                           {isProcessingField === field.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                         </Button>
                       </div>
                     </div>
 
-                    <FieldAutocompleteMulti 
+                    <AdvancedSelect
                       key={`${selectedModel?.id || 'no-model'}-${field.key}`} 
-                      selectedValues={selectedValues} 
-                      onChange={selectedContents => handleFieldModelChange(field.key, selectedContents)} 
-                      onSearch={searchTerm => searchFieldTemplates(field.key, searchTerm, selectedModel?.name || '')} 
+                      options={templates
+                        .filter(t => t.field_key === field.key && t.model_name === (selectedModel?.name || ''))
+                        .map(t => ({ label: t.field_content, value: t.field_content }))
+                      }
+                      value={selectedValues} 
+                      onChange={selectedContents => handleFieldModelChange(field.key, selectedContents as string[])} 
                       placeholder={`Modelos de ${field.label.toLowerCase()}...`} 
-                      fieldName={field.key} 
-                      className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-xl" 
+                      searchPlaceholder="Buscar modelo..."
+                      title={`Modelos: ${field.label}`}
+                      multiple
+                      className="bg-slate-800 border-slate-700 text-white rounded-xl h-12" 
                     />
 
                     {field.type === 'date' ? (
@@ -1624,7 +1930,13 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         </div>
 
         {/* Reutilizar Dialogs e Modais existentes */}
-        <AIPromptModal isOpen={isPromptModalOpen} onClose={() => setIsPromptModalOpen(false)} fieldType="exames" />
+        <AIPromptModal 
+          isOpen={isPromptModalOpen} 
+          onClose={() => setIsPromptModalOpen(false)} 
+          fieldType="exames" 
+          modelId={selectedModel?.id}
+          modelName={selectedModel?.name}
+        />
         {/* ... manter outros modais se necessário ... */}
       </div>
     );
@@ -1638,24 +1950,15 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         <CardContent className="space-y-4 bg-rose-100">
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             <div className="w-full md:w-1/2">
-              <Select value={selectedModelId} onValueChange={handleModelSelect} disabled={isLoading}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione um modelo de exame" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(() => {
-                  console.log('🎨 [DROPDOWN] Renderizando dropdown com modelos:', completedExams.length);
-                  console.log('🎨 [DROPDOWN] Modelos:', completedExams.map(m => ({
-                    id: m.id,
-                    name: m.name
-                  })));
-                  return null;
-                })()}
-                  {completedExams.map(model => <SelectItem key={model.id} value={model.id}>
-                      {model.name}
-                    </SelectItem>)}
-                </SelectContent>
-              </Select>
+              <AdvancedSelect
+                options={completedExams.map(model => ({ label: model.name, value: model.id }))}
+                value={selectedModelId}
+                onChange={(value) => handleModelSelect(value as string)}
+                disabled={isLoading}
+                placeholder="Selecione um modelo de exame"
+                title="Modelos de Exame"
+                className="w-full"
+              />
             </div>
             
             <div className="flex items-center gap-2 w-full md:w-auto mt-4 md:mt-0">
@@ -1689,184 +1992,227 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                     Processar com IA
                   </>}
               </Button>
+              {lastUsedPrompt && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-10 w-10 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                  onClick={() => setShowPromptDebug(!showPromptDebug)}
+                  title="Ver último prompt utilizado"
+                >
+                  <Info className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
 
+          {showPromptDebug && lastUsedPrompt && (
+            <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-lg text-xs font-mono text-emerald-800 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-bold uppercase tracking-wider">🧪 Último Prompt de Sistema:</span>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => setShowPromptDebug(false)}>Fechar</Button>
+              </div>
+              <div className="whitespace-pre-wrap max-h-48 overflow-y-auto custom-scrollbar bg-white/50 p-3 rounded border border-emerald-200/50">
+                {lastUsedPrompt}
+              </div>
+            </div>
+          )}
+
           {/* Campos dinâmicos baseados no template */}
-          {(() => {
-          console.log('🎨 [DEBUG] Renderizando campos - selectedTemplate:', selectedTemplate);
-          console.log('🎨 [DEBUG] Campos disponíveis:', selectedTemplate?.fields);
-          return null;
-        })()}
-          {selectedTemplate && selectedTemplate.fields.length > 0 && <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold">{selectedModel?.name}</h3>
+          {selectedTemplate && selectedTemplate.fields.length > 0 && (
+            <Accordion type="single" collapsible className="space-y-4">
+              {selectedTemplate.fields.map(field => {
+                // Garantir que o valor do campo seja sempre uma string para evitar erros de renderização
+                const rawValue = dynamicFields[field.key];
+                const fieldValue = (rawValue === null || rawValue === undefined) ? '' : String(rawValue);
+                const selectedValues = selectedFieldValues[field.key] || [];
                 
-              </div>
-              <div className="space-y-4">
-                 {selectedTemplate.fields.map(field => {
-              const fieldValue = dynamicFields[field.key] || '';
-              const selectedValues = selectedFieldValues[field.key] || [];
-              console.log('🎨 [RENDER-FIELD] Renderizando campo:', {
-                key: field.key,
-                label: field.label,
-                type: field.type,
-                fieldValue: fieldValue.substring(0, 50) + (fieldValue.length > 50 ? '...' : ''),
-                selectedValues: selectedValues,
-                selectedValuesCount: selectedValues.length
-              });
-              return field.type === 'date' ? <div key={field.key} className={`space-y-2 transition-all duration-500 p-2 rounded-lg ${modifiedFields.has(field.key) ? 'ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-900/20' : ''}`}>
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor={field.key}>{field.label}</Label>
-                        <FieldMicrophone 
-                          fieldKey={field.key} 
-                          label={field.label} 
-                          onUpdate={(val) => {
-                            handleFieldTextChange(field.key, val);
-                            setModifiedFields(prev => new Set(prev).add(field.key));
-                          }} 
-                        />
-                      </div>
-                      <div className="relative">
-                        <Input 
-                          id={field.key} 
-                          type="text" 
-                          placeholder="DD/MM/AAAA"
-                          className="w-full pr-10"
-                          value={fieldValue} 
-                          onChange={e => {
-                            const formatted = formatDateInput(e.target.value);
-                            handleFieldTextChange(field.key, formatted);
-                          }} 
-                        />
-                        <CalendarIcon className="absolute right-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
-                      </div>
-                    </div> : <div key={field.key} className={`space-y-4 transition-all duration-500 p-2 rounded-lg ${modifiedFields.has(field.key) ? 'ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-900/20' : ''}`}>
-                      {/* Seção de Modelos - Fundo mais escuro e destacado */}
-                      <Card className="border-2 border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/50 shadow-md">
-                        <CardHeader className="border-b border-slate-300 dark:border-slate-700 bg-stone-950 rounded-3xl">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-base font-semibold text-slate-50">
-                              Modelos: {field.label}
-                            </CardTitle>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-6 bg-stone-950">
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">
-                              Selecionar Modelos de {field.label}
-                              
-                            </Label>
-                            <FieldAutocompleteMulti key={`${selectedModel?.id || 'no-model'}-${field.key}`} selectedValues={selectedValues} onChange={selectedContents => {
-                        console.log('🔄 [AUTOCOMPLETE-ONCHANGE] onChange disparado:', {
-                          fieldKey: field.key,
-                          fieldLabel: field.label,
-                          selectedContents
-                        });
-                        handleFieldModelChange(field.key, selectedContents);
-                      }} onSearch={async searchTerm => {
-                        console.log('🔍 [AUTOCOMPLETE-ONSEARCH] onSearch disparado:', {
-                          fieldKey: field.key,
-                          fieldLabel: field.label,
-                          searchTerm,
-                          modelName: selectedModel?.name || ''
-                        });
-                        const results = await searchFieldTemplates(field.key, searchTerm, selectedModel?.name || '');
-                        console.log('📊 [AUTOCOMPLETE-ONSEARCH] Resultados:', {
-                          fieldKey: field.key,
-                          count: results.length,
-                          results
-                        });
-                        return results;
-                      }} placeholder={`Digite para buscar modelos de ${field.label.toLowerCase()}...`} fieldName={field.key} className="w-full" />
-                          </div>
-                        </CardContent>
-                      </Card>
-                      
-                      {/* Seção Campo - Fundo mais claro */}
-                      <Card className="border border-slate-200 dark:border-slate-800 bg-background shadow-sm">
-                        <CardHeader className="border-b border-slate-200 dark:border-slate-800 bg-lime-500">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-base font-semibold">
-                              {field.label}
-                            </CardTitle>
-                            <div className="flex gap-2">
-                              {/* Botão de Voz Individual - Desabilitado para Percentil */}
-                              {!field.key.toLowerCase().includes('percentil') && (
-                                <FieldMicrophone 
-                                  fieldKey={field.key} 
-                                  label={field.label} 
-                                  onUpdate={(val) => handleFieldTextChange(field.key, val)} 
-                                />
-                              )}
-                              
-                              {/* Botão para processar campo individual com IA */}
-                              <Button type="button" variant="outline" size="sm" onClick={() => handleProcessFieldWithAI(field)} disabled={!fieldValue.trim() || isProcessingField === field.key} title="Processar este campo com IA">
-                                {isProcessingField === field.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                              </Button>
-                              
-                              {/* Botão para salvar template do campo */}
-                              <Button type="button" variant="outline" size="sm" onClick={async () => {
-                          console.log('🔵 [CLICK] Botão de salvar clicado');
-                          console.log('🔵 [CLICK] fieldValue:', fieldValue);
-                          console.log('🔵 [CLICK] selectedModel:', selectedModel);
-                          if (!fieldValue.trim()) {
-                            toast.error('Por favor, preencha o campo antes de salvar.');
-                            return;
-                          }
-                          if (!selectedModel) {
-                            toast.error('Selecione um modelo de exame primeiro.');
-                            return;
-                          }
-                          console.log('💾 [SAVE] Salvando campo:', field.key, field.label);
-                          setIsSavingField(field.key);
-                          try {
-                            await saveFieldTemplate({
-                              fieldKey: field.key,
-                              fieldLabel: field.label,
-                              fieldContent: fieldValue,
-                              modelName: selectedModel.name
-                            });
-                            console.log('✅ [SAVE] Campo salvo com sucesso');
-                            toast.success(`Campo ${field.label} salvo com sucesso!`);
-                          } catch (error) {
-                            console.error('❌ [SAVE] Erro ao salvar:', error);
-                            toast.error('Não foi possível salvar o template.');
-                          } finally {
-                            setIsSavingField(null);
-                          }
-                        }} disabled={!fieldValue.trim() || isSavingField === field.key} title="Salvar este campo como template">
-                                {isSavingField === field.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                              </Button>
-                              
-                              {/* Botão para limpar campo */}
-                              <Button type="button" variant="outline" size="sm" onClick={() => {
-                          setFieldToDelete({
-                            key: field.key,
-                            label: field.label
-                          });
-                          setDeleteConfirmOpen(true);
-                        }} disabled={isDeleting} title="Limpar dados salvos deste campo">
-                                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eraser className="h-4 w-4" />}
-                              </Button>
+                return (
+                  <AccordionItem 
+                    key={field.key} 
+                    value={field.key} 
+                    className={cn(
+                      "border-none rounded-[1.5rem] overflow-hidden transition-all duration-300",
+                      modifiedFields.has(field.key) ? "ring-2 ring-emerald-500/30" : ""
+                    )}
+                  >
+                    <AccordionTrigger 
+                      className="bg-slate-900 px-6 py-5 hover:no-underline transition-all group"
+                    >
+                      <div className="flex items-center justify-between w-full text-left">
+                        <div className="flex items-center gap-3">
+                          {field.key !== 'impressaodiagnostica' && field.key !== 'recomendacoes' && field.key !== 'observacoes' && (
+                            <div onClick={(e) => e.stopPropagation()} className="flex items-center mr-2">
+                              <Checkbox 
+                                id={`ai-select-${field.key}`}
+                                checked={selectedAIFields.has(field.key)}
+                                onCheckedChange={() => toggleFieldAISelection(field.key)}
+                                className="border-slate-500 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                              />
                             </div>
+                          )}
+                          <div className={cn(
+                            "w-2 h-2 rounded-full",
+                            fieldValue.trim() ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" : "bg-slate-700"
+                          )} />
+                          <span className="text-white font-black text-base uppercase tracking-tight">{field.label}</span>
+                          {fieldValue.trim() && (
+                            <span className="hidden sm:inline-block text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider animate-in fade-in slide-in-from-right-2">
+                              Preenchido
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-2 mr-4" onClick={(e) => e.stopPropagation()}>
+                          {!field.key.toLowerCase().includes('percentil') && (
+                            <FieldMicrophone 
+                              fieldKey={field.key} 
+                              label={field.label} 
+                              onUpdate={(val) => handleFieldTextChange(field.key, val)} 
+                              variant="ghost"
+                              className="h-10 w-10 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl"
+                            />
+                          )}
+                          <Button 
+                            asChild
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-10 w-10 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl"
+                          >
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isProcessingField === field.key) return;
+                                // Para impressão diagnóstica, permitimos processar mesmo sem valor no campo
+                                if (field.key !== 'impressaodiagnostica' && !fieldValue.trim()) return;
+                                handleProcessFieldWithAI(field);
+                              }} 
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  if (isProcessingField === field.key) return;
+                                  if (field.key !== 'impressaodiagnostica' && !fieldValue.trim()) return;
+                                  handleProcessFieldWithAI(field);
+                                }
+                              }}
+                              className={cn(
+                                "cursor-pointer flex items-center justify-center w-full h-full",
+                                (isProcessingField === field.key || (field.key !== 'impressaodiagnostica' && !fieldValue.trim())) && "opacity-50 cursor-not-allowed"
+                              )}
+                            >
+                              {isProcessingField === field.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                            </span>
+                          </Button>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+
+                    <AccordionContent className="bg-slate-900/95 mt-1 rounded-b-[1.5rem] p-6 space-y-6 overflow-visible border-t border-slate-800/50">
+                      {/* Seção de Modelos */}
+                      <div className="space-y-3">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">
+                          Modelos Sugeridos
+                        </Label>
+                        <AdvancedSelect
+                          key={`${selectedModel?.id || 'no-model'}-${field.key}`}
+                          options={templates
+                            .filter(t => t.field_key === field.key && t.model_name === (selectedModel?.name || ''))
+                            .map(t => ({ label: t.field_content, value: t.field_content }))
+                          }
+                          value={selectedValues}
+                          onChange={(selectedContents) => handleFieldModelChange(field.key, selectedContents as string[])}
+                          placeholder={`Escolher modelos de ${field.label.toLowerCase()}...`}
+                          searchPlaceholder="Buscar modelo..."
+                          title={`Modelos: ${field.label}`}
+                          multiple
+                          className="bg-slate-800 border-slate-700 text-white rounded-xl h-12"
+                        />
+                      </div>
+
+                      {/* Área de Texto */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between px-1">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                            Descrição Detalhada
+                          </Label>
+                          <div className="flex gap-2">
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/10"
+                              onClick={async () => {
+                                if (!fieldValue.trim()) return;
+                                if (!selectedModel) return;
+                                setIsSavingField(field.key);
+                                try {
+                                  await saveFieldTemplate({
+                                    fieldKey: field.key,
+                                    fieldLabel: field.label,
+                                    fieldContent: fieldValue,
+                                    modelName: selectedModel.name
+                                  });
+                                  toast.success(`Campo ${field.label} salvo com sucesso!`);
+                                } finally {
+                                  setIsSavingField(null);
+                                }
+                              }} 
+                              disabled={!fieldValue.trim() || isSavingField === field.key}
+                            >
+                              {isSavingField === field.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-slate-400 hover:text-red-400 hover:bg-red-400/10"
+                              onClick={() => {
+                                setFieldToDelete({ key: field.key, label: field.label });
+                                setDeleteConfirmOpen(true);
+                              }}
+                            >
+                              <Eraser className="h-4 w-4" />
+                            </Button>
                           </div>
-                        </CardHeader>
-                        <CardContent className="pt-6 bg-lime-500">
+                        </div>
+
+                        {field.key === 'percentil' ? (
                           <div className="space-y-2">
-                            {field.key === 'percentil' ? <div className="space-y-2">
-                                <Textarea value={fieldValue} onChange={e => handleFieldTextChange(field.key, e.target.value)} placeholder={field.placeholder} rows={6} className={`w-full font-bold ${fieldValue.includes('(AIG)') ? 'text-blue-600' : fieldValue.includes('(PIG)') ? 'text-rose-600' : fieldValue.includes('(GIG)') ? 'text-red-600' : ''}`} />
-                                {fieldValue && fieldValue.includes('⚠️') && <div className="text-amber-600 text-sm font-medium bg-amber-50 p-2 rounded">
-                                    {fieldValue.split('\n').find(line => line.includes('⚠️'))}
-                                  </div>}
-                              </div> : <Textarea value={fieldValue} onChange={e => handleFieldTextChange(field.key, e.target.value)} placeholder={field.placeholder} rows={6} className="w-full" />}
+                            <Textarea 
+                              value={fieldValue} 
+                              onChange={e => handleFieldTextChange(field.key, e.target.value)} 
+                              placeholder={field.placeholder} 
+                              rows={6} 
+                              className={cn(
+                                "w-full bg-slate-800/50 border-slate-700/50 text-white p-4 rounded-xl resize-none",
+                                fieldValue.includes('(AIG)') ? 'text-blue-400' : fieldValue.includes('(PIG)') ? 'text-rose-400' : fieldValue.includes('(GIG)') ? 'text-red-400' : ''
+                              )} 
+                            />
+                            {fieldValue && fieldValue.includes('⚠️') && (
+                              <div className="text-amber-400 text-xs font-bold bg-amber-400/10 p-3 rounded-xl border border-amber-400/20">
+                                {fieldValue.split('\n').find(line => line.includes('⚠️'))}
+                              </div>
+                            )}
                           </div>
-                        </CardContent>
-                      </Card>
-                    </div>;
-            })}
-              </div>
-            </div>}
+                        ) : (
+                          <Textarea 
+                            value={fieldValue} 
+                            onChange={e => handleFieldTextChange(field.key, e.target.value)} 
+                            placeholder={field.placeholder} 
+                            rows={6} 
+                            className="w-full bg-slate-800/50 border-slate-700/50 text-white p-4 rounded-xl focus:ring-emerald-500/20 transition-all resize-none" 
+                          />
+                        )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          )}
           
           {/* Dialog de confirmação para limpar template */}
           <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
@@ -1909,6 +2255,8 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         isOpen={isPromptModalOpen} 
         onClose={() => setIsPromptModalOpen(false)} 
         fieldType="exames" 
+        modelId={selectedModel?.id}
+        modelName={selectedModel?.name}
       />
 
       {/* Janela Flutuante de Campos Faltantes */}

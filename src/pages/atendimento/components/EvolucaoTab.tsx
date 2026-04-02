@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Settings2, Sparkles, Save, Eraser, Loader2 } from 'lucide-react';
 import { FormState } from '../hooks/useFormData';
-import { FieldAutocompleteMulti } from '@/components/ui/field-autocomplete-multi';
+import { AdvancedSelect } from '@/components/ui/advanced-select';
 import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
 import { toast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
@@ -38,10 +38,15 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
   isProcessingAI
 }) => {
   const isMobile = useIsMobile();
-  const { searchFieldTemplates, saveFieldTemplate, deleteFieldTemplate } = useIndividualFieldTemplates();
+  const { templates, isLoading: isLoadingTemplates, saveFieldTemplate, deleteFieldTemplate } = useIndividualFieldTemplates();
   const [isSavingEvolucao, setIsSavingEvolucao] = useState(false);
   const [selectedEvolucoes, setSelectedEvolucoes] = useState<string[]>([]);
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
+
+  // Opções para AdvancedSelect
+  const evolucaoOptions = templates
+    .filter(t => t.field_key === 'evolucao' && t.model_name === 'ATENDIMENTO')
+    .map(t => ({ label: t.field_content, value: t.field_content }));
 
   // Salvar Evolução
   const handleSaveEvolucao = async () => {
@@ -104,13 +109,15 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
             </AccordionTrigger>
             <AccordionContent className="bg-slate-900/95 mt-1 rounded-2xl p-6 space-y-4 overflow-visible">
               <div className="space-y-4">
-                <FieldAutocompleteMulti
-                  selectedValues={selectedEvolucoes}
-                  onChange={handleEvolucaoModelChange}
-                  onSearch={(searchTerm) => searchFieldTemplates('evolucao', searchTerm, 'ATENDIMENTO')}
-                  placeholder="Digite para buscar e selecionar múltiplas evoluções..."
-                  fieldName="evolucao"
-                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-xl"
+                <AdvancedSelect
+                  options={evolucaoOptions}
+                  value={selectedEvolucoes}
+                  onChange={(values) => handleEvolucaoModelChange(values as string[])}
+                  placeholder="Buscar modelos de evolução..."
+                  searchPlaceholder="Buscar na lista..."
+                  title="Modelos de Evolução"
+                  multiple
+                  className="bg-slate-800 border-slate-700 text-white rounded-xl h-12"
                 />
                 
                 <div className="relative">
@@ -184,17 +191,16 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium">
                 Selecionar Modelos de Evolução
-                <span className="text-xs text-muted-foreground ml-2">
-                  (Clique no X para remover da seleção, no lixeira 🗑️ para excluir permanentemente)
-                </span>
               </Label>
             </div>
-            <FieldAutocompleteMulti
-              selectedValues={selectedEvolucoes}
-              onChange={handleEvolucaoModelChange}
-              onSearch={(searchTerm) => searchFieldTemplates('evolucao', searchTerm, 'ATENDIMENTO')}
-              placeholder="Digite para buscar e selecionar múltiplas evoluções..."
-              fieldName="evolucao"
+            <AdvancedSelect
+              options={evolucaoOptions}
+              value={selectedEvolucoes}
+              onChange={(values) => handleEvolucaoModelChange(values as string[])}
+              placeholder="Buscar modelos de evolução..."
+              searchPlaceholder="Buscar na lista..."
+              title="Modelos de Evolução"
+              multiple
               className="w-full"
             />
           </div>

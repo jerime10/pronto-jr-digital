@@ -153,10 +153,10 @@ const PacienteBusca: React.FC<PacienteBuscaProps> = ({
             </Avatar>
             
             <div className="flex-1 min-w-0">
-              <h3 className="font-black text-xl text-white tracking-tight truncate leading-tight">
+              <h3 className="font-black text-lg text-white tracking-tight leading-tight mb-1">
                 {pacienteSelecionado.name}
               </h3>
-              <div className="flex flex-wrap items-center gap-2 mt-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700/50">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2" />
                   <span className="text-slate-500 font-black text-[8px] uppercase tracking-wider mr-1.5">SUS</span>
@@ -291,7 +291,7 @@ const PacienteBusca: React.FC<PacienteBuscaProps> = ({
                       onChange={(e) => onBuscarPacienteChange(e.target.value)} 
                       autoFocus
                       aria-label="Buscar paciente por nome ou número do SUS"
-                      className="pl-11 h-14 text-lg bg-slate-50 border-none rounded-2xl focus-visible:ring-primary/20" 
+                      className="pl-11 h-14 text-lg bg-slate-50 border-none rounded-2xl focus-visible:ring-primary/20 text-slate-900" 
                     />
                   </div>
                 </div>
@@ -313,7 +313,7 @@ const PacienteBusca: React.FC<PacienteBuscaProps> = ({
                   onBlur={onInputBlur} 
                   disabled={disabled} 
                   aria-label="Buscar paciente por nome ou número do SUS"
-                  className="pl-12 pr-12 h-14 text-base bg-white border-2 border-slate-200 rounded-2xl focus:border-primary transition-all shadow-sm" 
+                  className="pl-12 pr-12 h-14 text-base bg-white border-2 border-slate-200 rounded-2xl focus:border-primary transition-all shadow-sm text-slate-900" 
                 />
                 <ChevronDown className={cn(
                   "absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 transition-transform duration-300",

@@ -29,83 +29,28 @@ export async function fetchMedicalRecordWebhookSettings() {
   }
 }
 
+import { upsertSiteSettings } from './siteSettingsSingleton';
+
 export async function updateMedicalRecordWebhookSettings(
   medicalRecordWebhookUrl: string,
   settingsId: string | undefined
 ): Promise<void> {
-  console.log('🔧 [Webhook Settings] Iniciando atualização com client administrativo:', { 
+  console.log('🔧 [Webhook Settings] Iniciando atualização com utility singleton:', { 
     url: medicalRecordWebhookUrl, 
     settingsId,
     timestamp: new Date().toISOString()
   });
   
   try {
-    // Primeiro, tentar buscar configurações existentes
-    const { data: existingSettings, error: fetchError } = await supabase
-      .from('site_settings')
-      .select('id')
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      console.error('❌ [Webhook Settings] Erro ao buscar configurações:', fetchError);
-      throw new Error(`Falha ao verificar configurações existentes: ${fetchError.message}`);
-    }
-
-    const updateData = {
+    // Use unified upsert utility to ensure singleton row and prevent key reset
+    await upsertSiteSettings({
       medical_record_webhook_url: medicalRecordWebhookUrl,
-      updated_at: new Date().toISOString(),
-    };
-
-    if (existingSettings?.id) {
-      console.log('📝 [Webhook Settings] Atualizando registro existente:', existingSettings.id);
-      
-      const { error: updateError } = await supabase
-        .from('site_settings')
-        .update(updateData)
-        .eq('id', existingSettings.id);
-      
-      if (updateError) {
-        console.error('❌ [Webhook Settings] Erro na atualização:', updateError);
-        throw new Error(`Falha ao atualizar configuração: ${updateError.message}`);
-      }
-      
-      console.log('✅ [Webhook Settings] Configuração atualizada com sucesso!');
-      
-    } else {
-      console.log('🆕 [Webhook Settings] Criando novo registro de configuração');
-      
-      const { error: insertError } = await supabase
-        .from('site_settings')
-        .insert({
-          ...updateData,
-          primary_color: '#10b981',
-          accent_color: '#3b82f6', 
-          font_family: 'Inter',
-          clinic_name: 'Clínica Exemplo',
-          clinic_address: '',
-          clinic_phone: '',
-          n8n_webhook_url: ''
-        });
-      
-      if (insertError) {
-        console.error('❌ [Webhook Settings] Erro na criação:', insertError);
-        throw new Error(`Falha ao criar configuração: ${insertError.message}`);
-      }
-      
-      console.log('✅ [Webhook Settings] Nova configuração criada com sucesso!');
-    }
-    
-  } catch (error: any) {
-    console.error('💥 [Webhook Settings] Erro crítico:', {
-      message: error?.message || 'Erro desconhecido',
-      code: error?.code,
-      details: error?.details,
-      hint: error?.hint
     });
     
-    // Re-throw with user-friendly message
+    console.log('✅ [Webhook Settings] Configuração atualizada com sucesso!');
+    
+  } catch (error: any) {
+    console.error('💥 [Webhook Settings] Erro crítico:', error);
     throw new Error(error?.message || 'Erro interno na operação de webhook');
   }
 }

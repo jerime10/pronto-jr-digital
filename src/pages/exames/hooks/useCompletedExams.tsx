@@ -8,13 +8,14 @@ interface CompletedExam {
   id: string;
   name: string;
   result_template: string | null;
+  ai_prompt: string | null;
   created_at?: string;
   updated_at?: string;
 }
 
 export const useCompletedExams = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentResult, setCurrentResult] = useState<Partial<CompletedExam>>({ id: '', name: '', result_template: '' });
+  const [currentResult, setCurrentResult] = useState<Partial<CompletedExam>>({ id: '', name: '', result_template: '', ai_prompt: '' });
   const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,7 +51,7 @@ export const useCompletedExams = () => {
   }, [completedExams, searchQuery]);
 
   const handleOpenNewResult = () => {
-    setCurrentResult({ id: '', name: '', result_template: '' });
+    setCurrentResult({ id: '', name: '', result_template: '', ai_prompt: '' });
     setIsEditing(false);
     setIsResultDialogOpen(true);
   };
@@ -97,7 +98,8 @@ export const useCompletedExams = () => {
           .from('modelo-result-exames' as any)
           .update({
             name: currentResult.name!,
-            result_template: currentResult.result_template || null
+            result_template: currentResult.result_template || null,
+            ai_prompt: currentResult.ai_prompt || null
           })
           .eq('id', currentResult.id);
         
@@ -108,7 +110,8 @@ export const useCompletedExams = () => {
           .from('modelo-result-exames' as any)
           .insert([{
             name: currentResult.name!,
-            result_template: currentResult.result_template || null
+            result_template: currentResult.result_template || null,
+            ai_prompt: currentResult.ai_prompt || null
           }]);
         
         if (error) throw error;

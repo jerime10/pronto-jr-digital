@@ -2,12 +2,13 @@
 import { FormState } from './useFormData';
 
 interface AtendimentoHelpersProps {
-  processAI: (content: string | null, type: 'main_complaint' | 'evolution' | 'exam_result', onSuccess: (processedContent: string, individualFields?: Record<string, string>) => void, selectedModelTitle?: string | null, dynamicFields?: Record<string, string>) => void;
+  processAI: (content: string | null, type: 'main_complaint' | 'evolution' | 'exam_result', onSuccess: (processedContent: string, individualFields?: Record<string, string>) => void, selectedModelTitle?: string | null, dynamicFields?: Record<string, string>, selectedModelId?: string | null, selectedFieldsKeys?: string[]) => void;
   updateFormField: (field: keyof FormState, value: string | string[]) => void;
   selectedModelTitle?: string | null;
   dynamicFields?: Record<string, string>;
   onIndividualFieldsUpdate?: (fields: Record<string, string>) => void;
   updateDynamicFieldsFromAI?: (fields: Record<string, string>) => void;
+  selectedModelId?: string | null;
 }
 
 export const useAtendimentoHelpers = ({
@@ -16,11 +17,12 @@ export const useAtendimentoHelpers = ({
   selectedModelTitle,
   dynamicFields,
   onIndividualFieldsUpdate,
-  updateDynamicFieldsFromAI
+  updateDynamicFieldsFromAI,
+  selectedModelId
 }: AtendimentoHelpersProps) => {
   
   // Helper to avoid creating new callbacks in render - retorna Promise para compatibilidade
-  const processAIContent = (field: string, content: string, providedDynamicFields?: Record<string, string>): Promise<void> => {
+  const processAIContent = (field: string, content: string, providedDynamicFields?: Record<string, string>, selectedFieldsKeys?: string[]): Promise<void> => {
     return new Promise<void>((resolve) => {
       const fieldMap = {
         'queixaPrincipal': 'main_complaint',
@@ -48,10 +50,27 @@ export const useAtendimentoHelpers = ({
       // IMPORTANTE: Garantir que providedDynamicFields (undefined na Evolução) não faça fallback para os exames globais
       const fieldsToUse = providedDynamicFields !== undefined ? providedDynamicFields : (aiType === 'exam_result' ? dynamicFields : undefined);
       
-      const formatLongText = (text: string) => {
-        if (!text || text.length < 30) return text;
+      const formatLongText = (text: string, fieldKey?: string) => {
+        if (!text) return text;
+        // Limpar possíveis instruções que a IA possa ter retornado no texto
+        let cleanText = text.replace(/INFORME EM IMPRESSÃO DIAGNÓSTICA\.?/gi, '').trim();
+        
+        // Obter o label do campo usando o mapa dinâmico para garantir limpeza correta
+        if (fieldKey && dynamicFields) {
+          // Procurar o campo correspondente na interface do template ativo
+          // Para simplificar no helper, faremos uma limpeza genérica se o texto começar com a chave em si
+          const keyPattern = fieldKey.replace(/([A-Z])/g, ' $1').trim(); // "rimdireito" -> "rim direito"
+          const prefixRegex = new RegExp(`^${keyPattern}[\\s:]*`, 'i');
+          cleanText = cleanText.replace(prefixRegex, '').trim();
+        }
+
+        if (cleanText.length > 0) {
+          cleanText = cleanText.charAt(0).toUpperCase() + cleanText.slice(1);
+        }
+
+        if (cleanText.length < 30) return cleanText;
         // Quebra após ponto seguido de espaço e colapsa quebras múltiplas
-        return text.replace(/\. +/g, '.\n').replace(/\n\n+/g, '\n');
+        return cleanText.replace(/\. +/g, '.\n').replace(/\n\n+/g, '\n');
       };
 
       processAI(content, aiType, (processedContent, individualFields) => {
@@ -62,7 +81,9 @@ export const useAtendimentoHelpers = ({
         
         // Formatar campos individuais se existirem
         const formattedIndividualFields = individualFields ? Object.entries(individualFields).reduce((acc, [key, val]) => {
-          acc[key] = formatLongText(val);
+          // Se a chave for explicitamente "titulo_campo_NOME", vamos mapear de volta para "NOME"
+          const cleanKey = key.startsWith('titulo_campo_') ? key.replace('titulo_campo_', '') : key;
+          acc[cleanKey] = formatLongText(val, cleanKey);
           return acc;
         }, {} as Record<string, string>) : undefined;
 
@@ -100,7 +121,7 @@ export const useAtendimentoHelpers = ({
         }
         
         resolve();
-      }, modelTitle, fieldsToUse);
+      }, modelTitle, fieldsToUse, selectedModelId, selectedFieldsKeys);
     });
   };
 

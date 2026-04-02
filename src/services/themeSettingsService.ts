@@ -24,6 +24,8 @@ export async function fetchThemeSettings() {
   };
 }
 
+import { upsertSiteSettings } from './siteSettingsSingleton';
+
 export async function updateThemeSettings(
   themeData: ThemeSettingsInput,
   settingsId: string | undefined,
@@ -36,30 +38,13 @@ export async function updateThemeSettings(
     logoUrl = await uploadLogo(themeData.logoFile);
   }
   
-  const updateData = {
+  // Use unified upsert utility to ensure singleton row and prevent key reset
+  await upsertSiteSettings({
     primary_color: themeData.primaryColor,
     accent_color: themeData.accentColor,
     font_family: themeData.fontFamily,
     logo_url: logoUrl,
-    updated_at: new Date().toISOString(),
-  };
-  
-  if (settingsId) {
-    // Update existing settings
-    const { error } = await supabase
-      .from('site_settings')
-      .update(updateData)
-      .eq('id', settingsId);
-    
-    if (error) throw error;
-  } else {
-    // Create new settings
-    const { error } = await supabase
-      .from('site_settings')
-      .insert(updateData);
-    
-    if (error) throw error;
-  }
+  });
   
   return logoUrl;
 }

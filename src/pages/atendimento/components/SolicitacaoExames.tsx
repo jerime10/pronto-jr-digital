@@ -2,7 +2,7 @@
 import React from 'react';
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MultiSelectSearchExams } from '@/components/ui/multi-select-search-exams';
+import { AdvancedSelect } from '@/components/ui/advanced-select';
 
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -40,13 +40,16 @@ const SolicitacaoExames: React.FC<SolicitacaoExamesProps> = ({
         <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
           Busca Inteligente de Exames
         </p>
-        <MultiSelectSearchExams
-          options={availableExams}
-          selectedValues={examRequests}
-          onSelectionChange={onExamRequestsChange}
+        <AdvancedSelect
+          options={availableExams.map(e => ({ label: e.name, value: e.name }))}
+          value={examRequests}
+          onChange={(values) => onExamRequestsChange(values as string[])}
           placeholder="Buscar exames..."
+          searchPlaceholder="Digite o nome do exame..."
+          title="Solicitar Exames"
+          multiple
           disabled={isLoading}
-          className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-xl"
+          className="bg-slate-800 border-slate-700 text-white rounded-xl h-12"
         />
         <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
           💡 Clique no <strong className="text-slate-300">X</strong> para remover, no <strong className="text-slate-300">🗑️ lixeira</strong> para excluir permanentemente.
@@ -67,12 +70,16 @@ const SolicitacaoExames: React.FC<SolicitacaoExamesProps> = ({
         </p>
       </CardHeader>
       <CardContent>
-        <MultiSelectSearchExams
-          options={availableExams}
-          selectedValues={examRequests}
-          onSelectionChange={onExamRequestsChange}
+        <AdvancedSelect
+          options={availableExams.map(e => ({ label: e.name, value: e.name }))}
+          value={examRequests}
+          onChange={(values) => onExamRequestsChange(values as string[])}
           placeholder="Buscar exames por nome ou instruções..."
+          searchPlaceholder="Digite o nome do exame..."
+          title="Solicitar Exames"
+          multiple
           disabled={isLoading}
+          className="w-full"
         />
       </CardContent>
     </Card>

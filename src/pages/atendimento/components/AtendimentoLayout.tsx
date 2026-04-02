@@ -6,8 +6,9 @@ import { AtendimentoTabs } from './AtendimentoTabs';
 import { TabValue } from '../types';
 import { FormState } from '../hooks/useFormData';
 import { Button } from '@/components/ui/button';
-import { Save, FileText, Send, MoreVertical, Settings } from 'lucide-react';
+import { Save, FileText, Send, MoreVertical, Settings, Loader2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DraftManager } from './DraftManager';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
@@ -54,13 +55,12 @@ interface AtendimentoLayoutProps {
     evolution: boolean;
     examResults: boolean;
   };
-  processAIContent: (field: string, content: string, dynamicFields?: Record<string, string>) => Promise<void>;
+  processAIContent: (field: string, content: string, dynamicFields?: Record<string, string>, selectedFieldsKeys?: string[]) => Promise<void>;
   prescriptionModels: any[];
   isLoadingPrescriptions: boolean;
   handleModeloPrescricaoChange: (modeloId: string) => void;
   handleModelosPrescricaoChange: (modelosIds: string[]) => void;
   updateFormField: (fieldName: keyof FormState, value: any) => void;
-  handleSalvarAtendimento: () => Promise<any>;
   handleSubmitMedicalRecord: () => Promise<void>;
   profissionalAtual: Professional | null;
   setFormData: (formData: FormState) => void;
@@ -98,7 +98,6 @@ export const AtendimentoLayout: React.FC<AtendimentoLayoutProps> = ({
   handleModeloPrescricaoChange,
   handleModelosPrescricaoChange,
   updateFormField,
-  handleSalvarAtendimento,
   handleSubmitMedicalRecord,
   profissionalAtual,
   setFormData,
@@ -117,8 +116,8 @@ export const AtendimentoLayout: React.FC<AtendimentoLayoutProps> = ({
   }, [updateFormField]);
 
   // Bridge function para processar AI
-  const handleProcessAI = React.useCallback(async (field: string, content: string, providedDynamicFields?: Record<string, string>) => {
-    await processAIContent(field, content, providedDynamicFields);
+  const handleProcessAI = React.useCallback(async (field: string, content: string, providedDynamicFields?: Record<string, string>, selectedFieldsKeys?: string[]) => {
+    await processAIContent(field, content, providedDynamicFields, selectedFieldsKeys);
   }, [processAIContent]);
 
   return (
@@ -135,7 +134,6 @@ export const AtendimentoLayout: React.FC<AtendimentoLayoutProps> = ({
         form={form}
         setFormData={setFormData}
         handleSelectPaciente={handleSelectPaciente}
-        handleSalvarAtendimento={handleSalvarAtendimento}
         handleSubmitMedicalRecord={handleSubmitMedicalRecord}
         dynamicFields={dynamicFields}
         onDynamicFieldsChange={onDynamicFieldsChange}
@@ -206,15 +204,35 @@ export const AtendimentoLayout: React.FC<AtendimentoLayoutProps> = ({
       </div>
 
       {/* Barra de Ações Mobile (Rodapé Fixo como no modelo) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[110] bg-white border-t border-slate-200">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[110] bg-white border-t border-slate-200 safe-area-bottom">
         <div className="p-4">
-          <div className="flex gap-3">
+          <div className="flex items-center gap-2">
+            <div className="flex-[1.5] flex gap-2">
+              <DraftManager
+                pacienteSelecionado={pacienteSelecionado}
+                profissionalAtual={profissionalAtual}
+                form={form}
+                setFormData={setFormData}
+                handleSelectPaciente={handleSelectPaciente}
+                dynamicFields={dynamicFields}
+                onDynamicFieldsChange={onDynamicFieldsChange}
+                variant="mobile-footer"
+              />
+            </div>
+
             <Button
-              className="w-full bg-[#10b981] hover:bg-[#059669] text-white rounded-xl h-14 font-bold text-lg shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+              className="flex-1 bg-[#10b981] hover:bg-[#059669] text-white rounded-xl h-14 font-bold text-sm shadow-lg shadow-emerald-500/20 active:scale-95 transition-all px-2 flex flex-col items-center justify-center gap-0.5"
               onClick={handleSubmitMedicalRecord}
               disabled={isSubmittingRecord || !pacienteSelecionado}
             >
-              {isSubmittingRecord ? 'Finalizando...' : 'Finalizar Atendimento'}
+              {isSubmittingRecord ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  <Send className="w-5 h-5" />
+                  <span className="text-[10px] uppercase">Finalizar</span>
+                </>
+              )}
             </Button>
           </div>
         </div>

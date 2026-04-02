@@ -29,11 +29,11 @@ interface ExamesTabProps {
   examObservations: string;
   onExamObservationsChange: (value: string) => void;
   isProcessingAI: { examResults: boolean };
-  onProcessWithAI: () => void;
+  onProcessWithAI: (selectedFieldsKeys?: string[]) => void;
   onSelectedModelChange?: (modelTitle: string | null) => void;
   patientId?: string;
   onDynamicFieldsChange?: (fields: Record<string, string>) => void;
-  processAIContent?: (field: string, content: string, dynamicFields?: Record<string, string>) => Promise<void>;
+  processAIContent?: (field: string, content: string, dynamicFields?: Record<string, string>, selectedFieldsKeys?: string[]) => Promise<void>;
   updateDynamicFieldsFromAI?: (fields: Record<string, string>) => void;
   dynamicFields?: Record<string, string>;
   selectedExamModelId?: string;

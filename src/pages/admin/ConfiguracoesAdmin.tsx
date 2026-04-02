@@ -24,10 +24,10 @@ const ConfiguracoesAdmin = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Configurações do Sistema</h1>
-        <p className="text-gray-500 mt-1">Configure as funcionalidades e integrações do sistema</p>
+    <div className="p-4 md:p-8 space-y-6">
+      <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Configurações do Sistema</h1>
+        <p className="text-slate-500 mt-1">Configure as funcionalidades e integrações do sistema</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

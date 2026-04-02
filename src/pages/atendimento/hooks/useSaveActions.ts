@@ -144,72 +144,6 @@ export const useSaveActions = ({
     }
   };
 
-  const handleSalvarAtendimento = async () => {
-    // Debug logs para rastrear o problema do UUID
-    console.log('🔍 handleSalvarAtendimento - pacienteSelecionado:', pacienteSelecionado);
-    console.log('🔍 handleSalvarAtendimento - profissionalAtual:', profissionalAtual);
-    
-    // Usar as funções de validação
-    if (!isValidPatient(pacienteSelecionado)) {
-      toast.error("Dados do paciente são inválidos. Tente selecionar o paciente novamente.");
-      return;
-    }
-
-    if (!isValidProfessional(profissionalAtual)) {
-      toast.error("Dados do profissional são inválidos. Tente fazer login novamente.");
-      return;
-    }
-
-    if (!form.queixaPrincipal.trim()) {
-      toast.error('Queixa principal é obrigatória');
-      return;
-    }
-
-    if (!form.dataInicioAtendimento) {
-      toast.error('Data/hora de início do atendimento é obrigatória');
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-
-      // Preparar dados do atendimento
-      const recordData = {
-        id: crypto.randomUUID(),
-        patient_id: pacienteSelecionado.id,
-        professional_id: profissionalAtual.id,
-        main_complaint: form.queixaPrincipal,
-        history: form.antecedentes,
-        allergies: form.alergias,
-        evolution: form.evolucao,
-        custom_prescription: form.prescricaoPersonalizada,
-        prescription_model_id: form.modeloPrescricao || null,
-        exam_requests: form.examesSelecionados,
-        exam_observations: form.observacoesExames,
-        exam_results: form.resultadoExames,
-        images_data: form.images,
-        attendance_start_at: getSafeDateISO(form.dataInicioAtendimento),
-        attendance_end_at: getSafeDateISO(form.dataFimAtendimento),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      // Salvar localmente para persistência
-      saveToLocalStorage(recordData);
-
-      console.log('Atendimento salvo localmente:', recordData);
-      toast.success(`Atendimento salvo localmente! ${form.images.length > 0 ? `${form.images.length} imagens anexadas.` : ''}`);
-      
-      return recordData;
-    } catch (error) {
-      console.error('Erro ao salvar atendimento:', error);
-      toast.error('Erro ao salvar atendimento. Tente novamente.');
-      throw error;
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const generateAndSavePremiumPDF = async (isPreview: boolean = false, forcedId?: string) => {
     // Garantir que temos um ID válido antes de prosseguir
     const finalId = forcedId || medicalRecordId || existingRecord?.id || crypto.randomUUID();
@@ -604,7 +538,6 @@ export const useSaveActions = ({
   return {
     isSaving,
     isSubmittingRecord,
-    handleSalvarAtendimento,
     handleSubmitMedicalRecord
   };
 };

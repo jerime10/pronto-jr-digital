@@ -18,17 +18,19 @@ interface CircleMenuItemProps {
   isActive: boolean;
   angle: number;
   radius: number;
+  onClick?: () => void;
 }
 
-const CircleMenuItem: React.FC<CircleMenuItemProps> = ({ to, icon: Icon, label, isActive, angle, radius }) => {
+const CircleMenuItem: React.FC<CircleMenuItemProps> = ({ to, icon: Icon, label, isActive, angle, radius, onClick }) => {
   const x = Math.cos(angle * Math.PI / 180) * radius;
   const y = Math.sin(angle * Math.PI / 180) * radius;
 
   return (
     <Link
       to={to}
+      onClick={onClick}
       className={cn(
-        "absolute flex flex-col items-center justify-center w-20 h-20 rounded-full transition-all duration-300 transform -translate-x-1/2 -translate-y-1/2 group",
+        "absolute flex flex-col items-center justify-center w-20 h-20 rounded-full transition-all duration-300 transform -translate-x-1/2 -translate-y-1/2 group z-20",
         isActive ? "bg-white text-slate-900 shadow-xl scale-110" : "bg-white/10 text-white hover:bg-white/20"
       )}
       style={{
@@ -53,7 +55,6 @@ export const AtendimentoHeader: React.FC<AtendimentoHeaderProps> = ({
   form,
   setFormData,
   handleSelectPaciente,
-  handleSalvarAtendimento,
   handleSubmitMedicalRecord,
   dynamicFields = {},
   onDynamicFieldsChange
@@ -61,6 +62,7 @@ export const AtendimentoHeader: React.FC<AtendimentoHeaderProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
   const menuItems = [
     { to: "/dashboard", icon: Home, label: "Dashboard", permission: "dashboard" },
@@ -90,7 +92,7 @@ export const AtendimentoHeader: React.FC<AtendimentoHeaderProps> = ({
         </style>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sheet>
+            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <SheetTrigger asChild>
                 <Button
                   variant="ghost"
@@ -100,52 +102,59 @@ export const AtendimentoHeader: React.FC<AtendimentoHeaderProps> = ({
                   <Menu className="w-6 h-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="top" className="h-full w-full p-0 border-none bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center overflow-hidden">
-                <SheetHeader className="absolute top-8 left-0 right-0 px-8 flex-row items-center justify-between z-10">
-                  <Logo className="text-white scale-125 origin-left" />
+              <SheetContent 
+                side="top" 
+                className="h-[100dvh] w-full p-0 border-none bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center overflow-y-auto overflow-x-hidden select-none"
+              >
+                <SheetHeader className="absolute top-8 left-0 right-0 px-8 flex-row items-center justify-between z-[10001]">
+                  <Logo className="text-white scale-110 md:scale-125 origin-left" />
                   <SheetClose asChild>
-                    <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-12 w-12">
+                    <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-12 w-12 active:scale-90 transition-transform">
                       <X className="w-8 h-8" />
                     </Button>
                   </SheetClose>
                 </SheetHeader>
 
-                <div className="relative w-[320px] h-[320px] md:w-[400px] md:h-[400px]">
-                  {/* Central Circle Content */}
-                  <div className="absolute inset-0 flex items-center justify-center z-10">
-                    <div className="w-24 h-24 rounded-full bg-emerald-500/20 border-2 border-emerald-500/50 flex items-center justify-center animate-pulse">
-                      <Logo showText={false} className="scale-150" />
+                <div className="relative w-full h-full flex items-center justify-center scale-[0.85] sm:scale-100 transition-transform duration-500 ease-out">
+                  <div className="relative w-[320px] h-[320px] md:w-[450px] md:h-[450px]">
+                    {/* Central Circle Content */}
+                    <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                      <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-emerald-500/20 border-2 border-emerald-500/50 flex items-center justify-center animate-pulse shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+                        <Logo showText={false} className="scale-150 md:scale-[2]" />
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Circle Menu Items */}
-                  {menuItems.map((item, index) => {
-                    const angle = (index * (360 / menuItems.length)) - 90;
-                    return (
-                      <MenuItemGuard key={item.to} permission={item.permission}>
-                        <CircleMenuItem
-                          to={item.to}
-                          icon={item.icon}
-                          label={item.label}
-                          isActive={location.pathname === item.to}
-                          angle={angle}
-                          radius={120}
-                        />
-                      </MenuItemGuard>
-                    );
-                  })}
+                    {/* Circle Menu Items */}
+                    {menuItems.map((item, index) => {
+                      const angle = (index * (360 / menuItems.length)) - 90;
+                      const radius = isMobile ? 120 : 160;
+                      return (
+                        <MenuItemGuard key={item.to} permission={item.permission}>
+                          <CircleMenuItem
+                            to={item.to}
+                            icon={item.icon}
+                            label={item.label}
+                            isActive={location.pathname === item.to}
+                            angle={angle}
+                            radius={radius}
+                            onClick={() => setIsMenuOpen(false)}
+                          />
+                        </MenuItemGuard>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Bottom Footer Actions inside Circle Menu */}
-                <div className="absolute bottom-12 flex items-center gap-6">
+                <div className="absolute bottom-12 left-0 right-0 flex items-center justify-center gap-12 z-[10001]">
                   <MenuItemGuard permission="configuracoes">
-                    <Link to="/configuracoes" className="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition-colors">
+                    <Link to="/configuracoes" onClick={() => setIsMenuOpen(false)} className="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition-colors">
                       <SettingsIcon size={24} />
                       <span className="text-[10px] font-bold uppercase">Config</span>
                     </Link>
                   </MenuItemGuard>
                   <MenuItemGuard permission="usuarios">
-                    <Link to="/admin/usuarios" className="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition-colors">
+                    <Link to="/admin/usuarios" onClick={() => setIsMenuOpen(false)} className="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition-colors">
                       <UsersRound size={24} />
                       <span className="text-[10px] font-bold uppercase">Usuários</span>
                     </Link>

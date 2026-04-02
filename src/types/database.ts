@@ -48,6 +48,7 @@ export type CompletedExam = {
   name: string;
   result: string | null;
   result_template: string | null;
+  ai_prompt: string | null;
   created_at: string;
   updated_at: string;
 };

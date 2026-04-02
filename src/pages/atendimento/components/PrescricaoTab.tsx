@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { MultiSelectSearch } from '@/components/ui/multi-select-search';
+import { AdvancedSelect } from '@/components/ui/advanced-select';
 import { FormState } from '../hooks/useFormData';
 
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -95,14 +95,16 @@ const PrescricaoTab: React.FC<PrescricaoTabProps> = ({
                   <Label htmlFor="modelos-prescricao" className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 block">
                     Selecionar Modelos
                   </Label>
-                  <MultiSelectSearch
-                    options={prescriptionModels}
-                    selectedValues={form.modelosPrescricaoSelecionados || []}
-                    onSelectionChange={handleModelosPrescricaoChange}
+                  <AdvancedSelect
+                    options={prescriptionModels.map(m => ({ label: m.name, value: m.id }))}
+                    value={form.modelosPrescricaoSelecionados || []}
+                    onChange={(values) => handleModelosPrescricaoChange(values as string[])}
                     placeholder="Buscar modelos..."
+                    searchPlaceholder="Digite o nome do modelo..."
+                    title="Modelos de Prescrição"
+                    multiple
                     disabled={isLoadingPrescriptions}
-                    className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-xl"
-                    tableName="prescription_models"
+                    className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-xl h-12"
                   />
                 </div>
                 
@@ -134,18 +136,17 @@ const PrescricaoTab: React.FC<PrescricaoTabProps> = ({
             <div>
               <Label htmlFor="modelos-prescricao" className="text-sm font-medium">
                 Selecionar Modelos de Prescrição
-                <span className="text-xs text-muted-foreground ml-2">
-                  (Clique no X para remover da seleção, no lixeira 🗑️ para excluir permanentemente)
-                </span>
               </Label>
-              <MultiSelectSearch
-                options={prescriptionModels}
-                selectedValues={form.modelosPrescricaoSelecionados || []}
-                onSelectionChange={handleModelosPrescricaoChange}
+              <AdvancedSelect
+                options={prescriptionModels.map(m => ({ label: m.name, value: m.id }))}
+                value={form.modelosPrescricaoSelecionados || []}
+                onChange={(values) => handleModelosPrescricaoChange(values as string[])}
                 placeholder="Digite para buscar e selecionar modelos..."
+                searchPlaceholder="Digite o nome do modelo..."
+                title="Modelos de Prescrição"
+                multiple
                 disabled={isLoadingPrescriptions}
                 className="w-full"
-                tableName="prescription_models"
               />
             </div>
           </div>

@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Save, Eraser, Loader2 } from 'lucide-react';
 import { FormState } from '../hooks/useFormData';
-import { FieldAutocompleteMulti } from '@/components/ui/field-autocomplete-multi';
+import { AdvancedSelect } from '@/components/ui/advanced-select';
 import { useIndividualFieldTemplates } from '@/hooks/useIndividualFieldTemplates';
 import { toast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,12 +39,25 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
   isProcessingAI
 }) => {
   const isMobile = useIsMobile();
-  const { searchFieldTemplates, saveFieldTemplate, deleteFieldTemplate } = useIndividualFieldTemplates();
+  const { templates, isLoading: isLoadingTemplates, saveFieldTemplate, deleteFieldTemplate } = useIndividualFieldTemplates();
   
   const [isSavingQueixa, setIsSavingQueixa] = useState(false);
   const [isSavingAntecedentes, setIsSavingAntecedentes] = useState(false);
   const [isSavingAlergias, setIsSavingAlergias] = useState(false);
   
+  // Opções para AdvancedSelect
+  const queixaOptions = templates
+    .filter(t => t.field_key === 'queixa_principal' && t.model_name === 'ATENDIMENTO')
+    .map(t => ({ label: t.field_content, value: t.field_content }));
+    
+  const antecedentesOptions = templates
+    .filter(t => t.field_key === 'antecedentes' && t.model_name === 'ATENDIMENTO')
+    .map(t => ({ label: t.field_content, value: t.field_content }));
+    
+  const alergiasOptions = templates
+    .filter(t => t.field_key === 'alergias' && t.model_name === 'ATENDIMENTO')
+    .map(t => ({ label: t.field_content, value: t.field_content }));
+
   // Estados para gerenciar seleções múltiplas
   const [selectedQueixas, setSelectedQueixas] = useState<string[]>([]);
   const [selectedAntecedentes, setSelectedAntecedentes] = useState<string[]>([]);
@@ -219,13 +232,15 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
             </AccordionTrigger>
             <AccordionContent className="bg-slate-900/95 mt-1 rounded-2xl p-6 space-y-4 overflow-visible">
               <div className="space-y-4">
-                <FieldAutocompleteMulti
-                  selectedValues={selectedQueixas}
-                  onChange={handleQueixaModelChange}
-                  onSearch={(searchTerm) => searchFieldTemplates('queixa_principal', searchTerm, 'ATENDIMENTO')}
-                  placeholder="Digite para buscar e selecionar múltiplas queixas..."
-                  fieldName="queixa_principal"
-                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-xl"
+                <AdvancedSelect
+                  options={queixaOptions}
+                  value={selectedQueixas}
+                  onChange={(values) => handleQueixaModelChange(values as string[])}
+                  placeholder="Buscar modelos de queixa principal..."
+                  searchPlaceholder="Buscar na lista..."
+                  title="Modelos de Queixa Principal"
+                  multiple
+                  className="bg-slate-800 border-slate-700 text-white rounded-xl h-12"
                 />
                 
                 <div className="relative">
@@ -262,13 +277,15 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
             </AccordionTrigger>
             <AccordionContent className="bg-slate-900/95 mt-1 rounded-2xl p-6 space-y-4">
               <div className="space-y-4">
-                <FieldAutocompleteMulti
-                  selectedValues={selectedAntecedentes}
-                  onChange={handleAntecedentesModelChange}
-                  onSearch={(searchTerm) => searchFieldTemplates('antecedentes', searchTerm, 'ATENDIMENTO')}
-                  placeholder="Digite para buscar e selecionar múltiplos antecedentes..."
-                  fieldName="antecedentes"
-                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-xl"
+                <AdvancedSelect
+                  options={antecedentesOptions}
+                  value={selectedAntecedentes}
+                  onChange={(values) => handleAntecedentesModelChange(values as string[])}
+                  placeholder="Buscar modelos de antecedentes..."
+                  searchPlaceholder="Buscar na lista..."
+                  title="Modelos de Antecedentes"
+                  multiple
+                  className="bg-slate-800 border-slate-700 text-white rounded-xl h-12"
                 />
                 <Textarea
                   value={form.antecedentes}
@@ -289,13 +306,15 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
             </AccordionTrigger>
             <AccordionContent className="bg-slate-900/95 mt-1 rounded-2xl p-6 space-y-4">
               <div className="space-y-4">
-                <FieldAutocompleteMulti
-                  selectedValues={selectedAlergias}
-                  onChange={handleAlergiasModelChange}
-                  onSearch={(searchTerm) => searchFieldTemplates('alergias', searchTerm, 'ATENDIMENTO')}
-                  placeholder="Digite para buscar e selecionar múltiplas alergias..."
-                  fieldName="alergias"
-                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-xl"
+                <AdvancedSelect
+                  options={alergiasOptions}
+                  value={selectedAlergias}
+                  onChange={(values) => handleAlergiasModelChange(values as string[])}
+                  placeholder="Buscar modelos de alergias..."
+                  searchPlaceholder="Buscar na lista..."
+                  title="Modelos de Alergias"
+                  multiple
+                  className="bg-slate-800 border-slate-700 text-white rounded-xl h-12"
                 />
                 <Textarea
                   value={form.alergias}
@@ -353,17 +372,16 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium">
                 Selecionar Modelos de Queixa Principal
-                <span className="text-xs text-muted-foreground ml-2">
-                  (Clique no X para remover da seleção, no lixeira 🗑️ para excluir permanentemente)
-                </span>
               </Label>
             </div>
-            <FieldAutocompleteMulti
-              selectedValues={selectedQueixas}
-              onChange={handleQueixaModelChange}
-              onSearch={(searchTerm) => searchFieldTemplates('queixa_principal', searchTerm, 'ATENDIMENTO')}
-              placeholder="Digite para buscar e selecionar múltiplas queixas..."
-              fieldName="queixa_principal"
+            <AdvancedSelect
+              options={queixaOptions}
+              value={selectedQueixas}
+              onChange={(values) => handleQueixaModelChange(values as string[])}
+              placeholder="Buscar modelos de queixa principal..."
+              searchPlaceholder="Buscar na lista..."
+              title="Modelos de Queixa Principal"
+              multiple
               className="w-full"
             />
           </div>
@@ -428,17 +446,16 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium">
                 Selecionar Modelos de Antecedentes
-                <span className="text-xs text-muted-foreground ml-2">
-                  (Clique no X para remover da seleção, no lixeira 🗑️ para excluir permanentemente)
-                </span>
               </Label>
             </div>
-            <FieldAutocompleteMulti
-              selectedValues={selectedAntecedentes}
-              onChange={handleAntecedentesModelChange}
-              onSearch={(searchTerm) => searchFieldTemplates('antecedentes', searchTerm, 'ATENDIMENTO')}
-              placeholder="Digite para buscar e selecionar múltiplos antecedentes..."
-              fieldName="antecedentes"
+            <AdvancedSelect
+              options={antecedentesOptions}
+              value={selectedAntecedentes}
+              onChange={(values) => handleAntecedentesModelChange(values as string[])}
+              placeholder="Buscar modelos de antecedentes..."
+              searchPlaceholder="Buscar na lista..."
+              title="Modelos de Antecedentes"
+              multiple
               className="w-full"
             />
           </div>
@@ -503,17 +520,16 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium">
                 Selecionar Modelos de Alergias
-                <span className="text-xs text-muted-foreground ml-2">
-                  (Clique no X para remover da seleção, no lixeira 🗑️ para excluir permanentemente)
-                </span>
               </Label>
             </div>
-            <FieldAutocompleteMulti
-              selectedValues={selectedAlergias}
-              onChange={handleAlergiasModelChange}
-              onSearch={(searchTerm) => searchFieldTemplates('alergias', searchTerm, 'ATENDIMENTO')}
-              placeholder="Digite para buscar e selecionar múltiplas alergias..."
-              fieldName="alergias"
+            <AdvancedSelect
+              options={alergiasOptions}
+              value={selectedAlergias}
+              onChange={(values) => handleAlergiasModelChange(values as string[])}
+              placeholder="Buscar modelos de alergias..."
+              searchPlaceholder="Buscar na lista..."
+              title="Modelos de Alergias"
+              multiple
               className="w-full"
             />
           </div>
