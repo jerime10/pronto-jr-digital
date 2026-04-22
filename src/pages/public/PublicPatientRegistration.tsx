@@ -517,53 +517,34 @@ export const PublicPatientRegistration: React.FC = () => {
 
   const handleScheduling = () => {
     console.log('🚀 Iniciando redirecionamento para agendamento...');
-    console.log('📋 Estado atual:', {
-      shouldRedirectToScheduling,
-      isPartnerContext,
-      partnerUsername,
-      partnerCode,
-      partnerInfo: partnerInfo?.full_name || partnerInfo?.username
-    });
     
-    // Se é contexto de parceiro ou deve redirecionar para agendamento
-    if (shouldRedirectToScheduling || isPartnerContext) {
-      const redirectParams = new URLSearchParams();
-      
-      // Priorizar informações do estado sobre parâmetros da URL
-      if (partnerUsername) {
-        redirectParams.set('partner', partnerUsername);
-      }
-      if (partnerCode) {
-        redirectParams.set('code', partnerCode);
-      }
-      
-      // Fallback para parâmetros da URL se não tiver no estado
-      if (!partnerUsername && !partnerCode) {
-        const urlParams = getUrlParams();
-        if (urlParams.partner) redirectParams.set('partner', urlParams.partner);
-        if (urlParams.code) redirectParams.set('code', urlParams.code);
-      }
-      
-      const origin = window.location.origin.replace('http://', 'https://');
-      const redirectUrl = `${origin}/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
-      
-      console.log('🎯 Redirecionando para agendamento interno:', redirectUrl);
-      console.log('📋 Parâmetros preservados:', Object.fromEntries(redirectParams));
-      
-      // Mostrar mensagem de sucesso se há parceiro
-      if (partnerInfo) {
-        toast.success(`Redirecionando para agendamento via ${partnerInfo.full_name || partnerInfo.username}`);
-      }
-      
-      window.location.href = redirectUrl;
-    } else if (publicLinks.scheduling_url) {
-      // Redirecionamento padrão para URL externa
-      console.log('🌐 Redirecionando para URL externa:', publicLinks.scheduling_url);
-      window.open(publicLinks.scheduling_url, '_blank');
-    } else {
-      console.log('❌ Nenhum link de agendamento configurado');
-      toast.error('Link de agendamento não configurado.');
+    const redirectParams = new URLSearchParams();
+    
+    // Preservar informações do parceiro se houver
+    if (partnerUsername) redirectParams.set('partner', partnerUsername);
+    if (partnerCode) redirectParams.set('code', partnerCode);
+    
+    // Preservar o CPF/SUS do paciente se estiver logado ou se tivermos o dado
+    const susToPass = existingPatient?.sus || formData.sus;
+    if (susToPass) {
+      redirectParams.set('cpf_sus', cleanCpfOrSus(susToPass));
     }
+    
+    // Sempre adicionar parâmetro de redirecionamento
+    redirectParams.set('redirect', 'agendamento');
+    
+    const origin = window.location.origin.replace('http://', 'https://');
+    const redirectUrl = `${origin}/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
+    
+    console.log('🎯 Redirecionando para agendamento interno:', redirectUrl);
+    
+    if (partnerInfo) {
+      toast.success(`Redirecionando para agendamento via ${partnerInfo.full_name || partnerInfo.username}`);
+    } else {
+      toast.success('Redirecionando para a agenda...');
+    }
+    
+    window.location.href = redirectUrl;
   };
 
   const handleExit = () => {
