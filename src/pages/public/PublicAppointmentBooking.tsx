@@ -1674,12 +1674,14 @@ export const PublicAppointmentBooking: React.FC = () => {
                               
                               const urlParams = new URLSearchParams();
                               
-                              // Se é contexto de parceiro, adicionar parâmetros
-                              if (partnerUsername || partnerCode) {
-                                if (partnerUsername) urlParams.set('partner', partnerUsername);
-                                if (partnerCode) urlParams.set('code', partnerCode);
-                                urlParams.set('redirect', 'agendamento');
-                              }
+                               // Sempre adicionar parâmetro de redirecionamento para agendamento
+                               urlParams.set('redirect', 'agendamento');
+                               
+                               // Se é contexto de parceiro, adicionar parâmetros
+                               if (partnerUsername || partnerCode) {
+                                 if (partnerUsername) urlParams.set('partner', partnerUsername);
+                                 if (partnerCode) urlParams.set('code', partnerCode);
+                               }
                               
                               // Sempre preservar CPF/SUS digitado para facilitar o cadastro
                               if (cpfSusInput) {

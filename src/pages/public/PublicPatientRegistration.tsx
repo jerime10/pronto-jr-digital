@@ -369,14 +369,19 @@ export const PublicPatientRegistration: React.FC = () => {
       
       // Redirecionar após 2 segundos
       setTimeout(() => {
-        if (urlParams.redirect === 'agendamento') {
-          // Se veio do link de parceiro, redirecionar para agendamento com os parâmetros
+        const isFromScheduling = urlParams.redirect === 'agendamento' || urlParams.partner || urlParams.code;
+        
+        if (isFromScheduling) {
+          // Se veio do link de parceiro ou agendamento, redirecionar para agendamento com os parâmetros
           const redirectParams = new URLSearchParams();
           if (urlParams.partner) redirectParams.set('partner', urlParams.partner);
           if (urlParams.code) redirectParams.set('code', urlParams.code);
+          if (formData.sus) redirectParams.set('cpf_sus', cleanCpfOrSus(formData.sus));
           
           const origin = window.location.origin.replace('http://', 'https://');
           const redirectUrl = `${origin}/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
+          
+          console.log('🎯 Redirecionando de volta para agendamento:', redirectUrl);
           window.location.href = redirectUrl;
         } else if (publicLinks.exit_url) {
           // Redirecionamento padrão
@@ -480,14 +485,19 @@ export const PublicPatientRegistration: React.FC = () => {
       
       // Redirecionar após 2 segundos
       setTimeout(() => {
-        if (urlParams.redirect === 'agendamento') {
-          // Se veio do link de parceiro, redirecionar para agendamento com os parâmetros
+        const isFromScheduling = urlParams.redirect === 'agendamento' || urlParams.partner || urlParams.code;
+        
+        if (isFromScheduling) {
+          // Se veio do link de parceiro ou agendamento, redirecionar para agendamento com os parâmetros
           const redirectParams = new URLSearchParams();
           if (urlParams.partner) redirectParams.set('partner', urlParams.partner);
           if (urlParams.code) redirectParams.set('code', urlParams.code);
+          if (formData.sus) redirectParams.set('cpf_sus', cleanCpfOrSus(formData.sus));
           
           const origin = window.location.origin.replace('http://', 'https://');
           const redirectUrl = `${origin}/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
+          
+          console.log('🎯 Redirecionando de volta para agendamento:', redirectUrl);
           window.location.href = redirectUrl;
         } else if (publicLinks.exit_url) {
           // Redirecionamento padrão
