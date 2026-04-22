@@ -275,39 +275,73 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
         }
 
         .clinic-contact {
-            font-size: 8pt;
+            font-size: 7.5pt;
             color: var(--text-muted);
-            max-width: 60%;
+            text-align: center;
+            flex: 1;
+            padding: 0 5mm;
+            margin-bottom: 5px;
         }
 
         .signature-area {
             text-align: center;
-            width: 70mm;
+            width: 65mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .sig-img {
-            height: 14mm;
             width: auto;
-            margin-bottom: 2px;
+            object-fit: contain;
+            position: relative;
             filter: contrast(1.2) brightness(1.1);
+            z-index: 5;
+        }
+
+        .rt-area .sig-img {
+            height: 32mm;
+            max-width: 65mm;
+            top: 12px;
+            margin-bottom: -28px;
+        }
+
+        .sig-area .sig-img {
+            height: 18mm;
+            max-width: 50mm;
+            top: 8px;
+            margin-bottom: -18px;
         }
 
         .sig-line {
             width: 100%;
             border-top: 1.5px solid var(--primary);
-            margin: 2px 0 5px 0;
+            margin: 0;
+            position: relative;
+            z-index: 1;
         }
 
         .sig-name {
-            font-size: 9.5pt;
+            font-size: 8.5pt;
             font-weight: 700;
             color: var(--primary);
+            text-transform: uppercase;
+        }
+
+        .rt-area .sig-name {
+            margin-top: 16px;
+        }
+
+        .sig-area .sig-name {
+            margin-top: 10px;
         }
 
         .sig-role {
-            font-size: 8pt;
+            font-size: 7pt;
             color: var(--text-muted);
-            font-weight: 500;
+            font-weight: 600;
+            line-height: 1.1;
+            text-transform: uppercase;
         }
 
         .page-number {
@@ -397,14 +431,27 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
     <!-- Template de Rodapé Reutilizável para JS -->
     <template id="footer-template">
         <footer>
-            <div class="clinic-contact">
-                <p>Registro de imagens diagnósticas.</p>
+            <div class="signature-area">
+                <img src="{{ $json['rt-assinatura'] }}" class="sig-img">
+                <div class="sig-line"></div>
+                <p class="sig-name">{{ $json['rt-nome'] }}</p>
+                <p class="sig-role">{{ $json['rt-profissao'] }}</p>
+                <p class="sig-role">{{ $json['rt-registro'] }}</p>
+                <p class="sig-role" style="color: var(--accent); margin-top: 2px;">RT PELA EMISSÃO DO LAUDO</p>
             </div>
+
+            <div class="clinic-contact">
+                <p>{{ $json.clinicAddress }}</p>
+                <p>{{ $json.clinicPhone }}</p>
+            </div>
+
             <div class="signature-area">
                 <img src="{{ $json['assinatura-base64-profissional'] }}" class="sig-img">
                 <div class="sig-line"></div>
                 <p class="sig-name">{{ $json['nome-profissional'] }}</p>
-                <p class="sig-role">{{ $json.Profissao }} | {{ $json['orgao-classe'] }}</p>
+                <p class="sig-role">{{ $json.Profissao }}</p>
+                <p class="sig-role">{{ $json['orgao-classe'] }}</p>
+                <p class="sig-role" style="color: var(--accent); margin-top: 2px;">EXECUTOR DO EXAME</p>
             </div>
         </footer>
     </template>
@@ -469,15 +516,27 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
         </div>
 
         <footer>
-            <div class="clinic-contact">
-                <p><strong>Endereço:</strong> {{ $('Webhook').item.json.body.clinicAddress }}</p>
-                <p><strong>Contato:</strong> {{ $('Webhook').item.json.body.clinicPhone }}</p>
+            <div class="signature-area">
+                <img src="{{ $json['rt-assinatura'] }}" class="sig-img">
+                <div class="sig-line"></div>
+                <p class="sig-name">{{ $json['rt-nome'] }}</p>
+                <p class="sig-role">{{ $json['rt-profissao'] }}</p>
+                <p class="sig-role">{{ $json['rt-registro'] }}</p>
+                <p class="sig-role" style="color: var(--accent); margin-top: 2px;">RT PELA EMISSÃO DO LAUDO</p>
             </div>
+
+            <div class="clinic-contact">
+                <p>{{ $json.clinicAddress }}</p>
+                <p>{{ $json.clinicPhone }}</p>
+            </div>
+
             <div class="signature-area">
                 <img src="{{ $json['assinatura-base64-profissional'] }}" class="sig-img">
                 <div class="sig-line"></div>
                 <p class="sig-name">{{ $json['nome-profissional'] }}</p>
-                <p class="sig-role">{{ $json.Profissao }} | {{ $json['orgao-classe'] }}</p>
+                <p class="sig-role">{{ $json.Profissao }}</p>
+                <p class="sig-role">{{ $json['orgao-classe'] }}</p>
+                <p class="sig-role" style="color: var(--accent); margin-top: 2px;">EXECUTOR DO EXAME</p>
             </div>
         </footer>
         <div class="page-number">Página 1 de 3</div>
@@ -522,14 +581,27 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
         </div>
 
         <footer>
-            <div class="clinic-contact">
-                <p>Este documento é parte integrante do prontuário médico.</p>
+            <div class="signature-area">
+                <img src="{{ $json['rt-assinatura'] }}" class="sig-img">
+                <div class="sig-line"></div>
+                <p class="sig-name">{{ $json['rt-nome'] }}</p>
+                <p class="sig-role">{{ $json['rt-profissao'] }}</p>
+                <p class="sig-role">{{ $json['rt-registro'] }}</p>
+                <p class="sig-role" style="color: var(--accent); margin-top: 2px;">RT PELA EMISSÃO DO LAUDO</p>
             </div>
+
+            <div class="clinic-contact">
+                <p>{{ $json.clinicAddress }}</p>
+                <p>{{ $json.clinicPhone }}</p>
+            </div>
+
             <div class="signature-area">
                 <img src="{{ $json['assinatura-base64-profissional'] }}" class="sig-img">
                 <div class="sig-line"></div>
                 <p class="sig-name">{{ $json['nome-profissional'] }}</p>
-                <p class="sig-role">{{ $json.Profissao }} | {{ $json['orgao-classe'] }}</p>
+                <p class="sig-role">{{ $json.Profissao }}</p>
+                <p class="sig-role">{{ $json['orgao-classe'] }}</p>
+                <p class="sig-role" style="color: var(--accent); margin-top: 2px;">EXECUTOR DO EXAME</p>
             </div>
         </footer>
         <div class="page-number">Página 2 de 3</div>
@@ -611,14 +683,27 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
         </div>
 
         <footer>
-            <div class="clinic-contact">
-                <p>Laudo gerado via sistema de apoio diagnóstico JRS Medical.</p>
+            <div class="signature-area">
+                <img src="{{ $json['rt-assinatura'] }}" class="sig-img">
+                <div class="sig-line"></div>
+                <p class="sig-name">{{ $json['rt-nome'] }}</p>
+                <p class="sig-role">{{ $json['rt-profissao'] }}</p>
+                <p class="sig-role">{{ $json['rt-registro'] }}</p>
+                <p class="sig-role" style="color: var(--accent); margin-top: 2px;">RT PELA EMISSÃO DO LAUDO</p>
             </div>
+
+            <div class="clinic-contact">
+                <p>{{ $json.clinicAddress }}</p>
+                <p>{{ $json.clinicPhone }}</p>
+            </div>
+
             <div class="signature-area">
                 <img src="{{ $json['assinatura-base64-profissional'] }}" class="sig-img">
                 <div class="sig-line"></div>
                 <p class="sig-name">{{ $json['nome-profissional'] }}</p>
-                <p class="sig-role">{{ $json.Profissao }} | {{ $json['orgao-classe'] }}</p>
+                <p class="sig-role">{{ $json.Profissao }}</p>
+                <p class="sig-role">{{ $json['orgao-classe'] }}</p>
+                <p class="sig-role" style="color: var(--accent); margin-top: 2px;">EXECUTOR DO EXAME</p>
             </div>
         </footer>
         <div class="page-number">Página 3 de 3</div>

@@ -624,7 +624,7 @@ export const PublicAppointmentBooking: React.FC = () => {
         // Redirecionar para cadastro público preservando contexto e usando arquitetura unificada
         setTimeout(() => {
           // NOVA IMPLEMENTAÇÃO: Usar sempre URL interna para manter consistência e funcionalidade
-          let redirectUrl = `${window.location.origin}/cadastro-paciente`;
+          let redirectUrl = `${window.location.origin.replace('http://', 'https://')}/cadastro-paciente`;
           const urlParams = new URLSearchParams();
           
           // Se é contexto de parceiro, preservar informações do parceiro
@@ -1665,41 +1665,35 @@ export const PublicAppointmentBooking: React.FC = () => {
                         <div className="flex gap-3">
                           <Button 
                             onClick={() => {
-                              let redirectUrl;
+                              let redirectUrl = (partnerUsername || partnerCode)
+                                ? `${window.location.origin}/cadastro-paciente`
+                                : (publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`);
                               
-                              // Diferenciar entre redirecionamento de administrador vs parceiro
+                              // Garantir HTTPS
+                              redirectUrl = redirectUrl.replace('http://', 'https://');
+                              
+                              const urlParams = new URLSearchParams();
+                              
+                              // Se é contexto de parceiro, adicionar parâmetros
                               if (partnerUsername || partnerCode) {
-                                // Para parceiros: usar URL relativa local para preservar contexto
-                                redirectUrl = `${window.location.origin}/cadastro-paciente`;
-                                
-                                const urlParams = new URLSearchParams();
-                                
-                                // Adicionar parâmetros do parceiro
-                                if (partnerUsername) {
-                                  urlParams.set('partner', partnerUsername);
-                                }
-                                if (partnerCode) {
-                                  urlParams.set('code', partnerCode);
-                                }
-                                
-                                // Adicionar parâmetro de redirecionamento para agendamento
+                                if (partnerUsername) urlParams.set('partner', partnerUsername);
+                                if (partnerCode) urlParams.set('code', partnerCode);
                                 urlParams.set('redirect', 'agendamento');
-                                
-                                // Preservar CPF/SUS digitado para facilitar o cadastro
-                                if (cpfSusInput) {
-                                  const cleanNumber = cleanCpfOrSus(cpfSusInput);
-                                  urlParams.set('cpf_sus', cleanNumber);
-                                }
-                                
-                                // Construir URL final com parâmetros
-                                redirectUrl = `${redirectUrl}?${urlParams.toString()}`;
-                                
-                                console.log('🚀 Redirecionando para cadastro via botão (parceiro):', redirectUrl);
-                              } else {
-                                // Para administradores: usar URL pública configurada no banco
-                                redirectUrl = publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`;
-                                console.log('🚀 Redirecionando para cadastro via botão (administrador):', redirectUrl);
                               }
+                              
+                              // Sempre preservar CPF/SUS digitado para facilitar o cadastro
+                              if (cpfSusInput) {
+                                const cleanNumber = cleanCpfOrSus(cpfSusInput);
+                                urlParams.set('cpf_sus', cleanNumber);
+                              }
+                              
+                              // Construir URL final
+                              if (urlParams.toString()) {
+                                const separator = redirectUrl.includes('?') ? '&' : '?';
+                                redirectUrl = `${redirectUrl}${separator}${urlParams.toString()}`;
+                              }
+                              
+                              console.log('🚀 Redirecionando para cadastro via botão:', redirectUrl);
                               
                               window.location.href = redirectUrl;
                             }}

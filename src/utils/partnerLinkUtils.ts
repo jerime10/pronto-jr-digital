@@ -5,7 +5,7 @@ import { Usuario } from '@/types/database';
  */
 
 // Configurações base para URLs
-const BASE_URL = typeof window !== 'undefined' ? window.location.origin : '';
+const BASE_URL = typeof window !== 'undefined' ? window.location.origin.replace('http://', 'https://') : '';
 const APPOINTMENT_PATH = '/agendamento';
 const REGISTRATION_PATH = '/cadastro-paciente';
 

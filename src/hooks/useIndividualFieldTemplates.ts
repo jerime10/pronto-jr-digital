@@ -118,13 +118,31 @@ export const useIndividualFieldTemplates = () => {
     }) => {
       console.log('💾 [HOOK] Criando novo template:', { fieldKey, fieldLabel, modelName });
       
+      // Verificar duplicidade
+      const { data: existing, error: searchError } = await supabase
+        .from('individual_field_templates')
+        .select('id')
+        .eq('field_key', fieldKey)
+        .eq('model_name', modelName)
+        .eq('field_content', fieldContent.trim())
+        .maybeSingle();
+
+      if (searchError) {
+        console.error('❌ [HOOK] Erro ao verificar duplicidade:', searchError);
+        throw searchError;
+      }
+
+      if (existing) {
+        throw new Error('DUPLICATE_TEMPLATE');
+      }
+
       // Sempre criar novo registro
       const { data, error } = await supabase
         .from('individual_field_templates')
         .insert({
           field_key: fieldKey,
           field_label: fieldLabel,
-          field_content: fieldContent,
+          field_content: fieldContent.trim(),
           model_name: modelName,
         })
         .select()
@@ -145,22 +163,53 @@ export const useIndividualFieldTemplates = () => {
         description: 'Template salvo com sucesso!',
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('❌ [HOOK] Erro ao salvar template:', error);
-      toast({
-        title: '❌ Erro ao salvar',
-        description: 'Não foi possível salvar o template.',
-        variant: 'destructive',
-      });
+      if (error.message === 'DUPLICATE_TEMPLATE') {
+        toast({
+          title: '⚠️ Modelo Duplicado',
+          description: 'Já existe um modelo com este exato conteúdo.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: '❌ Erro ao salvar',
+          description: 'Não foi possível salvar o template.',
+          variant: 'destructive',
+        });
+      }
     },
   });
 
   // Atualizar template
   const updateFieldTemplate = useMutation({
     mutationFn: async ({ id, fieldContent }: { id: string; fieldContent: string }) => {
+      
+      // Buscar as infos do template atual para checar duplicidade com mesmo field_key e model_name
+      const { data: current } = await supabase
+        .from('individual_field_templates')
+        .select('field_key, model_name')
+        .eq('id', id)
+        .single();
+        
+      if (current) {
+        const { data: existing, error: searchError } = await supabase
+          .from('individual_field_templates')
+          .select('id')
+          .eq('field_key', current.field_key)
+          .eq('model_name', current.model_name)
+          .eq('field_content', fieldContent.trim())
+          .neq('id', id)
+          .maybeSingle();
+
+        if (existing) {
+          throw new Error('DUPLICATE_TEMPLATE');
+        }
+      }
+
       const { data, error } = await supabase
         .from('individual_field_templates')
-        .update({ field_content: fieldContent, updated_at: new Date().toISOString() })
+        .update({ field_content: fieldContent.trim(), updated_at: new Date().toISOString() })
         .eq('id', id)
         .select()
         .single();
@@ -175,13 +224,21 @@ export const useIndividualFieldTemplates = () => {
         description: 'Template atualizado com sucesso!',
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Erro ao atualizar template:', error);
-      toast({
-        title: '❌ Erro ao atualizar',
-        description: 'Não foi possível atualizar o template.',
-        variant: 'destructive',
-      });
+      if (error.message === 'DUPLICATE_TEMPLATE') {
+        toast({
+          title: '⚠️ Modelo Duplicado',
+          description: 'Já existe um modelo com este exato conteúdo.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: '❌ Erro ao atualizar',
+          description: 'Não foi possível atualizar o template.',
+          variant: 'destructive',
+        });
+      }
     },
   });
 

@@ -6,6 +6,9 @@ import { AdvancedSelect } from '@/components/ui/advanced-select';
 
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface SolicitacaoExamesProps {
   examRequests: string[];
@@ -21,6 +24,54 @@ const SolicitacaoExames: React.FC<SolicitacaoExamesProps> = ({
   isLoading
 }) => {
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
+
+  const handleEditModel = async (option: { id?: string, label: string, value: string }, newContent: string) => {
+    if (!option.id) return;
+    try {
+      // Procurar se newContent já existe para evitar duplicação (por name)
+      const { data: existing } = await supabase
+        .from('exam_models')
+        .select('id')
+        .eq('name', newContent.trim())
+        .neq('id', option.id)
+        .maybeSingle();
+
+      if (existing) {
+        toast({ title: '⚠️ Modelo Duplicado', description: 'Já existe um modelo de exame com este nome.', variant: 'destructive' });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('exam_models')
+        .update({ name: newContent.trim() })
+        .eq('id', option.id);
+        
+      if (error) throw error;
+      toast({ title: '✅ Atualizado', description: 'Modelo atualizado com sucesso!' });
+      queryClient.invalidateQueries({ queryKey: ['exam_models'] });
+    } catch (e) {
+      console.error('Erro ao editar:', e);
+      toast({ title: '❌ Erro', description: 'Erro ao editar modelo.', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteModel = async (option: { id?: string, label: string, value: string }) => {
+    if (!option.id) return;
+    try {
+      const { error } = await supabase
+        .from('exam_models')
+        .delete()
+        .eq('id', option.id);
+        
+      if (error) throw error;
+      toast({ title: '✅ Excluído', description: 'Modelo excluído com sucesso!' });
+      queryClient.invalidateQueries({ queryKey: ['exam_models'] });
+    } catch (e) {
+      console.error('Erro ao excluir:', e);
+      toast({ title: '❌ Erro', description: 'Erro ao excluir modelo.', variant: 'destructive' });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -41,9 +92,11 @@ const SolicitacaoExames: React.FC<SolicitacaoExamesProps> = ({
           Busca Inteligente de Exames
         </p>
         <AdvancedSelect
-          options={availableExams.map(e => ({ label: e.name, value: e.name }))}
+          options={availableExams.map(e => ({ id: e.id, label: e.name, value: e.name }))}
           value={examRequests}
           onChange={(values) => onExamRequestsChange(values as string[])}
+          onEdit={handleEditModel}
+          onDelete={handleDeleteModel}
           placeholder="Buscar exames..."
           searchPlaceholder="Digite o nome do exame..."
           title="Solicitar Exames"
@@ -71,9 +124,11 @@ const SolicitacaoExames: React.FC<SolicitacaoExamesProps> = ({
       </CardHeader>
       <CardContent>
         <AdvancedSelect
-          options={availableExams.map(e => ({ label: e.name, value: e.name }))}
+          options={availableExams.map(e => ({ id: e.id, label: e.name, value: e.name }))}
           value={examRequests}
           onChange={(values) => onExamRequestsChange(values as string[])}
+          onEdit={handleEditModel}
+          onDelete={handleDeleteModel}
           placeholder="Buscar exames por nome ou instruções..."
           searchPlaceholder="Digite o nome do exame..."
           title="Solicitar Exames"

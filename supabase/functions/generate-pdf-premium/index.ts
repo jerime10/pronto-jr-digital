@@ -50,21 +50,79 @@ const PREMIUM_TEMPLATE = `
         
         footer { 
             margin-top: auto;
-            padding-top: 2mm; 
+            padding-top: 5mm; 
             border-top: 1px solid var(--border); 
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             align-items: flex-end;
+            gap: 5mm;
         }
-        .sig-area { text-align: center; display: flex; flex-direction: column; align-items: center; }
-        .sig-img { height: 8mm; width: auto; max-width: 45mm; object-fit: contain; margin-bottom: 1px; }
-        .sig-line { width: 50mm; border-top: 1px solid #000; margin: 1px 0; }
-        .sig-name { font-size: 8.5pt; font-weight: 700; text-transform: uppercase; margin-top: 1px; }
-        .sig-details { font-size: 7pt; color: var(--text-muted); }
-        .sig-role { font-size: 6.5pt; color: var(--text-muted); font-weight: 600; margin-top: 1px; }
-        .footer-address { font-size: 7pt; color: var(--text-muted); text-align: center; line-height: 1.2; padding-bottom: 1mm; }
-        .rt-area { text-align: center; display: flex; flex-direction: column; align-items: center; min-width: 60mm; }
-        .sig-area { text-align: center; display: flex; flex-direction: column; align-items: center; min-width: 60mm; }
+        .rt-area, .sig-area { 
+            text-align: center; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-width: 60mm; 
+        }
+        .sig-img { 
+            width: auto; 
+            object-fit: contain; 
+            position: relative;
+            z-index: 5;
+            filter: contrast(1.2) brightness(1.1);
+        }
+        .rt-area .sig-img {
+            height: 32mm; /* Aumentado um pouquinho mais */
+            max-width: 65mm;
+            top: 12px; /* Descendo um pouquinho mais */
+            margin-bottom: -28px;
+        }
+        .sig-area .sig-img {
+            height: 18mm; /* Diminuído um pouco mais */
+            max-width: 50mm; /* Limitado para não ficar muito longo */
+            top: 8px;
+            margin-bottom: -18px;
+        }
+        .sig-line { 
+            width: 100%; 
+            border-top: 1.5px solid var(--primary); 
+            margin: 0; 
+            position: relative;
+            z-index: 1;
+        }
+        .sig-name { 
+            font-size: 8.5pt; 
+            font-weight: 700; 
+            text-transform: uppercase; 
+            color: var(--primary);
+        }
+        .rt-area .sig-name {
+            margin-top: 16px; /* Ajustado para compensar o 'top: 12px' */
+        }
+        .sig-area .sig-name {
+            margin-top: 10px; /* Ajustado para compensar o 'top: 8px' */
+        }
+        .sig-details { 
+            font-size: 7pt; 
+            color: var(--text-muted); 
+            font-weight: 600;
+            text-transform: uppercase;
+            line-height: 1.1;
+        }
+        .sig-role { 
+            font-size: 6.5pt; 
+            color: var(--accent); 
+            font-weight: 800; 
+            margin-top: 2px;
+            text-transform: uppercase;
+        }
+        .footer-address { 
+            font-size: 7.5pt; 
+            color: var(--text-muted); 
+            text-align: center; 
+            line-height: 1.3; 
+            padding-bottom: 2mm; 
+        }
         .images-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4mm; margin-top: 2mm; }
         .img-card { border: 1px solid var(--border); padding: 3px; border-radius: 6px; text-align: center; }
         .img-frame { height: 60mm; background: #000; border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden; }

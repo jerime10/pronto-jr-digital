@@ -46,7 +46,27 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
   // Opções para AdvancedSelect
   const evolucaoOptions = templates
     .filter(t => t.field_key === 'evolucao' && t.model_name === 'ATENDIMENTO')
-    .map(t => ({ label: t.field_content, value: t.field_content }));
+    .map(t => ({ id: t.id, label: t.field_content, value: t.field_content }));
+
+  const { updateFieldTemplate, deleteFieldTemplate: removeFieldTemplate } = useIndividualFieldTemplates();
+
+  const handleEditTemplate = async (option: { id?: string, label: string, value: string }, newContent: string) => {
+    if (!option.id) return;
+    try {
+      await updateFieldTemplate({ id: option.id, fieldContent: newContent });
+    } catch (e) {
+      console.error('Erro ao editar:', e);
+    }
+  };
+
+  const handleDeleteTemplate = async (option: { id?: string, label: string, value: string }) => {
+    if (!option.id) return;
+    try {
+      await removeFieldTemplate(option.id);
+    } catch (e) {
+      console.error('Erro ao excluir:', e);
+    }
+  };
 
   // Salvar Evolução
   const handleSaveEvolucao = async () => {
@@ -113,6 +133,8 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
                   options={evolucaoOptions}
                   value={selectedEvolucoes}
                   onChange={(values) => handleEvolucaoModelChange(values as string[])}
+                  onEdit={handleEditTemplate}
+                  onDelete={handleDeleteTemplate}
                   placeholder="Buscar modelos de evolução..."
                   searchPlaceholder="Buscar na lista..."
                   title="Modelos de Evolução"
@@ -197,6 +219,8 @@ const EvolucaoTab: React.FC<EvolucaoTabProps> = ({
               options={evolucaoOptions}
               value={selectedEvolucoes}
               onChange={(values) => handleEvolucaoModelChange(values as string[])}
+              onEdit={handleEditTemplate}
+              onDelete={handleDeleteTemplate}
               placeholder="Buscar modelos de evolução..."
               searchPlaceholder="Buscar na lista..."
               title="Modelos de Evolução"

@@ -19,6 +19,7 @@ export interface FormState {
   dataFimAtendimento: Date | null;
   dynamicFields?: Record<string, string>;
   selectedExamModelId?: string; // ID do modelo de exame selecionado
+  draftId?: string; // ID do rascunho sendo editado (se houver)
 }
 
 const initialFormState: FormState = {
@@ -36,6 +37,7 @@ const initialFormState: FormState = {
   dataInicioAtendimento: new Date(),
   dataFimAtendimento: null,
   selectedExamModelId: '',
+  draftId: undefined,
 };
 
 export const useFormData = () => {

@@ -83,6 +83,14 @@ export const PublicPatientRegistration: React.FC = () => {
       
       console.log('🔍 Parâmetros da URL detectados:', { redirect, partner, code, cpf_sus });
       
+      // Pré-preencher CPF/SUS se fornecido na URL (sempre, independente de parceiro)
+      if (cpf_sus) {
+        console.log('📝 Pré-preenchendo CPF/SUS do parâmetro da URL:', cpf_sus);
+        const formatted = formatCpfOrSus(cpf_sus);
+        setSusNumber(formatted);
+        updateDynamicMessage(cpf_sus);
+      }
+      
       // Verificar se é um contexto de parceiro
       if (partner || code) {
         setIsPartnerContext(true);
@@ -90,12 +98,6 @@ export const PublicPatientRegistration: React.FC = () => {
         // Verificar se deve redirecionar para agendamento após cadastro
         if (redirect === 'agendamento') {
           setShouldRedirectToScheduling(true);
-        }
-        
-        // Pré-preencher CPF/SUS se fornecido
-        if (cpf_sus) {
-          setSusNumber(formatCpfOrSus(cpf_sus));
-          updateDynamicMessage(cpf_sus);
         }
         
         // Validar parceiro por username
@@ -373,7 +375,8 @@ export const PublicPatientRegistration: React.FC = () => {
           if (urlParams.partner) redirectParams.set('partner', urlParams.partner);
           if (urlParams.code) redirectParams.set('code', urlParams.code);
           
-          const redirectUrl = `/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
+          const origin = window.location.origin.replace('http://', 'https://');
+          const redirectUrl = `${origin}/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
           window.location.href = redirectUrl;
         } else if (publicLinks.exit_url) {
           // Redirecionamento padrão
@@ -483,7 +486,8 @@ export const PublicPatientRegistration: React.FC = () => {
           if (urlParams.partner) redirectParams.set('partner', urlParams.partner);
           if (urlParams.code) redirectParams.set('code', urlParams.code);
           
-          const redirectUrl = `/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
+          const origin = window.location.origin.replace('http://', 'https://');
+          const redirectUrl = `${origin}/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
           window.location.href = redirectUrl;
         } else if (publicLinks.exit_url) {
           // Redirecionamento padrão
@@ -530,7 +534,8 @@ export const PublicPatientRegistration: React.FC = () => {
         if (urlParams.code) redirectParams.set('code', urlParams.code);
       }
       
-      const redirectUrl = `/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
+      const origin = window.location.origin.replace('http://', 'https://');
+      const redirectUrl = `${origin}/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
       
       console.log('🎯 Redirecionando para agendamento interno:', redirectUrl);
       console.log('📋 Parâmetros preservados:', Object.fromEntries(redirectParams));

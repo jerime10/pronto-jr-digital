@@ -714,10 +714,29 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
     isLoading: isLoadingTemplates,
     searchFieldTemplates,
     saveFieldTemplate,
+    updateFieldTemplate,
     deleteFieldTemplate,
     isSaving,
     isDeleting
   } = useIndividualFieldTemplates();
+
+  const handleEditTemplate = async (option: { id?: string, label: string, value: string }, newContent: string) => {
+    if (!option.id) return;
+    try {
+      await updateFieldTemplate({ id: option.id, fieldContent: newContent });
+    } catch (e) {
+      console.error('Erro ao editar:', e);
+    }
+  };
+
+  const handleDeleteTemplate = async (option: { id?: string, label: string, value: string }) => {
+    if (!option.id) return;
+    try {
+      await deleteFieldTemplate(option.id);
+    } catch (e) {
+      console.error('Erro ao excluir:', e);
+    }
+  };
 
   // Hook para processamento de IA (fallback se não vier das props)
   const {
@@ -1875,10 +1894,12 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                       key={`${selectedModel?.id || 'no-model'}-${field.key}`} 
                       options={templates
                         .filter(t => t.field_key === field.key && t.model_name === (selectedModel?.name || ''))
-                        .map(t => ({ label: t.field_content, value: t.field_content }))
+                        .map(t => ({ id: t.id, label: t.field_content, value: t.field_content }))
                       }
                       value={selectedValues} 
                       onChange={selectedContents => handleFieldModelChange(field.key, selectedContents as string[])} 
+                      onEdit={handleEditTemplate}
+                      onDelete={handleDeleteTemplate}
                       placeholder={`Modelos de ${field.label.toLowerCase()}...`} 
                       searchPlaceholder="Buscar modelo..."
                       title={`Modelos: ${field.label}`}
@@ -2120,10 +2141,12 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                           key={`${selectedModel?.id || 'no-model'}-${field.key}`}
                           options={templates
                             .filter(t => t.field_key === field.key && t.model_name === (selectedModel?.name || ''))
-                            .map(t => ({ label: t.field_content, value: t.field_content }))
+                            .map(t => ({ id: t.id, label: t.field_content, value: t.field_content }))
                           }
                           value={selectedValues}
                           onChange={(selectedContents) => handleFieldModelChange(field.key, selectedContents as string[])}
+                          onEdit={handleEditTemplate}
+                          onDelete={handleDeleteTemplate}
                           placeholder={`Escolher modelos de ${field.label.toLowerCase()}...`}
                           searchPlaceholder="Buscar modelo..."
                           title={`Modelos: ${field.label}`}
@@ -2155,7 +2178,10 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                                     fieldContent: fieldValue,
                                     modelName: selectedModel.name
                                   });
-                                  toast.success(`Campo ${field.label} salvo com sucesso!`);
+                                  // O toast de sucesso já é disparado pelo hook
+                                } catch (e) {
+                                  console.error('Erro ao salvar template de campo:', e);
+                                  // O toast de erro já é disparado pelo hook
                                 } finally {
                                   setIsSavingField(null);
                                 }
@@ -2196,6 +2222,17 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
                                 {fieldValue.split('\n').find(line => line.includes('⚠️'))}
                               </div>
                             )}
+                          </div>
+                        ) : field.type === 'date' ? (
+                          <div className="relative">
+                            <Input 
+                              type="text" 
+                              placeholder="DD/MM/AAAA"
+                              className="w-full h-12 bg-slate-800/50 border-slate-700/50 text-white rounded-xl pr-10 focus:ring-emerald-500/20 transition-all"
+                              value={fieldValue} 
+                              onChange={e => handleFieldTextChange(field.key, formatDateInput(e.target.value))} 
+                            />
+                            <CalendarIcon className="absolute right-3 top-3.5 h-5 w-5 text-slate-500" />
                           </div>
                         ) : (
                           <Textarea 

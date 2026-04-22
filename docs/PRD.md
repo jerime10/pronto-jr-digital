@@ -32,17 +32,18 @@
 
 ### 1.1 Descrição do Produto
 
-O **Pronto Jr Digital** é um sistema completo de prontuário eletrônico desenvolvido para clínicas e consultórios médicos. Oferece uma solução integrada que abrange desde o cadastro de pacientes até a geração automatizada de documentos médicos em PDF, passando por agendamento online, controle financeiro, sistema de parceiros com comissões e integrações com WhatsApp e automações via N8N.
+O **Pronto Jr Digital** é um sistema completo de prontuário eletrônico desenvolvido para clínicas e consultórios médicos. Oferece uma solução integrada que abrange desde o cadastro de pacientes até a geração automatizada de documentos médicos em PDF (agora gerados via Edge Functions para maior performance e estabilidade), passando por agendamento online, controle financeiro, sistema de parceiros com comissões, transcrição de áudio por IA e integrações com WhatsApp.
 
 ### 1.2 Objetivos Estratégicos
 
 - Digitalizar e centralizar todo o fluxo de atendimento médico
-- Automatizar a geração de prescrições, laudos e prontuários em PDF
+- Automatizar a geração de prescrições, laudos e prontuários em PDF de forma nativa e robusta
 - Oferecer agendamento online público com controle de disponibilidade
 - Gerenciar finanças com rastreamento de receitas, despesas e comissões
 - Integrar com WhatsApp para lembretes automáticos de consultas
 - Prover sistema de parceiros/afiliados com comissionamento
 - Garantir controle granular de permissões por usuário
+- Reduzir tempo de digitação através de ferramentas de Inteligência Artificial e transcrição de áudio
 
 ### 1.3 Proposta de Valor
 
@@ -50,8 +51,9 @@ O **Pronto Jr Digital** é um sistema completo de prontuário eletrônico desenv
 |---|---|
 | **Prontuário Digital Completo** | Registro de queixas, evolução, prescrições, exames e imagens em um único lugar |
 | **Agendamento Público** | Pacientes agendam online sem necessidade de login |
-| **Geração Automática de PDF** | Prontuários formatados profissionalmente via webhook N8N |
+| **Geração Automática de PDF Premium** | Prontuários formatados profissionalmente gerados de forma nativa via Edge Functions |
 | **Controle Financeiro** | Receitas, despesas, comissões e relatórios integrados |
+| **Inteligência Artificial & Áudio** | Transcrição de áudio (Whisper) e processamento inteligente de campos clínicos |
 | **Lembretes WhatsApp** | Notificações automáticas para reduzir faltas |
 | **Multi-usuário com Permissões** | Cada usuário vê apenas o que é autorizado |
 | **Tema Claro/Escuro** | Interface adaptável à preferência do usuário |
@@ -132,8 +134,8 @@ O **Pronto Jr Digital** é um sistema completo de prontuário eletrônico desenv
 │                    INTEGRAÇÕES EXTERNAS                         │
 │                                                                 │
 │  ┌──────────┐  ┌──────────────┐  ┌──────────────────────┐      │
-│  │   N8N    │  │   WhatsApp   │  │   Google Calendar    │      │
-│  │ Webhooks │  │  Lembretes   │  │    Sincronização     │      │
+│  │ Groq API │  │   WhatsApp   │  │   Google Calendar    │      │
+│  │ (Whisper)│  │  Lembretes   │  │    Sincronização     │      │
 │  └──────────┘  └──────────────┘  └──────────────────────┘      │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -190,9 +192,11 @@ O **Pronto Jr Digital** é um sistema completo de prontuário eletrônico desenv
 
 | Função | Descrição |
 |---|---|
-| `ai-webhook` | Processamento de conteúdo via IA |
+| `ai-webhook` | Processamento de conteúdo via IA (com suporte a campos dinâmicos e instruções específicas) |
+| `audio-transcription` | Transcrição de áudio para texto via Groq API (Whisper) |
 | `create-admin` | Criação de usuário administrador |
 | `create-appointment` | Criação de agendamentos via API |
+| `generate-pdf-premium` | Geração nativa e robusta de PDFs a partir de prontuários (substitui N8N) |
 | `scheduled-reminders` | Lembretes agendados automáticos |
 | `whatsapp-reminder` | Envio de lembretes via WhatsApp |
 
@@ -314,8 +318,17 @@ O **Pronto Jr Digital** é um sistema completo de prontuário eletrônico desenv
 
 #### 5.3.5 Processamento com IA
 
-- Envio de conteúdo do atendimento para processamento via webhook IA
-- Sugestões automáticas baseadas nos dados clínicos
+- Envio de conteúdo do atendimento para processamento via Edge Function `ai-webhook`
+- Suporte a seleção de modelos de prompt globais ou personalizados
+- Sugestões automáticas baseadas nos dados clínicos e exames
+- Processamento avançado de campos dinâmicos (Individual Fields), com injeção de instruções diretas (ex: "INFORME EM IMPRESSÃO DIAGNÓSTICA.") e mapeamento inteligente via regex
+
+#### 5.3.6 Transcrição de Áudio
+
+- Gravação direta do microfone no frontend
+- Envio do áudio para a Edge Function `audio-transcription`
+- Processamento via Groq API (modelo `whisper-large-v3`) para transcrição rápida
+- Preenchimento automático dos campos de queixa principal, evolução ou resultados de exames com o texto transcrito
 
 ---
 
@@ -509,8 +522,9 @@ O **Pronto Jr Digital** é um sistema completo de prontuário eletrônico desenv
 | **Ativos de Documentos** | Upload de logo e assinatura para PDFs, dados do profissional |
 | **Campos Salvos** | Gerenciamento de templates de campos individuais |
 | **Templates WhatsApp** | Configuração de modelos de mensagem para lembretes |
-| **Webhook Prontuário** | URL do webhook N8N para geração de PDF de prontuários |
+| **Webhook Prontuário** | *(Descontinuado)* Anteriormente usado para gerar PDFs via N8N |
 | **Integrações** | Webhook geral N8N, chave PIX, URLs de reminder WhatsApp |
+| **Chaves de API (IA)** | Chave de API da Groq para processamento de áudio/IA e OpenRouter |
 
 #### 5.10.2 Gerenciamento de Usuários
 
@@ -797,6 +811,7 @@ A sidebar lateral é renderizada pelo componente `MainLayout` com:
 | `whatsapp_reminder_webhook_url` | TEXT | URL webhook lembretes WhatsApp |
 | `whatsapp_recurring_reminder_webhook_url` | TEXT | URL webhook lembretes recorrentes |
 | `pix_key` | TEXT | Chave PIX |
+| `groq_api_key` | TEXT | Chave da Groq API para IA/Transcrição |
 
 ### 8.2 Funções SQL (RPC)
 
@@ -814,32 +829,14 @@ A sidebar lateral é renderizada pelo componente `MainLayout` com:
 #### Webhook Principal
 
 - **Configuração:** `site_settings.n8n_webhook_url`
-- **Uso:** Geração de documentos PDF, notificações, automações gerais
+- **Uso:** Notificações e automações gerais secundárias.
 
-#### Webhook de Prontuário Médico
+#### Geração de PDF de Prontuário Médico (Nova Abordagem via Edge Function)
 
-- **Configuração:** `site_settings.medical_record_webhook_url`
-- **Uso:** Submissão de prontuário completo para geração de PDF profissional
-- **Payload (FormData):**
-
-| Campo | Descrição |
-|---|---|
-| `action` | `generate_pdf` |
-| `documentType` | `prontuario` |
-| `medicalRecordId` | UUID do prontuário |
-| `patientId` | UUID do paciente |
-| `professionalId` | UUID do profissional |
-| `patient_*` | Campos individuais do paciente |
-| `record_*` | Campos do prontuário |
-| `examRequests` | JSON com exames solicitados |
-| `selectedModelTitle` | Título do modelo de laudo |
-| `image_*` | Imagens médicas em base64 |
-| `logo_base64` | Logo da clínica em base64 |
-| `signature_base64` | Assinatura do profissional em base64 |
-| `signature_*` | Dados do profissional para rodapé do PDF |
-| `dynamic_fields` | Campos personalizados em JSON |
-
-- **Resposta esperada:** URL do PDF gerado, armazenado no Supabase Storage
+- **Serviço Responsável:** `generate-pdf-premium` (Edge Function Supabase)
+- **Status:** Substituiu o antigo webhook N8N para maior confiabilidade, velocidade e geração de layout nativo no backend.
+- **Como funciona:** O frontend chama a função `generatePremiumPdf`, que constrói o HTML premium baseado nos dados do prontuário, converte para PDF na Edge Function, salva no Supabase Storage e retorna a URL pública para o frontend.
+- **Armazenamento:** `supabase_storage` (Bucket de documentos)
 
 ### 9.2 WhatsApp (Lembretes)
 
@@ -882,27 +879,27 @@ Paciente acessa link público
 Profissional acessa /atendimento/novo
   → Busca e seleciona paciente
     → Preenche dados clínicos (abas: informações, evolução, prescrição, exames, imagens)
-      → [Opcional] Processa conteúdo com IA
+      → [Opcional] Processa conteúdo com IA ou transcreve áudio
         → [Opcional] Salva rascunho (atualiza existente ou cria novo)
           → Salva prontuário definitivo
-            → [Opcional] Gerar PDF via webhook N8N
+            → [Opcional] Gerar PDF via Edge Function Premium
               → PDF armazenado no Supabase Storage
                 → URL do PDF salva no prontuário
                   → Prontuário disponível no histórico
 ```
 
-### 10.3 Fluxo de Geração de PDF
+### 10.3 Fluxo de Geração de PDF Premium
 
 ```
-Clique em "Gerar PDF"
-  → Busca configurações (logo, assinatura, dados da clínica)
-    → Monta FormData com todos os dados do atendimento
-      → Envia para webhook N8N (medical_record_webhook_url)
-        → N8N processa e gera PDF formatado
-          → PDF é armazenado no Supabase Storage
-            → URL pública do PDF é retornada
-              → URL salva no campo storage_url do medical_record
-                → Toast de sucesso exibido ao usuário
+Clique em "Gerar PDF" ou "Salvar e Gerar"
+  → Chama serviço `generatePremiumPdf`
+    → Invoca Edge Function `generate-pdf-premium` no Supabase
+      → Função injeta dados do paciente, clínica e atendimento em Template HTML
+        → HTML é convertido para PDF (Puppeteer/Browser serverless)
+          → PDF gerado é salvo no Supabase Storage Bucket (`documentos`)
+            → URL pública é retornada para o Frontend
+              → Frontend atualiza a tabela `medical_records` (storage_url)
+                → Toast de sucesso e PDF exibido/baixado
 ```
 
 ### 10.4 Fluxo de Parceiro/Afiliado
@@ -1019,7 +1016,9 @@ Parceiro compartilha link personalizado de agendamento
 - ✅ Gestão completa de pacientes com cadastro público
 - ✅ Sistema de atendimento com abas organizadas
 - ✅ Prescrições e exames com modelos reutilizáveis
-- ✅ Geração de PDF via webhook N8N
+- ✅ Geração de PDF nativa (Edge Function Premium)
+- ✅ Transcrição de Áudio com Groq API (Whisper)
+- ✅ Processamento de IA em campos dinâmicos (Edge Function)
 - ✅ Sistema completo de agendamento (interno + público)
 - ✅ Controle de disponibilidade de serviços
 - ✅ Dashboard executivo com gráficos

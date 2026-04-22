@@ -14,6 +14,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { useExamModels } from '@/hooks/useEnhancedQuery';
 
 interface ExamModel {
   id: string;
@@ -60,33 +61,7 @@ const ExamesTab: React.FC<ExamesTabProps> = ({
 }) => {
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("");
-  const [availableExams, setAvailableExams] = useState<ExamModel[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchExamModels = async () => {
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('exam_models')
-          .select('id, name, instructions')
-          .order('name');
-
-        if (error) {
-          throw error;
-        }
-
-        setAvailableExams(data || []);
-      } catch (error) {
-        console.error('Erro ao carregar modelos de exames:', error);
-        toast.error('Não foi possível carregar os modelos de exames');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchExamModels();
-  }, []);
+  const { data: availableExams = [], isLoading } = useExamModels();
 
   if (isMobile) {
     return (

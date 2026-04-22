@@ -53,8 +53,7 @@ export const useAtendimentoState = (selectedModelTitle?: string | null, initialP
   // Hook para persistência localStorage
   const { hasLocalData, getLocalStorageKey } = useLocalStoragePersistence({
     pacienteSelecionado: pacienteSelecionado as any,
-    form,
-    setFormData
+    form
   });
   
   const { 
@@ -86,6 +85,22 @@ export const useAtendimentoState = (selectedModelTitle?: string | null, initialP
     selectedModelId: selectedExamModelId
   });
 
+  const wrappedHandleSelectPaciente = (paciente: any) => {
+    handleSelectPaciente(paciente);
+    // Limpar o ID do rascunho e resetar dados do form ao selecionar um novo paciente manualmente
+    // (a menos que seja o mesmo paciente)
+    if (!pacienteSelecionado || pacienteSelecionado.id !== paciente?.id) {
+      setFormData({
+        draftId: undefined
+      });
+    }
+  };
+
+  const wrappedHandleClearPaciente = () => {
+    handleClearPaciente();
+    resetForm();
+  };
+
   return {
     activeTab,
     setActiveTab,
@@ -109,8 +124,8 @@ export const useAtendimentoState = (selectedModelTitle?: string | null, initialP
     isSubmittingRecord,
     handleChange,
     handlePacienteSearch,
-    handleSelectPaciente,
-    handleClearPaciente,
+    handleSelectPaciente: wrappedHandleSelectPaciente,
+    handleClearPaciente: wrappedHandleClearPaciente,
     handleInputFocus,
     handleInputBlur,
     setMostrarResultadosBusca,

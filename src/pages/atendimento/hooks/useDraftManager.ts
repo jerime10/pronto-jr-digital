@@ -281,26 +281,10 @@ export const useDraftManager = ({
         updated_at: nowIso
       };
 
-      // Sempre buscar rascunho existente do mesmo paciente+profissional (independente do título)
-      const { data: existingDraft, error: existingError } = await (supabase as any)
-        .from('medical_record_drafts')
-        .select('id')
-        .eq('patient_id', pacienteSelecionado.id)
-        .eq('professional_id', profissionalAtual.id)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (existingError) {
-        console.error('❌ Erro ao buscar rascunho existente:', existingError);
-        toast.error('Erro ao verificar rascunho existente. Tente novamente.');
-        return;
-      }
-
-      const existingDraftId = existingDraft?.id ?? null;
+      // Identificar o ID do rascunho atual sendo editado
+      const existingDraftId = (dataToSave as any).draftId || null;
 
       console.log('🔍 [DEBUG] Verificação de rascunho existente:', {
-        existingDraft,
         existingDraftId,
         pacienteId: pacienteSelecionado.id,
         profissionalId: profissionalAtual.id
@@ -355,6 +339,8 @@ export const useDraftManager = ({
       // Mostrar mensagem diferente para criação vs atualização
       if (isCreating) {
         toast.success(`Rascunho criado com sucesso: ${dataHoraAtual}`);
+        // Salvar o ID do novo rascunho no form para as próximas edições atualizarem o mesmo rascunho
+        setFormData({ draftId: data.id });
       } else {
         toast.success(`Rascunho atualizado: ${dataHoraAtual}`);
       }
@@ -398,6 +384,7 @@ export const useDraftManager = ({
       console.log('📂 [useDraftManager] fallbackData (form_data) carregada:', fallbackData);
       
       const formDataToLoad: Partial<FormState> = {
+        draftId: fullDraft.id,
         queixaPrincipal: fullDraft.main_complaint ?? fallbackData.queixaPrincipal ?? '',
         antecedentes: fullDraft.history ?? fallbackData.antecedentes ?? '',
         alergias: fullDraft.allergies ?? fallbackData.alergias ?? '',
@@ -428,16 +415,16 @@ export const useDraftManager = ({
       console.log('📂 [useDraftManager] Campos dinâmicos carregados:', loadedDynamicFields);
       console.log('📂 [useDraftManager] Dados do formulário montados para setFormData:', formDataToLoad);
 
-      // PRIMEIRO: Carregar campos dinâmicos se existirem e o callback estiver disponível
+      // PRIMEIRO: Selecionar o paciente (para que a limpeza de draftId de novo paciente ocorra antes)
+      handleSelectPaciente(draft.patient_data);
+
+      // SEGUNDO: Carregar campos dinâmicos se existirem e o callback estiver disponível
       if (onDynamicFieldsChange) {
         onDynamicFieldsChange(loadedDynamicFields);
       }
 
-      // DEPOIS: Carregar dados do formulário
+      // POR ÚLTIMO: Carregar dados do formulário (incluindo o draftId correto)
       setFormData(formDataToLoad as FormState);
-
-      // POR ÚLTIMO: Selecionar o paciente
-      handleSelectPaciente(draft.patient_data);
 
       toast.success(`Rascunho de ${draft.patient_data.name} carregado!`);
     } catch (error) {

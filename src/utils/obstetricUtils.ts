@@ -263,8 +263,8 @@ export const parseNaturalDate = (text: string): string => {
     julho: "07", agosto: "08", setembro: "09", outubro: "10", novembro: "11", dezembro: "12"
   };
 
-  // Padrão: 11 de maio de 2026 ou 11 maio 26 ou 8 de 5 de 2026
-  const match = cleanText.match(/(\d{1,2})\s*(?:de|\/)?\s*([a-zçã\d]{1,10})\s*(?:de|\/)?\s*(\d{2,4})/);
+  // Padrão: 11 de maio de 2026 ou 11 maio 26 ou 8 5 2026 (com espaços)
+  const match = cleanText.match(/(\d{1,2})\s+(?:de\s+|\/\s*)?([a-zçã]+|\d{1,2})\s+(?:de\s+|\/\s*)?(\d{2,4})/);
   if (match) {
     const day = match[1].padStart(2, '0');
     const monthPart = match[2];
@@ -274,7 +274,7 @@ export const parseNaturalDate = (text: string): string => {
     // Tentar converter nome do mês
     let month = months[monthPart];
     
-    // Se não for nome, verificar se é número (ex: "8 de 5 de 2026")
+    // Se não for nome, verificar se é número
     if (!month && /^\d{1,2}$/.test(monthPart)) {
       month = monthPart.padStart(2, '0');
     }
@@ -284,10 +284,12 @@ export const parseNaturalDate = (text: string): string => {
     }
   }
 
-  // Padrão: apenas números (ex: 11052026)
+  // Padrão: apenas números contínuos (ex: 11052026 ou 110526)
   const numbers = cleanText.replace(/\D/g, '');
   if (numbers.length === 8) {
     return `${numbers.slice(0, 2)}/${numbers.slice(2, 4)}/${numbers.slice(4, 8)}`;
+  } else if (numbers.length === 6) {
+    return `${numbers.slice(0, 2)}/${numbers.slice(2, 4)}/20${numbers.slice(4, 6)}`;
   }
 
   return text;

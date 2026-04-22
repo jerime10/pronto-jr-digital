@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Check, ChevronsUpDown, X, Search } from "lucide-react"
+import { Check, ChevronsUpDown, X, Search, Edit2, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,6 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 
 export interface AdvancedSelectOption {
+  id?: string
   label: string
   value: string
 }
@@ -28,6 +29,8 @@ interface AdvancedSelectProps {
   options: AdvancedSelectOption[]
   value?: string | string[]
   onChange: (value: string | string[]) => void
+  onEdit?: (option: AdvancedSelectOption, newLabel: string) => void
+  onDelete?: (option: AdvancedSelectOption) => void
   placeholder?: string
   searchPlaceholder?: string
   emptyMessage?: string
@@ -47,6 +50,8 @@ export function AdvancedSelect({
   options,
   value,
   onChange,
+  onEdit,
+  onDelete,
   placeholder = "Selecione um item...",
   searchPlaceholder = "Buscar...",
   emptyMessage = "Nenhum item encontrado.",
@@ -56,6 +61,8 @@ export function AdvancedSelect({
   disabled = false,
 }: AdvancedSelectProps) {
   const [open, setOpen] = React.useState(false)
+  const [editingOption, setEditingOption] = React.useState<AdvancedSelectOption | null>(null)
+  const [editValue, setEditValue] = React.useState("")
 
   // Memoize selected values for efficient lookups
   const selectedValues = React.useMemo(() => {
@@ -82,6 +89,32 @@ export function AdvancedSelect({
       onChange(selectedValues.filter((v) => v !== optionValue))
     } else {
       onChange("")
+    }
+  }
+
+  const startEdit = (option: AdvancedSelectOption, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingOption(option)
+    setEditValue(option.label)
+  }
+
+  const handleSaveEdit = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (editingOption && onEdit && editValue.trim()) {
+      onEdit(editingOption, editValue.trim())
+    }
+    setEditingOption(null)
+  }
+
+  const cancelEdit = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingOption(null)
+  }
+
+  const handleDelete = (option: AdvancedSelectOption, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (onDelete) {
+      onDelete(option)
     }
   }
 
@@ -176,25 +209,70 @@ export function AdvancedSelect({
                           : "hover:bg-slate-100 text-slate-900"
                       )}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "flex h-5 w-5 items-center justify-center rounded-md border transition-all",
-                          isSelected 
-                            ? "bg-emerald-500 border-emerald-500" 
-                            : "border-slate-300 bg-white"
-                        )}>
-                          <Check className={cn(
-                            "h-3.5 w-3.5 text-white transition-transform duration-200",
-                            isSelected ? "scale-100 opacity-100" : "scale-0 opacity-0"
-                          )} />
+                      {editingOption?.value === option.value ? (
+                        <div className="flex-1 flex items-center gap-2 mr-2" onClick={(e) => e.stopPropagation()}>
+                          <input 
+                            type="text" 
+                            className="flex-1 px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:border-emerald-500"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveEdit(e as any)
+                              if (e.key === 'Escape') cancelEdit(e as any)
+                            }}
+                            autoFocus
+                          />
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={handleSaveEdit}>Salvar</Button>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100" onClick={cancelEdit}>Cancelar</Button>
                         </div>
-                        <span className="text-sm md:text-base">{option.label}</span>
-                      </div>
-                      
-                      {isSelected && !multiple && (
-                        <span className="text-[10px] uppercase font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
-                          Selecionado
-                        </span>
+                      ) : (
+                        <div className="flex-1 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "flex h-5 w-5 items-center justify-center rounded-md border transition-all",
+                              isSelected 
+                                ? "bg-emerald-500 border-emerald-500" 
+                                : "border-slate-300 bg-white"
+                            )}>
+                              <Check className={cn(
+                                "h-3.5 w-3.5 text-white transition-transform duration-200",
+                                isSelected ? "scale-100 opacity-100" : "scale-0 opacity-0"
+                              )} />
+                            </div>
+                            <span className="text-sm md:text-base whitespace-pre-wrap">{option.label}</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-1 ml-4">
+                            {isSelected && !multiple && (
+                              <span className="text-[10px] uppercase font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full mr-2">
+                                Selecionado
+                              </span>
+                            )}
+                            
+                            {onEdit && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                                onClick={(e) => startEdit(option, e)}
+                                title="Editar"
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            {onDelete && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                onClick={(e) => handleDelete(option, e)}
+                                title="Excluir"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </CommandItem>
                   )

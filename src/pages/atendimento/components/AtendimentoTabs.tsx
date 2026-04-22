@@ -131,7 +131,7 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
             )}
             value="info"
           >
-            Info
+            Histórico
           </TabsTrigger>
           <TabsTrigger 
             className={cn(

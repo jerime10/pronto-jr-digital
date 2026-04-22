@@ -18,13 +18,11 @@ interface Patient {
 interface UseLocalStoragePersistenceProps {
   pacienteSelecionado: Patient | null;
   form: FormState;
-  setFormData: (formData: FormState) => void;
 }
 
 export const useLocalStoragePersistence = ({
   pacienteSelecionado,
-  form,
-  setFormData
+  form
 }: UseLocalStoragePersistenceProps) => {
   const getLocalStorageKey = () => {
     if (!pacienteSelecionado?.id) return null;
@@ -37,49 +35,9 @@ export const useLocalStoragePersistence = ({
     return localStorage.getItem(key) !== null;
   };
 
-  // Load data from localStorage when patient is selected
-  useEffect(() => {
-    const key = getLocalStorageKey();
-    if (!key) return;
-
-    try {
-      const savedData = localStorage.getItem(key);
-      if (savedData) {
-        const parsedData = JSON.parse(savedData);
-        console.log('Carregando dados salvos do localStorage:', parsedData);
-        
-        // Convert date strings back to Date objects
-        const formData: FormState = {
-          queixaPrincipal: parsedData.main_complaint || '',
-          antecedentes: parsedData.history || '',
-          alergias: parsedData.allergies || '',
-          evolucao: parsedData.evolution || '',
-          modeloPrescricao: parsedData.prescription_model_id || '',
-          modelosPrescricaoSelecionados: parsedData.modelosPrescricaoSelecionados || [],
-          prescricaoPersonalizada: parsedData.custom_prescription || '',
-          examesSelecionados: Array.isArray(parsedData.exam_requests) 
-            ? parsedData.exam_requests.map(item => String(item))
-            : [],
-          observacoesExames: parsedData.exam_observations || '',
-          resultadoExames: parsedData.exam_results || '',
-          images: parsedData.images_data || [],
-          // Convert ISO strings back to Date objects
-          dataInicioAtendimento: parsedData.attendance_start_at 
-            ? new Date(parsedData.attendance_start_at) 
-            : new Date(),
-          dataFimAtendimento: parsedData.attendance_end_at 
-            ? new Date(parsedData.attendance_end_at) 
-            : undefined,
-        };
-        
-        setFormData(formData);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar dados do localStorage:', error);
-      // Remove corrupted data
-      localStorage.removeItem(key);
-    }
-  }, [pacienteSelecionado?.id, setFormData]);
+  // Carregamento automático removido conforme solicitado para evitar que 
+  // um novo atendimento puxe dados de um rascunho existente automaticamente.
+  // useEffect(() => { ... }) foi removido.
 
   // Auto-save form data to localStorage when it changes
   useEffect(() => {

@@ -9,16 +9,19 @@ export async function getSiteSettingsId(): Promise<string | undefined> {
   const { data, error } = await supabase
     .from('site_settings')
     .select('id')
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order('updated_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching site settings ID:', error);
+    throw error; // Throw error to prevent accidentally inserting new rows during network failures
+  }
+
+  if (!data || data.length === 0) {
     return undefined;
   }
 
-  return data?.id;
+  // Always return the ID of the most recently updated row
+  return data[0].id;
 }
 
 /**

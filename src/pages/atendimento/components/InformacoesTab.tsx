@@ -48,15 +48,35 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
   // Opções para AdvancedSelect
   const queixaOptions = templates
     .filter(t => t.field_key === 'queixa_principal' && t.model_name === 'ATENDIMENTO')
-    .map(t => ({ label: t.field_content, value: t.field_content }));
+    .map(t => ({ id: t.id, label: t.field_content, value: t.field_content }));
     
   const antecedentesOptions = templates
     .filter(t => t.field_key === 'antecedentes' && t.model_name === 'ATENDIMENTO')
-    .map(t => ({ label: t.field_content, value: t.field_content }));
+    .map(t => ({ id: t.id, label: t.field_content, value: t.field_content }));
     
   const alergiasOptions = templates
     .filter(t => t.field_key === 'alergias' && t.model_name === 'ATENDIMENTO')
-    .map(t => ({ label: t.field_content, value: t.field_content }));
+    .map(t => ({ id: t.id, label: t.field_content, value: t.field_content }));
+
+  const { updateFieldTemplate, deleteFieldTemplate: removeFieldTemplate } = useIndividualFieldTemplates();
+
+  const handleEditTemplate = async (option: { id?: string, label: string, value: string }, newContent: string) => {
+    if (!option.id) return;
+    try {
+      await updateFieldTemplate({ id: option.id, fieldContent: newContent });
+    } catch (e) {
+      console.error('Erro ao editar:', e);
+    }
+  };
+
+  const handleDeleteTemplate = async (option: { id?: string, label: string, value: string }) => {
+    if (!option.id) return;
+    try {
+      await removeFieldTemplate(option.id);
+    } catch (e) {
+      console.error('Erro ao excluir:', e);
+    }
+  };
 
   // Estados para gerenciar seleções múltiplas
   const [selectedQueixas, setSelectedQueixas] = useState<string[]>([]);
@@ -236,6 +256,8 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
                   options={queixaOptions}
                   value={selectedQueixas}
                   onChange={(values) => handleQueixaModelChange(values as string[])}
+                  onEdit={handleEditTemplate}
+                  onDelete={handleDeleteTemplate}
                   placeholder="Buscar modelos de queixa principal..."
                   searchPlaceholder="Buscar na lista..."
                   title="Modelos de Queixa Principal"
@@ -281,6 +303,8 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
                   options={antecedentesOptions}
                   value={selectedAntecedentes}
                   onChange={(values) => handleAntecedentesModelChange(values as string[])}
+                  onEdit={handleEditTemplate}
+                  onDelete={handleDeleteTemplate}
                   placeholder="Buscar modelos de antecedentes..."
                   searchPlaceholder="Buscar na lista..."
                   title="Modelos de Antecedentes"
@@ -310,6 +334,8 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
                   options={alergiasOptions}
                   value={selectedAlergias}
                   onChange={(values) => handleAlergiasModelChange(values as string[])}
+                  onEdit={handleEditTemplate}
+                  onDelete={handleDeleteTemplate}
                   placeholder="Buscar modelos de alergias..."
                   searchPlaceholder="Buscar na lista..."
                   title="Modelos de Alergias"
@@ -378,6 +404,8 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
               options={queixaOptions}
               value={selectedQueixas}
               onChange={(values) => handleQueixaModelChange(values as string[])}
+              onEdit={handleEditTemplate}
+              onDelete={handleDeleteTemplate}
               placeholder="Buscar modelos de queixa principal..."
               searchPlaceholder="Buscar na lista..."
               title="Modelos de Queixa Principal"
@@ -452,6 +480,8 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
               options={antecedentesOptions}
               value={selectedAntecedentes}
               onChange={(values) => handleAntecedentesModelChange(values as string[])}
+              onEdit={handleEditTemplate}
+              onDelete={handleDeleteTemplate}
               placeholder="Buscar modelos de antecedentes..."
               searchPlaceholder="Buscar na lista..."
               title="Modelos de Antecedentes"
@@ -526,6 +556,8 @@ const InformacoesTab: React.FC<InformacoesTabProps> = ({
               options={alergiasOptions}
               value={selectedAlergias}
               onChange={(values) => handleAlergiasModelChange(values as string[])}
+              onEdit={handleEditTemplate}
+              onDelete={handleDeleteTemplate}
               placeholder="Buscar modelos de alergias..."
               searchPlaceholder="Buscar na lista..."
               title="Modelos de Alergias"

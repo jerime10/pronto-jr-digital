@@ -46,6 +46,19 @@ function LoadingFallback() {
 }
 
 function App() {
+  React.useEffect(() => {
+    // Redirecionar para HTTPS se estiver em HTTP, especialmente importante para APIs de mídia (áudio)
+    // Mesmo em localhost, o usuário solicitou HTTPS para funcionamento das ferramentas.
+    if (window.location.protocol === 'http:' && 
+        (window.location.hostname === 'localhost' || 
+         window.location.hostname === '127.0.0.1' || 
+         window.location.hostname === '0.0.0.0' ||
+         !window.location.hostname.includes('.'))) {
+      console.log('🔒 Redirecionando para HTTPS para habilitar ferramentas de mídia...');
+      window.location.replace(window.location.href.replace('http:', 'https:'));
+    }
+  }, []);
+
   return (
     <Suspense fallback={<LoadingFallback />}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

@@ -106,7 +106,8 @@ const PublicConsultarAgendaPage: React.FC = () => {
   const handleAgendar = () => {
     if (!attendantId || !serviceId || !selectedDate || !selectedTime) return;
     const date = selectedDate.toISOString().split('T')[0];
-    const url = `${window.location.origin}/public/agendamento?professionalId=${encodeURIComponent(attendantId)}&serviceId=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(date)}&time=${encodeURIComponent(selectedTime)}`;
+    const origin = window.location.origin.replace('http://', 'https://');
+    const url = `${origin}/public/agendamento?professionalId=${encodeURIComponent(attendantId)}&serviceId=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(date)}&time=${encodeURIComponent(selectedTime)}`;
     window.location.href = url;
   };
 

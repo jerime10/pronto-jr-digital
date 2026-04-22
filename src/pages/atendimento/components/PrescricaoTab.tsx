@@ -14,6 +14,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface PrescricaoTabProps {
   form: FormState;
@@ -33,6 +36,55 @@ const PrescricaoTab: React.FC<PrescricaoTabProps> = ({
   onMultiModelChange
 }) => {
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
+
+  const handleEditModel = async (option: { id?: string, label: string, value: string }, newContent: string) => {
+    if (!option.id) return;
+    try {
+      // Procurar se newContent já existe para evitar duplicação (por name)
+      const { data: existing } = await supabase
+        .from('prescription_models')
+        .select('id')
+        .eq('name', newContent.trim())
+        .neq('id', option.id)
+        .maybeSingle();
+
+      if (existing) {
+        toast({ title: '⚠️ Modelo Duplicado', description: 'Já existe um modelo com este nome.', variant: 'destructive' });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('prescription_models')
+        .update({ name: newContent.trim() })
+        .eq('id', option.id);
+        
+      if (error) throw error;
+      toast({ title: '✅ Atualizado', description: 'Modelo atualizado com sucesso!' });
+      queryClient.invalidateQueries({ queryKey: ['prescription_models'] });
+    } catch (e) {
+      console.error('Erro ao editar:', e);
+      toast({ title: '❌ Erro', description: 'Erro ao editar modelo.', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteModel = async (option: { id?: string, label: string, value: string }) => {
+    if (!option.id) return;
+    try {
+      const { error } = await supabase
+        .from('prescription_models')
+        .delete()
+        .eq('id', option.id);
+        
+      if (error) throw error;
+      toast({ title: '✅ Excluído', description: 'Modelo excluído com sucesso!' });
+      queryClient.invalidateQueries({ queryKey: ['prescription_models'] });
+    } catch (e) {
+      console.error('Erro ao excluir:', e);
+      toast({ title: '❌ Erro', description: 'Erro ao excluir modelo.', variant: 'destructive' });
+    }
+  };
+
   // Handler para multisseleção de modelos
   const handleModelosPrescricaoChange = (selectedIds: string[]) => {
     // Usar o handler externo se disponível, senão usar o handler local
@@ -96,9 +148,11 @@ const PrescricaoTab: React.FC<PrescricaoTabProps> = ({
                     Selecionar Modelos
                   </Label>
                   <AdvancedSelect
-                    options={prescriptionModels.map(m => ({ label: m.name, value: m.id }))}
+                    options={prescriptionModels.map(m => ({ id: m.id, label: m.name, value: m.id }))}
                     value={form.modelosPrescricaoSelecionados || []}
                     onChange={(values) => handleModelosPrescricaoChange(values as string[])}
+                    onEdit={handleEditModel}
+                    onDelete={handleDeleteModel}
                     placeholder="Buscar modelos..."
                     searchPlaceholder="Digite o nome do modelo..."
                     title="Modelos de Prescrição"
@@ -138,9 +192,11 @@ const PrescricaoTab: React.FC<PrescricaoTabProps> = ({
                 Selecionar Modelos de Prescrição
               </Label>
               <AdvancedSelect
-                options={prescriptionModels.map(m => ({ label: m.name, value: m.id }))}
+                options={prescriptionModels.map(m => ({ id: m.id, label: m.name, value: m.id }))}
                 value={form.modelosPrescricaoSelecionados || []}
                 onChange={(values) => handleModelosPrescricaoChange(values as string[])}
+                onEdit={handleEditModel}
+                onDelete={handleDeleteModel}
                 placeholder="Digite para buscar e selecionar modelos..."
                 searchPlaceholder="Digite o nome do modelo..."
                 title="Modelos de Prescrição"
