@@ -12,6 +12,7 @@ import { PatientFormFields } from '../pacientes/components/PatientFormFields';
 import { calculateAgeInYears, formatDateForDB } from '@/utils/dateUtils';
 import { formatPhoneNumber, isValidPhoneNumber, cleanPhoneNumber } from '@/utils/phoneUtils';
 import { formatCpfOrSus, isValidCpfOrSus, cleanCpfOrSus, validateSevenDigitInput } from '@/utils/cpfSusUtils';
+import { getDynamicUrl, getSecureOrigin } from '@/utils/urlUtils';
 import { UserService } from '@/services/userService';
 import { Usuario } from '@/types/database';
 
@@ -167,8 +168,8 @@ export const PublicPatientRegistration: React.FC = () => {
 
       if (data) {
         setPublicLinks({
-          scheduling_url: (data as any).n8n_webhook_url || 'https://preview--cjrs-landing-craft.lovable.app',
-          exit_url: (data as any).medical_record_webhook_url || 'https://preview--cjrs-landing-craft.lovable.app'
+          scheduling_url: getDynamicUrl((data as any).n8n_webhook_url),
+          exit_url: getDynamicUrl((data as any).medical_record_webhook_url)
         });
       }
     } catch (error) {
@@ -378,7 +379,7 @@ export const PublicPatientRegistration: React.FC = () => {
           if (urlParams.code) redirectParams.set('code', urlParams.code);
           if (formData.sus) redirectParams.set('cpf_sus', cleanCpfOrSus(formData.sus));
           
-          const origin = window.location.origin.replace('http://', 'https://');
+          const origin = getSecureOrigin();
           const redirectUrl = `${origin}/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
           
           console.log('🎯 Redirecionando de volta para agendamento:', redirectUrl);
@@ -494,7 +495,7 @@ export const PublicPatientRegistration: React.FC = () => {
           if (urlParams.code) redirectParams.set('code', urlParams.code);
           if (formData.sus) redirectParams.set('cpf_sus', cleanCpfOrSus(formData.sus));
           
-          const origin = window.location.origin.replace('http://', 'https://');
+          const origin = getSecureOrigin();
           const redirectUrl = `${origin}/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
           
           console.log('🎯 Redirecionando de volta para agendamento:', redirectUrl);
@@ -533,7 +534,7 @@ export const PublicPatientRegistration: React.FC = () => {
     // Sempre adicionar parâmetro de redirecionamento
     redirectParams.set('redirect', 'agendamento');
     
-    const origin = window.location.origin.replace('http://', 'https://');
+    const origin = getSecureOrigin();
     const redirectUrl = `${origin}/agendamento${redirectParams.toString() ? '?' + redirectParams.toString() : ''}`;
     
     console.log('🎯 Redirecionando para agendamento interno:', redirectUrl);

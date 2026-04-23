@@ -15,6 +15,7 @@ import { formatPhoneNumber, isValidPhoneNumber, cleanPhoneNumber } from '@/utils
 import { formatCpfOrSus, isValidCpfOrSus, cleanCpfOrSus, validateSevenDigitInput } from '@/utils/cpfSusUtils';
 import { formatDateForDB } from '@/utils/dateUtils';
 import { isObstetricService, calculateGestationalAge, calculateDPP, formatDateInput, isValidDateFormat, convertDateToDBFormat } from '@/utils/obstetricUtils';
+import { getDynamicUrl, getSecureOrigin } from '@/utils/urlUtils';
 import { appointmentService } from '@/services/scheduleService';
 import { appointmentsService } from '@/services/appointmentsService';
 import { serviceAssignmentService } from '@/services/serviceAssignmentService';
@@ -379,8 +380,8 @@ export const PublicAppointmentBooking: React.FC = () => {
         
         const siteData = data as any;
         const newLinks = {
-          exit_url: siteData.medical_record_webhook_url || 'https://preview--cjrs-landing-craft.lovable.app',
-          public_registration_url: siteData.public_registration_url || `${window.location.origin}/cadastro-paciente`
+          exit_url: getDynamicUrl(siteData.medical_record_webhook_url),
+          public_registration_url: getDynamicUrl(siteData.public_registration_url) || `${getSecureOrigin()}/cadastro-paciente`
         };
         
         console.log('✅ Links configurados:', newLinks);
@@ -623,8 +624,8 @@ export const PublicAppointmentBooking: React.FC = () => {
         
         // Redirecionar para cadastro público preservando contexto e usando arquitetura unificada
         setTimeout(() => {
-          // NOVA IMPLEMENTAÇÃO: Usar sempre URL interna para manter consistência e funcionalidade
-          let redirectUrl = `${window.location.origin.replace('http://', 'https://')}/cadastro-paciente`;
+          // NOVA IMPLEMENTAÇÃO: Usar sempre URL interna dinâmica para manter consistência
+          let redirectUrl = `${getSecureOrigin()}/cadastro-paciente`;
           const urlParams = new URLSearchParams();
           
           // Se é contexto de parceiro, preservar informações do parceiro
@@ -1666,11 +1667,11 @@ export const PublicAppointmentBooking: React.FC = () => {
                           <Button 
                             onClick={() => {
                               let redirectUrl = (partnerUsername || partnerCode)
-                                ? `${window.location.origin}/cadastro-paciente`
-                                : (publicLinks.public_registration_url || `${window.location.origin}/cadastro-paciente`);
+                                ? `${getSecureOrigin()}/cadastro-paciente`
+                                : (publicLinks.public_registration_url || `${getSecureOrigin()}/cadastro-paciente`);
                               
-                              // Garantir HTTPS
-                              redirectUrl = redirectUrl.replace('http://', 'https://');
+                              // Garantir consistência da URL
+                              redirectUrl = getDynamicUrl(redirectUrl);
                               
                               const urlParams = new URLSearchParams();
                               
