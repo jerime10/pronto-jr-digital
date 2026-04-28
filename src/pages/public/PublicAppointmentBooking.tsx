@@ -380,7 +380,7 @@ export const PublicAppointmentBooking: React.FC = () => {
         
         const siteData = data as any;
         const newLinks = {
-          exit_url: getDynamicUrl(siteData.medical_record_webhook_url),
+          exit_url: getDynamicUrl(siteData.whatsapp_webhook_url),
           public_registration_url: getDynamicUrl(siteData.public_registration_url) || `${getSecureOrigin()}/cadastro-paciente`
         };
         
@@ -388,7 +388,7 @@ export const PublicAppointmentBooking: React.FC = () => {
         setPublicLinks(newLinks);
         
         // Salvar URL do site separadamente
-        setSiteUrl(siteData.medical_record_webhook_url || '');
+        setSiteUrl(siteData.whatsapp_webhook_url || '');
       } else {
         console.log('⚠️ Nenhum dado encontrado, usando valores padrão');
         setPublicLinks({

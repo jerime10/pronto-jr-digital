@@ -12,7 +12,8 @@ export const applyKeyValueMigration = async () => {
       .insert([
         {
           n8n_webhook_url: 'https://www.google.com/',
-          medical_record_webhook_url: 'https://www.google.com/'
+          medical_record_webhook_url: 'https://www.google.com/',
+          whatsapp_webhook_url: 'https://www.google.com/'
         }
       ]);
     

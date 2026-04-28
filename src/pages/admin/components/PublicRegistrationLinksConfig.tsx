@@ -84,7 +84,7 @@ const PublicRegistrationLinksConfig: React.FC = () => {
         const siteData = data as any;
         setLinks({
           scheduling_url: siteData.n8n_webhook_url || 'https://www.google.com/',
-          exit_url: siteData.medical_record_webhook_url || 'https://www.google.com/',
+          exit_url: siteData.whatsapp_webhook_url || 'https://www.google.com/',
           public_registration_url: siteData.public_registration_url || `${window.location.origin}/cadastro-paciente`,
           whatsapp_reminder_webhook_url: siteData.whatsapp_reminder_webhook_url || '',
           whatsapp_recurring_reminder_webhook_url: siteData.whatsapp_recurring_reminder_webhook_url || '',
@@ -133,7 +133,7 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           .from('site_settings')
           .update({ 
             n8n_webhook_url: links.scheduling_url,
-            medical_record_webhook_url: links.exit_url,
+            whatsapp_webhook_url: links.exit_url,
             public_registration_url: links.public_registration_url,
             whatsapp_reminder_webhook_url: links.whatsapp_reminder_webhook_url,
             whatsapp_recurring_reminder_webhook_url: links.whatsapp_recurring_reminder_webhook_url,
@@ -148,7 +148,7 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           .from('site_settings')
           .insert({ 
             n8n_webhook_url: links.scheduling_url,
-            medical_record_webhook_url: links.exit_url,
+            whatsapp_webhook_url: links.exit_url,
             public_registration_url: links.public_registration_url,
             whatsapp_reminder_webhook_url: links.whatsapp_reminder_webhook_url,
             whatsapp_recurring_reminder_webhook_url: links.whatsapp_recurring_reminder_webhook_url,
