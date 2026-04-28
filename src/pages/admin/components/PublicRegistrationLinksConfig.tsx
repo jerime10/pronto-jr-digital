@@ -84,7 +84,7 @@ const PublicRegistrationLinksConfig: React.FC = () => {
         const siteData = data as any;
         setLinks({
           scheduling_url: siteData.n8n_webhook_url || 'https://www.google.com/',
-          exit_url: siteData.whatsapp_webhook_url || 'https://www.google.com/',
+          exit_url: siteData.medical_record_url_site_jrs || 'https://www.google.com/',
           public_registration_url: siteData.public_registration_url || `${window.location.origin}/cadastro-paciente`,
           whatsapp_reminder_webhook_url: siteData.whatsapp_reminder_webhook_url || '',
           whatsapp_recurring_reminder_webhook_url: siteData.whatsapp_recurring_reminder_webhook_url || '',
@@ -133,7 +133,7 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           .from('site_settings')
           .update({ 
             n8n_webhook_url: links.scheduling_url,
-            whatsapp_webhook_url: links.exit_url,
+            medical_record_url_site_jrs: links.exit_url,
             public_registration_url: links.public_registration_url,
             whatsapp_reminder_webhook_url: links.whatsapp_reminder_webhook_url,
             whatsapp_recurring_reminder_webhook_url: links.whatsapp_recurring_reminder_webhook_url,
@@ -148,7 +148,7 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           .from('site_settings')
           .insert({ 
             n8n_webhook_url: links.scheduling_url,
-            whatsapp_webhook_url: links.exit_url,
+            medical_record_url_site_jrs: links.exit_url,
             public_registration_url: links.public_registration_url,
             whatsapp_reminder_webhook_url: links.whatsapp_reminder_webhook_url,
             whatsapp_recurring_reminder_webhook_url: links.whatsapp_recurring_reminder_webhook_url,
@@ -495,20 +495,20 @@ const PublicRegistrationLinksConfig: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Card de Site */}
+        {/* Card de Site & QR Code PDF */}
         <Card className="shadow-lg border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-3 text-orange-800 text-lg">
               <Link className="h-5 w-5" />
-              URL Site
+              URL Site & QR Code PDF
             </CardTitle>
             <CardDescription className="text-orange-700">
-              Link para redirecionamento do botão "Site"
+              Link para redirecionamento do botão "Site" e para o QR Code/Link no rodapé do PDF
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
-              <Label htmlFor="exit_url" className="text-orange-800 font-medium">URL Site</Label>
+              <Label htmlFor="exit_url" className="text-orange-800 font-medium">URL do Site / Avaliação (QR Code)</Label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   id="exit_url"
@@ -534,7 +534,7 @@ const PublicRegistrationLinksConfig: React.FC = () => {
                 <p className="text-sm text-red-600 font-medium">URL inválida</p>
               )}
               <p className="text-sm text-orange-700">
-                Link para onde o usuário será redirecionado ao clicar em "Sair"
+                Este link será usado no botão "Sair" das páginas públicas e também gerará o QR Code de "Avalie meu atendimento" no rodapé dos prontuários PDF.
               </p>
             </div>
           </CardContent>

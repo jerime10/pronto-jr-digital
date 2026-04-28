@@ -86,6 +86,7 @@ export function mapAtendimentoToTemplateData(
     clinicName: clinicSettings?.clinicName || 'CONSULTÓRIO JRS',
     clinicAddress: clinicSettings?.clinicAddress || 'Endereço não configurado',
     clinicPhone: clinicSettings?.clinicPhone || 'Telefone não configurado',
+    siteUrl: clinicSettings?.medicalRecordUrlSiteJrs || '',
     
     // Assets e Assinatura
     'assetsData-logomarca-consultorio': clinicSettings?.logoData || '',

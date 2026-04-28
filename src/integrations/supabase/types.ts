@@ -824,7 +824,7 @@ export type Database = {
           updated_by: string | null
           whatsapp_recurring_reminder_webhook_url: string | null
           whatsapp_reminder_webhook_url: string | null
-          whatsapp_webhook_url: string | null
+          medical_record_url_site_jrs: string | null
         }
         Insert: {
           accent_color?: string | null
@@ -857,7 +857,7 @@ export type Database = {
           updated_by?: string | null
           whatsapp_recurring_reminder_webhook_url?: string | null
           whatsapp_reminder_webhook_url?: string | null
-          whatsapp_webhook_url?: string | null
+          medical_record_url_site_jrs?: string | null
         }
         Update: {
           accent_color?: string | null
@@ -890,7 +890,7 @@ export type Database = {
           updated_by?: string | null
           whatsapp_recurring_reminder_webhook_url?: string | null
           whatsapp_reminder_webhook_url?: string | null
-          whatsapp_webhook_url?: string | null
+          medical_record_url_site_jrs?: string | null
         }
         Relationships: []
       }

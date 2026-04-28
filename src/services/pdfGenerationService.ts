@@ -5,6 +5,7 @@ export interface GeneratePdfParams {
   medicalRecordId: string;
   data: Record<string, any>;
   isPreview?: boolean;
+  htmlTemplate?: string;
 }
 
 /**
@@ -14,6 +15,7 @@ export async function generatePremiumPdf(params: GeneratePdfParams) {
   try {
     const payload = {
       medicalRecordId: params.medicalRecordId,
+      htmlTemplate: params.htmlTemplate,
       data: {
         ...params.data,
         medicalRecordId: params.medicalRecordId // Backup do ID dentro do data

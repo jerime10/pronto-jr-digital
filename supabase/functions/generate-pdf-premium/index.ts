@@ -356,12 +356,12 @@ Deno.serve(async (req) => {
     console.log(`[PDF] 📡 Buscando configurações do site...`);
     const { data: settingsData } = await supabase
       .from('site_settings')
-      .select('medical_record_webhook_url')
+      .select('medical_record_url_site_jrs')
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    const siteUrl = settingsData?.medical_record_webhook_url || '';
+    const siteUrl = settingsData?.medical_record_url_site_jrs || '';
     let qrCodeBase64 = '';
     
     if (siteUrl) {
@@ -375,11 +375,13 @@ Deno.serve(async (req) => {
 
     // Preparar conteúdo do QR Code para as páginas 1 e 2
     const qrContent = siteUrl ? `
-        <div class="qr-container">
-            <img src="${qrCodeBase64}" class="qr-code">
-            <a href="${siteUrl}" class="site-link">${siteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}</a>
-            <p class="qr-message">Avalie meu atendimento</p>
-        </div>
+        <a href="${siteUrl}" style="text-decoration: none; color: inherit; display: block;">
+            <div class="qr-container">
+                <img src="${qrCodeBase64}" class="qr-code">
+                <span class="site-link">${siteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+                <p class="qr-message">Avalie meu atendimento</p>
+            </div>
+        </a>
     ` : '';
     
     // Inserir no objeto data para que o substituidor de placeholders o encontre

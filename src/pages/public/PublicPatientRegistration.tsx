@@ -169,7 +169,7 @@ export const PublicPatientRegistration: React.FC = () => {
       if (data) {
         setPublicLinks({
           scheduling_url: getDynamicUrl((data as any).n8n_webhook_url),
-          exit_url: getDynamicUrl((data as any).whatsapp_webhook_url)
+          exit_url: getDynamicUrl((data as any).medical_record_url_site_jrs)
         });
       }
     } catch (error) {

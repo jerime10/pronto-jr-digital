@@ -71,6 +71,7 @@ export async function submitMedicalRecordToWebhook(params: SubmitMedicalRecordPa
       formData.append('clinicName', siteSettings.clinic_name || 'Consultório JRS');
       formData.append('clinicAddress', siteSettings.clinic_address || 'Trav. José Soares, nº 152, Bairro: Fazendão');
       formData.append('clinicPhone', siteSettings.clinic_phone || '91-98595-8042');
+      formData.append('siteUrl', siteSettings.medical_record_url_site_jrs || '');
     }
 
     // Add complete professional information

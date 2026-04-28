@@ -273,7 +273,8 @@ export const useSaveActions = ({
       const result = await generatePremiumPdf({
         medicalRecordId: String(finalId),
         data: templateData,
-        isPreview: isPreview
+        isPreview: isPreview,
+        htmlTemplate: PREMIUM_PRONTUARIO_TEMPLATE
       });
 
       return result;

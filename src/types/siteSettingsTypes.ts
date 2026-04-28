@@ -34,6 +34,9 @@ export interface SiteSettings {
   // Medical record webhook settings
   medicalRecordWebhookUrl: string;
   
+  // Medical record site URL (for QR code)
+  medicalRecordUrlSiteJrs?: string | null;
+  
   // Public registration URL (new)
   public_registration_url?: string | null;
   
