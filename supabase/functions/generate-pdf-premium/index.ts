@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { qrcode } from "https://deno.land/x/qrcode/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -96,6 +97,35 @@ const PREMIUM_TEMPLATE = `
             text-transform: uppercase; 
             color: var(--primary);
         }
+        .qr-container { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            text-align: center;
+            margin-bottom: 2mm;
+        }
+        .qr-code { 
+            width: 12mm; 
+            height: 12mm; 
+            object-fit: contain; 
+        }
+        .site-link { 
+            font-size: 6.5pt; 
+            font-weight: 700; 
+            color: var(--accent); 
+            text-decoration: none; 
+            margin-top: 1mm;
+            word-break: break-all;
+        }
+        .qr-message { 
+            font-size: 6pt; 
+            color: var(--text-muted); 
+            font-weight: 700; 
+            text-transform: uppercase; 
+            margin-top: 1px;
+            letter-spacing: 0.3px;
+        }
         .rt-area .sig-name {
             margin-top: 16px; /* Ajustado para compensar o 'top: 12px' */
         }
@@ -138,6 +168,9 @@ const PREMIUM_TEMPLATE = `
                     <img src="{{ assetsData-logomarca-consultorio }}" class="logo-img">
                     <div class="clinic-info"><h1>{{ clinicName }}</h1></div>
                 </div>
+                
+                {{ PAGE_1_RT_CONTENT }}
+
                 <div style="text-align:right; font-size:8pt; color:var(--text-muted);">
                     <p>Início: {{ inicio }}</p>
                     <p>Término: {{ final }}</p>
@@ -182,13 +215,8 @@ const PREMIUM_TEMPLATE = `
         </div>
 
         <footer>
-            <div class="rt-area" style="display:{{ rt-display-style }}">
-                <img src="{{ rt-assinatura }}" class="sig-img" style="display:{{ rt-img-display-style }}">
-                <div class="sig-line"></div>
-                <p class="sig-name">{{ rt-nome }}</p>
-                <p class="sig-details">{{ rt-registro }}</p>
-                <p class="sig-details">{{ rt-profissao }}</p>
-                <p class="sig-role">RT PELA EMISSÃO DO LAUDO</p>
+            <div class="rt-area">
+                {{ PAGE_1_RT_CONTENT }}
             </div>
             <div class="footer-address">
                 {{ formattedAddress }}
@@ -199,7 +227,6 @@ const PREMIUM_TEMPLATE = `
                 <p class="sig-name">{{ nome-profissional }}</p>
                 <p class="sig-details">{{ orgao-classe }}</p>
                 <p class="sig-details">{{ Profissao }}</p>
-                <p class="sig-role">EXECUTOR DO EXAME</p>
             </div>
         </footer>
     </div>
@@ -223,13 +250,8 @@ const PREMIUM_TEMPLATE = `
         </div>
 
         <footer>
-            <div class="rt-area" style="display:{{ rt-display-style }}">
-                <img src="{{ rt-assinatura }}" class="sig-img" style="display:{{ rt-img-display-style }}">
-                <div class="sig-line"></div>
-                <p class="sig-name">{{ rt-nome }}</p>
-                <p class="sig-details">{{ rt-registro }}</p>
-                <p class="sig-details">{{ rt-profissao }}</p>
-                <p class="sig-role">RT PELA EMISSÃO DO LAUDO</p>
+            <div class="rt-area">
+                {{ PAGE_2_RT_CONTENT }}
             </div>
             <div class="footer-address">
                 {{ formattedAddress }}
@@ -240,7 +262,6 @@ const PREMIUM_TEMPLATE = `
                 <p class="sig-name">{{ nome-profissional }}</p>
                 <p class="sig-details">{{ orgao-classe }}</p>
                 <p class="sig-details">{{ Profissao }}</p>
-                <p class="sig-role">EXECUTOR DO EXAME</p>
             </div>
         </footer>
     </div>
@@ -330,6 +351,40 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // 2. Buscar configurações do site para o QR Code e URL (URL Site)
+    console.log(`[PDF] 📡 Buscando configurações do site...`);
+    const { data: settingsData } = await supabase
+      .from('site_settings')
+      .select('medical_record_webhook_url')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const siteUrl = settingsData?.medical_record_webhook_url || '';
+    let qrCodeBase64 = '';
+    
+    if (siteUrl) {
+      try {
+        console.log(`[PDF] 📱 Gerando QR Code para: ${siteUrl}`);
+        qrCodeBase64 = await qrcode(siteUrl);
+      } catch (qrErr) {
+        console.error(`[PDF] ❌ Erro ao gerar QR Code:`, qrErr);
+      }
+    }
+
+    // Preparar conteúdo do QR Code para as páginas 1 e 2
+    const qrContent = siteUrl ? `
+        <div class="qr-container">
+            <img src="${qrCodeBase64}" class="qr-code">
+            <a href="${siteUrl}" class="site-link">${siteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}</a>
+            <p class="qr-message">Avalie meu atendimento</p>
+        </div>
+    ` : '';
+    
+    // Inserir no objeto data para que o substituidor de placeholders o encontre
+    data['PAGE_1_RT_CONTENT'] = qrContent;
+    data['PAGE_2_RT_CONTENT'] = qrContent;
 
     // 2. Buscar os dados atualizados diretamente do banco para garantir sincronia total
     console.log(`[PDF] 📡 Buscando dados oficiais do banco para ID: ${medicalRecordId}`);

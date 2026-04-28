@@ -1136,6 +1136,21 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
         return numbers ? `${numbers}g` : '';
       }
 
+      // 1.1. Formatação de BCF: apenas números + "bpm"
+      if (lowerKey === 'bcf') {
+        const numbers = stringValue.replace(/\D/g, '');
+        return numbers ? `${numbers}bpm` : '';
+      }
+
+      // 1.2. Formatação de mm: BPD, HC, AC, FL, AF e variações comuns
+      const exactMmFields = ['bpd', 'hc', 'ac', 'fl', 'af', 'cc', 'ca', 'cf', 'dbp'];
+      const longMmFields = ['diametrobiparietal', 'circunferenciacefalica', 'circunferenciaabdominal', 'comprimentofemur', 'liquidoamniotico'];
+      
+      if (exactMmFields.includes(lowerKey) || longMmFields.some(field => lowerKey.includes(field))) {
+        const numbers = stringValue.replace(/\D/g, '');
+        return numbers ? `${numbers}mm` : '';
+      }
+
       // 2. Formatação de Data
       if (lowerKey.includes('data') || lowerKey === 'dpp') {
         const naturalParsed = parseNaturalDate(stringValue);

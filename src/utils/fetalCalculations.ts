@@ -191,63 +191,49 @@ export function calculateFetalWeightHadlock4(
   return Math.round(weight);
 }
 
+// Aproximação da CDF da distribuição normal padrão (Abramowitz & Stegun)
+function stdNormalCDF(x: number): number {
+  const t = 1 / (1 + 0.2316419 * Math.abs(x));
+  const d = 0.3989423 * Math.exp(-x * x / 2);
+  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return x > 0 ? 1 - p : p;
+}
+
 /**
- * Calcula o percentil do peso fetal baseado na idade gestacional
+ * Calcula o percentil do peso fetal usando a fórmula de crescimento de Hadlock (1991)
  * @param weight - Peso fetal em gramas
  * @param gestationalAgeWeeks - Idade gestacional em semanas
- * @returns Percentil de 0 a 100
+ * @returns Percentil de 1 a 99
  */
 export function calculatePercentile(weight: number, gestationalAgeWeeks: number): number {
   console.log('📊 [PERCENTIL-CALC] Entrada:', { weight, gestationalAgeWeeks });
   
-  // Arredondar para a semana mais próxima
-  const roundedWeeks = Math.round(gestationalAgeWeeks);
-  console.log('📊 [PERCENTIL-CALC] Semanas arredondadas:', roundedWeeks);
-  
-  // Verificar se está dentro do range da tabela (14-42 semanas)
-  if (roundedWeeks < 14 || roundedWeeks > 42) {
-    console.warn('🚨 [PERCENTIL] Idade gestacional fora do range da tabela:', roundedWeeks);
+  // Limites da idade gestacional
+  if (gestationalAgeWeeks < 10 || gestationalAgeWeeks > 42) {
+    console.warn('🚨 [PERCENTIL] Idade gestacional fora do range (10-42 semanas):', gestationalAgeWeeks);
     return 50; // Retornar percentil 50 como padrão
   }
   
-  const reference = FETAL_WEIGHT_REFERENCE[roundedWeeks];
-  console.log('📊 [PERCENTIL-CALC] Referência encontrada:', reference);
+  // Equação de crescimento de Hadlock 1991: ln(W) = 0.578 + 0.332(GA) - 0.00354(GA²)
+  const ga = gestationalAgeWeeks;
+  const lnExpectedW = 0.578 + 0.332 * ga - 0.00354 * ga * ga;
+  const expectedWeight = Math.exp(lnExpectedW);
   
-  if (!reference) {
-    console.warn('🚨 [PERCENTIL] Referência não encontrada para semana:', roundedWeeks);
-    return 50;
-  }
+  // Desvio Padrão é de 12.7% do peso esperado
+  const sd = 0.127 * expectedWeight;
   
-  // Calcular percentil usando interpolação linear entre os percentis de referência
-  console.log('📊 [PERCENTIL-CALC] Comparando peso:', weight, 'com referências:', reference);
+  // Z-score
+  const zScore = (weight - expectedWeight) / sd;
   
-  if (weight <= reference.p10) {
-    // Abaixo do P10
-    const ratio = weight / reference.p10;
-    const percentil = Math.max(1, Math.round(10 * ratio));
-    console.log('📊 [PERCENTIL-CALC] Abaixo P10 - ratio:', ratio, 'percentil:', percentil);
-    return percentil;
-  } else if (weight >= reference.p90) {
-    // Acima do P90
-    const excess = weight - reference.p90;
-    const range = reference.p90 - reference.p50;
-    const ratio = excess / range;
-    const percentil = Math.min(99, Math.round(90 + (10 * ratio)));
-    console.log('📊 [PERCENTIL-CALC] Acima P90 - excess:', excess, 'range:', range, 'ratio:', ratio, 'percentil:', percentil);
-    return percentil;
-  } else if (weight < reference.p50) {
-    // Entre P10 e P50
-    const ratio = (weight - reference.p10) / (reference.p50 - reference.p10);
-    const percentil = Math.round(10 + (40 * ratio));
-    console.log('📊 [PERCENTIL-CALC] Entre P10-P50 - ratio:', ratio, 'percentil:', percentil);
-    return percentil;
-  } else {
-    // Entre P50 e P90
-    const ratio = (weight - reference.p50) / (reference.p90 - reference.p50);
-    const percentil = Math.round(50 + (40 * ratio));
-    console.log('📊 [PERCENTIL-CALC] Entre P50-P90 - ratio:', ratio, 'percentil:', percentil);
-    return percentil;
-  }
+  // Converter Z-score em percentil usando distribuição normal padrão CDF
+  const percentileFloat = stdNormalCDF(zScore) * 100;
+  
+  // Arredondar e garantir limites
+  const percentile = Math.max(1, Math.min(99, Math.round(percentileFloat)));
+  
+  console.log('📊 [PERCENTIL-CALC] Hadlock 1991 -> Expected:', expectedWeight.toFixed(2), 'SD:', sd.toFixed(2), 'Z-score:', zScore.toFixed(2), 'Percentil:', percentile);
+  
+  return percentile;
 }
 
 /**

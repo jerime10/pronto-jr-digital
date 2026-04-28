@@ -517,12 +517,7 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
 
         <footer>
             <div class="signature-area">
-                <img src="{{ $json['rt-assinatura'] }}" class="sig-img">
-                <div class="sig-line"></div>
-                <p class="sig-name">{{ $json['rt-nome'] }}</p>
-                <p class="sig-role">{{ $json['rt-profissao'] }}</p>
-                <p class="sig-role">{{ $json['rt-registro'] }}</p>
-                <p class="sig-role" style="color: var(--accent); margin-top: 2px;">RT PELA EMISSÃO DO LAUDO</p>
+                <!-- Espaçador para manter o layout -->
             </div>
 
             <div class="clinic-contact">
@@ -536,7 +531,6 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
                 <p class="sig-name">{{ $json['nome-profissional'] }}</p>
                 <p class="sig-role">{{ $json.Profissao }}</p>
                 <p class="sig-role">{{ $json['orgao-classe'] }}</p>
-                <p class="sig-role" style="color: var(--accent); margin-top: 2px;">EXECUTOR DO EXAME</p>
             </div>
         </footer>
         <div class="page-number">Página 1 de 3</div>
@@ -582,12 +576,7 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
 
         <footer>
             <div class="signature-area">
-                <img src="{{ $json['rt-assinatura'] }}" class="sig-img">
-                <div class="sig-line"></div>
-                <p class="sig-name">{{ $json['rt-nome'] }}</p>
-                <p class="sig-role">{{ $json['rt-profissao'] }}</p>
-                <p class="sig-role">{{ $json['rt-registro'] }}</p>
-                <p class="sig-role" style="color: var(--accent); margin-top: 2px;">RT PELA EMISSÃO DO LAUDO</p>
+                <!-- Espaçador para manter o layout -->
             </div>
 
             <div class="clinic-contact">
@@ -601,7 +590,6 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
                 <p class="sig-name">{{ $json['nome-profissional'] }}</p>
                 <p class="sig-role">{{ $json.Profissao }}</p>
                 <p class="sig-role">{{ $json['orgao-classe'] }}</p>
-                <p class="sig-role" style="color: var(--accent); margin-top: 2px;">EXECUTOR DO EXAME</p>
             </div>
         </footer>
         <div class="page-number">Página 2 de 3</div>
