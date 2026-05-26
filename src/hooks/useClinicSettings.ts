@@ -8,6 +8,7 @@ export type ClinicInfo = {
   clinicName: string;
   clinicAddress: string;
   clinicPhone: string;
+  showAddress?: boolean;
 };
 
 export function useClinicSettings() {
@@ -44,7 +45,8 @@ export function useClinicSettings() {
     return {
       clinicName: settings?.clinicName || '',
       clinicAddress: settings?.clinicAddress || '',
-      clinicPhone: settings?.clinicPhone || ''
+      clinicPhone: settings?.clinicPhone || '',
+      showAddress: settings?.showAddress !== false,
     };
   };
 

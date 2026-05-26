@@ -101,7 +101,13 @@ export function mapAtendimentoToTemplateData(
     'rt-assinatura': clinicSettings?.rtSignatureData || '',
     'rt-nome': clinicSettings?.rtName || '',
     'rt-profissao': clinicSettings?.rtTitle || '',
-    'rt-registro': clinicSettings?.rtRegistry || ''
+    'rt-registro': clinicSettings?.rtRegistry || '',
+    
+    // Toggles de visibilidade (Passados para a Edge Function)
+    // Usamos === true para garantir que undefined (coluna ausente no banco) resulte em false, não em true
+    showAddress: clinicSettings?.showAddress === true,
+    showRtSignature: clinicSettings?.showRtSignature === true,
+    showProfessionalSignature: clinicSettings?.showProfessionalSignature === true
   };
 
   // Imagens (até 15)

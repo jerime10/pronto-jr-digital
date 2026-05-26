@@ -175,7 +175,7 @@ export async function fetchDocumentAssets() {
     // Tenta buscar com todos os campos (incluindo os novos do RT)
     const { data, error } = await supabase
       .from('site_settings')
-      .select('logo_data, signature_data, signature_professional_name, signature_professional_title, signature_professional_registry, attendant_logo_data, rt_signature_data, rt_name, rt_title, rt_registry')
+      .select('logo_data, signature_data, signature_professional_name, signature_professional_title, signature_professional_registry, attendant_logo_data, rt_signature_data, rt_name, rt_title, rt_registry, show_rt_signature, show_professional_signature')
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -204,7 +204,9 @@ export async function fetchDocumentAssets() {
           rtSignatureData: null,
           rtName: null,
           rtTitle: null,
-          rtRegistry: null
+          rtRegistry: null,
+          showRtSignature: true,
+          showProfessionalSignature: true
         };
       }
 
@@ -218,7 +220,9 @@ export async function fetchDocumentAssets() {
         rtSignatureData: null,
         rtName: null,
         rtTitle: null,
-        rtRegistry: null
+        rtRegistry: null,
+        showRtSignature: oldData?.show_rt_signature !== false,
+        showProfessionalSignature: oldData?.show_professional_signature !== false
       };
     }
 
@@ -234,7 +238,9 @@ export async function fetchDocumentAssets() {
         rtSignatureData: null,
         rtName: null,
         rtTitle: null,
-        rtRegistry: null
+        rtRegistry: null,
+        showRtSignature: true,
+        showProfessionalSignature: true
       };
     }
 
@@ -249,7 +255,9 @@ export async function fetchDocumentAssets() {
       rtSignatureData: data.rt_signature_data,
       rtName: data.rt_name,
       rtTitle: data.rt_title,
-      rtRegistry: data.rt_registry
+      rtRegistry: data.rt_registry,
+      showRtSignature: data.show_rt_signature !== false,
+      showProfessionalSignature: data.show_professional_signature !== false
     };
   } catch (error) {
     console.error('Error fetching document assets:', error);
@@ -264,7 +272,9 @@ export async function fetchDocumentAssets() {
       rtSignatureData: null,
       rtName: null,
       rtTitle: null,
-      rtRegistry: null
+      rtRegistry: null,
+      showRtSignature: true,
+      showProfessionalSignature: true
     };
   }
 }
@@ -301,6 +311,9 @@ export async function saveDocumentAssets(assets: any) {
       rt_title: assets.rtTitle !== undefined ? assets.rtTitle : existingSettings?.rt_title,
       rt_registry: assets.rtRegistry !== undefined ? assets.rtRegistry : existingSettings?.rt_registry,
       
+      show_rt_signature: assets.showRtSignature !== undefined ? assets.showRtSignature : existingSettings?.show_rt_signature,
+      show_professional_signature: assets.showProfessionalSignature !== undefined ? assets.showProfessionalSignature : existingSettings?.show_professional_signature,
+      
       primary_color: existingSettings?.primary_color || '#10b981',
       accent_color: existingSettings?.accent_color || '#3b82f6',
       font_family: existingSettings?.font_family || 'Inter',
@@ -312,21 +325,64 @@ export async function saveDocumentAssets(assets: any) {
       updated_at: new Date().toISOString()
     };
 
+    // Remove undefined fields
+    const cleanSettingsData: any = {};
+    Object.entries(settingsData).forEach(([key, value]) => {
+      if (value !== undefined) {
+        cleanSettingsData[key] = value;
+      }
+    });
+
     if (existingSettings?.id) {
-      // Atualizar configurações existentes
+      // Try to update with all fields
       const { error } = await supabase
         .from('site_settings')
-        .update(settingsData)
+        .update(cleanSettingsData)
         .eq('id', existingSettings.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating document assets:', error);
+        
+        // Fallback if columns don't exist
+        if (error.code === 'PGRST204' || error.message?.includes('column')) {
+          const fallbackData = { ...cleanSettingsData };
+          delete fallbackData.show_rt_signature;
+          delete fallbackData.show_professional_signature;
+          delete fallbackData.show_address;
+          
+          const { error: retryError } = await supabase
+            .from('site_settings')
+            .update(fallbackData)
+            .eq('id', existingSettings.id);
+            
+          if (retryError) throw retryError;
+        } else {
+          throw error;
+        }
+      }
     } else {
-      // Criar novas configurações
+      // Try to insert with all fields
       const { error } = await supabase
         .from('site_settings')
-        .insert(settingsData);
-
-      if (error) throw error;
+        .insert([cleanSettingsData]);
+      
+      if (error) {
+        // Fallback for insert
+        if (error.code === 'PGRST204' || error.message?.includes('column')) {
+          const fallbackData = { ...cleanSettingsData };
+          delete fallbackData.show_rt_signature;
+          delete fallbackData.show_professional_signature;
+          delete fallbackData.show_address;
+          
+          const { error: retryError } = await supabase
+            .from('site_settings')
+            .insert([fallbackData]);
+            
+          if (retryError) throw retryError;
+        } else {
+          throw error;
+        }
+      }
     }
 
     console.log('Document assets saved successfully');

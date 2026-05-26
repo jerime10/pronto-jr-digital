@@ -49,7 +49,24 @@ export async function upsertSiteSettings(updates: Record<string, any>): Promise<
     
     if (error) {
       console.error('Error updating site settings singleton:', error);
-      throw error;
+      
+      // Fallback if columns don't exist
+      if (error.code === 'PGRST204' || error.message?.includes('column')) {
+        console.log('Retrying update without new toggle columns...');
+        const fallbackData = { ...finalUpdates };
+        delete fallbackData.show_rt_signature;
+        delete fallbackData.show_professional_signature;
+        delete fallbackData.show_address;
+        
+        const { error: retryError } = await supabase
+          .from('site_settings')
+          .update(fallbackData)
+          .eq('id', settingsId);
+          
+        if (retryError) throw retryError;
+      } else {
+        throw error;
+      }
     }
   } else {
     console.log('🆕 [Singleton] No site settings found, creating new row');
@@ -59,7 +76,23 @@ export async function upsertSiteSettings(updates: Record<string, any>): Promise<
     
     if (error) {
       console.error('Error inserting site settings singleton:', error);
-      throw error;
+      
+      // Fallback for insert
+      if (error.code === 'PGRST204' || error.message?.includes('column')) {
+        console.log('Retrying insert without new toggle columns...');
+        const fallbackData = { ...finalUpdates };
+        delete fallbackData.show_rt_signature;
+        delete fallbackData.show_professional_signature;
+        delete fallbackData.show_address;
+        
+        const { error: retryError } = await supabase
+          .from('site_settings')
+          .insert([fallbackData]);
+          
+        if (retryError) throw retryError;
+      } else {
+        throw error;
+      }
     }
   }
 }

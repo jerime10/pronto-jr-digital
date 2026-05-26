@@ -23,6 +23,14 @@ export interface SiteSettings {
   rtTitle: string | null;
   rtRegistry: string | null;
   
+  // Attendant logo (new)
+  attendantLogoData: string | null;
+  
+  // Footer visibility toggles
+  showRtSignature: boolean;
+  showAddress: boolean;
+  showProfessionalSignature: boolean;
+  
   // Clinic settings
   clinicName: string;
   clinicAddress: string;
@@ -72,6 +80,7 @@ export interface ClinicInfoInput {
   clinicName: string;
   clinicAddress: string;
   clinicPhone: string;
+  showAddress?: boolean;
 }
 
 // Medical record webhook input (used when updating medical record webhook)
@@ -92,6 +101,12 @@ export interface DocumentAssetsInput {
   rtName?: string | null;
   rtTitle?: string | null;
   rtRegistry?: string | null;
+
+  // Attendant logo
+  attendantLogoData?: string | null;
+
+  showRtSignature?: boolean;
+  showProfessionalSignature?: boolean;
 }
 
 // Professional signature info (new)

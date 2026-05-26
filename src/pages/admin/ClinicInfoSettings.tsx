@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2 } from 'lucide-react';
 import { useClinicSettings, ClinicInfo } from '@/hooks/useClinicSettings';
 
@@ -14,6 +15,7 @@ const ClinicInfoSettings: React.FC = () => {
     clinicName: '',
     clinicAddress: '',
     clinicPhone: '',
+    showAddress: true,
   });
 
   // Load clinic information
@@ -23,6 +25,7 @@ const ClinicInfoSettings: React.FC = () => {
         clinicName: settings.clinicName || '',
         clinicAddress: settings.clinicAddress || '',
         clinicPhone: settings.clinicPhone || '',
+        showAddress: settings.showAddress !== false,
       });
     }
   }, [isLoading, settings]);
@@ -76,6 +79,16 @@ const ClinicInfoSettings: React.FC = () => {
               placeholder="Endereço completo"
               rows={3}
             />
+            <div className="flex items-center space-x-2 mt-2">
+              <Checkbox 
+                id="showAddress" 
+                checked={formData.showAddress} 
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, showAddress: checked as boolean }))} 
+              />
+              <Label htmlFor="showAddress" className="text-sm font-normal cursor-pointer">
+                Exibir endereço no rodapé do PDF
+              </Label>
+            </div>
           </div>
           
           <div className="space-y-2">

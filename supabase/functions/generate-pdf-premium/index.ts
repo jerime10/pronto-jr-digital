@@ -53,10 +53,10 @@ const PREMIUM_TEMPLATE = `
             margin-top: auto;
             padding-top: 5mm; 
             border-top: 1px solid var(--border); 
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            display: flex;
             align-items: flex-end;
             gap: 5mm;
+            width: 100%;
         }
         .rt-area, .sig-area { 
             text-align: center; 
@@ -214,15 +214,15 @@ const PREMIUM_TEMPLATE = `
             </div>
         </div>
 
-        <footer>
-            <div class="rt-area">
+        <footer style="justify-content: {{ page1-footer-justify }}">
+            <div class="rt-area" style="display:{{ page1-rt-display }}">
                 {{ PAGE_1_RT_CONTENT }}
             </div>
-            <div class="footer-address">
+            <div class="footer-address" style="display:{{ address-display-style }}">
                 {{ formattedAddress }}
             </div>
-            <div class="sig-area">
-                <img src="{{ assinatura-base64-profissional }}" class="sig-img">
+            <div class="sig-area" style="display:{{ sig-display-style }}">
+                <img src="{{ assinatura-base64-profissional }}" class="sig-img" style="display:{{ sig-img-display-style }}">
                 <div class="sig-line"></div>
                 <p class="sig-name">{{ nome-profissional }}</p>
                 <p class="sig-details">{{ orgao-classe }}</p>
@@ -249,15 +249,15 @@ const PREMIUM_TEMPLATE = `
             </div>
         </div>
 
-        <footer>
-            <div class="rt-area">
+        <footer style="justify-content: {{ page2-footer-justify }}">
+            <div class="rt-area" style="display:{{ page2-rt-display }}">
                 {{ PAGE_2_RT_CONTENT }}
             </div>
-            <div class="footer-address">
+            <div class="footer-address" style="display:{{ address-display-style }}">
                 {{ formattedAddress }}
             </div>
-            <div class="sig-area">
-                <img src="{{ assinatura-base64-profissional }}" class="sig-img">
+            <div class="sig-area" style="display:{{ sig-display-style }}">
+                <img src="{{ assinatura-base64-profissional }}" class="sig-img" style="display:{{ sig-img-display-style }}">
                 <div class="sig-line"></div>
                 <p class="sig-name">{{ nome-profissional }}</p>
                 <p class="sig-details">{{ orgao-classe }}</p>
@@ -284,7 +284,7 @@ const PREMIUM_TEMPLATE = `
             {{ EXAM_SECTIONS_HTML }}
         </div>
 
-        <footer>
+        <footer style="justify-content: {{ page3-footer-justify }}">
             <div class="rt-area" style="display:{{ rt-display-style }}">
                 <img src="{{ rt-assinatura }}" class="sig-img" style="display:{{ rt-img-display-style }}">
                 <div class="sig-line"></div>
@@ -293,11 +293,11 @@ const PREMIUM_TEMPLATE = `
                 <p class="sig-details">{{ rt-profissao }}</p>
                 <p class="sig-role">RT PELA EMISSÃO DO LAUDO</p>
             </div>
-            <div class="footer-address">
+            <div class="footer-address" style="display:{{ address-display-style }}">
                 {{ formattedAddress }}
             </div>
-            <div class="sig-area">
-                <img src="{{ assinatura-base64-profissional }}" class="sig-img">
+            <div class="sig-area" style="display:{{ sig-display-style }}">
+                <img src="{{ assinatura-base64-profissional }}" class="sig-img" style="display:{{ sig-img-display-style }}">
                 <div class="sig-line"></div>
                 <p class="sig-name">{{ nome-profissional }}</p>
                 <p class="sig-details">{{ orgao-classe }}</p>
@@ -435,25 +435,58 @@ Deno.serve(async (req) => {
       data.final = data.final || 'Não informado';
     }
 
-    // 3. Formatação do endereço central em múltiplas linhas
     const addr = data.clinicAddress || '';
     let formattedAddress = '';
     
-    if (!addr.includes(',') && addr.toUpperCase().includes('BAIRRO')) {
-      const parts = addr.split(/bairro/i);
-      formattedAddress = `${parts[0].trim()}<br>Bairro ${parts[1].trim()}<br>${data.clinicPhone || ''}`;
-    } else {
-      const addressLines = addr.split(',').map(s => s.trim());
-      if (addressLines.length >= 2) {
-        formattedAddress = `${addressLines[0]}<br>${addressLines[1]}<br>${data.clinicPhone || ''}`;
+    if (addr && addr.trim() !== '') {
+      if (!addr.includes(',') && addr.toUpperCase().includes('BAIRRO')) {
+        const parts = addr.split(/bairro/i);
+        formattedAddress = `${parts[0].trim()}<br>Bairro ${parts[1].trim()}<br>${data.clinicPhone || ''}`;
       } else {
-        formattedAddress = `${addr}<br>${data.clinicPhone || ''}`;
+        const addressLines = addr.split(',').map(s => s.trim());
+        if (addressLines.length >= 2) {
+          formattedAddress = `${addressLines[0]}<br>${addressLines[1]}<br>${data.clinicPhone || ''}`;
+        } else {
+          formattedAddress = `${addr}<br>${data.clinicPhone || ''}`;
+        }
       }
     }
     
+    // Garantir que a clínica sempre tenha um nome padrão configurável
+    data.clinicName = data.clinicName || 'Consultório JRS';
     data.formattedAddress = formattedAddress;
-    data['rt-display-style'] = data['rt-nome'] ? 'flex' : 'none';
-    data['rt-img-display-style'] = data['rt-assinatura'] ? 'block' : 'none';
+
+    // Lógica de visibilidade dos rodépés (Respeitando as preferências do usuário)
+    // Usamos === true para que apenas booleano verdadeiro exiba a seção
+    const showAddr = data.showAddress === true;
+    const showSig  = data.showProfessionalSignature === true;
+    const showRt   = data.showRtSignature === true;
+
+    const qrCodeVisible = (!!qrContent) && showRt;
+    const addressVisible = (!!formattedAddress) && showAddr;
+    const sigVisible = (!!data['nome-profissional']) && showSig;
+    const rtVisible = (!!data['rt-nome']) && showRt;
+
+    data['address-display-style'] = addressVisible ? 'flex' : 'none';
+    data['sig-display-style'] = sigVisible ? 'flex' : 'none';
+    data['sig-img-display-style'] = (data['assinatura-base64-profissional'] && showSig) ? 'block' : 'none';
+    
+    // Page 1 e 2 logic
+    data['page1-rt-display'] = qrCodeVisible ? 'flex' : 'none';
+    data['page2-rt-display'] = qrCodeVisible ? 'flex' : 'none';
+    
+    const page1VisibleCount = (qrCodeVisible ? 1 : 0) + (addressVisible ? 1 : 0) + (sigVisible ? 1 : 0);
+    data['page1-footer-justify'] = page1VisibleCount <= 1 ? 'center' : 'space-between';
+    data['page2-footer-justify'] = data['page1-footer-justify'];
+
+    // Page 3 e Images logic
+    data['rt-display-style'] = rtVisible ? 'flex' : 'none';
+    data['rt-img-display-style'] = (data['rt-assinatura'] && showRt) ? 'block' : 'none';
+    
+    const page3VisibleCount = (rtVisible ? 1 : 0) + (addressVisible ? 1 : 0) + (sigVisible ? 1 : 0);
+    data['page3-footer-justify'] = page3VisibleCount <= 1 ? 'center' : 'space-between';
+
+    console.log(`[PDF] 👁️ Visibilidade: addr=${showAddr} sig=${showSig} rt=${showRt} | page1Count=${page1VisibleCount}`);
 
     // 4. Processar Imagens no Servidor
     let imagesHtml = '';
@@ -470,7 +503,7 @@ Deno.serve(async (req) => {
         imagesHtml += `<div class="page">
           <header>
             <div class="header-content">
-              <div class="clinic-info"><h1>${data.clinicName || 'Clínica'}</h1></div>
+              <div class="clinic-info"><h1>${data.clinicName}</h1></div>
               <div style="text-align:right; font-size:8pt; color:var(--text-muted);"><p>Imagens - Pág ${Math.floor(j/6)+1}</p></div>
             </div>
           </header>
@@ -481,7 +514,7 @@ Deno.serve(async (req) => {
           imagesHtml += `<div class="img-card"><div class="img-frame"><img src="${img.s}" class="exam-img"></div><p style="font-size:7pt;margin-top:3px;">${img.t}</p></div>`;
         });
         imagesHtml += `</div></div>
-          <footer>
+          <footer style="justify-content: ${data['page3-footer-justify']}">
             <div class="rt-area" style="display:${data['rt-display-style']}">
                 <img src="${data['rt-assinatura'] || ''}" class="sig-img" style="display:${data['rt-img-display-style']}">
                 <div class="sig-line"></div>
@@ -490,9 +523,9 @@ Deno.serve(async (req) => {
                 <p class="sig-details">${data['rt-profissao'] || ''}</p>
                 <p class="sig-role">RT PELA EMISSÃO DO LAUDO</p>
             </div>
-            <div class="footer-address">${formattedAddress}</div>
-            <div class="sig-area">
-                <img src="${data['assinatura-base64-profissional'] || ''}" class="sig-img">
+            <div class="footer-address" style="display:${data['address-display-style']}">${formattedAddress}</div>
+            <div class="sig-area" style="display:${data['sig-display-style']}">
+                <img src="${data['assinatura-base64-profissional'] || ''}" class="sig-img" style="display:${data['sig-img-display-style']}">
                 <div class="sig-line"></div>
                 <p class="sig-name">${data['nome-profissional'] || ''}</p>
                 <p class="sig-details">${data['orgao-classe'] || ''}</p>
@@ -548,6 +581,69 @@ Deno.serve(async (req) => {
       complementaresHtml += `</div></div>`;
       if (hasComplementares) examSectionsHtml += complementaresHtml;
       
+      const handledObstetricKeys = [
+        'ig', 'dpp', 'peso', 'percentil',
+        'bpd', 'hc', 'ac', 'fl',
+        'bcf', 'af', 'situacao', 'apresentacao',
+        'impressaodiagnostica', 'achadosadicionais', 'recomendacoes', 'observacoes',
+        'modelTitle', 'modelId', '_ordered_keys'
+      ];
+
+      let keysToProcess: string[] = [];
+      if (dynamicFields._ordered_keys && typeof dynamicFields._ordered_keys === 'string') {
+        keysToProcess = dynamicFields._ordered_keys.split(',');
+        Object.keys(dynamicFields).forEach(k => {
+          if (!keysToProcess.includes(k) && !handledObstetricKeys.some(hk => k.toLowerCase().replace(/[\s_]/g, '') === hk.toLowerCase().replace(/[\s_]/g, ''))) {
+            keysToProcess.push(k);
+          }
+        });
+      } else {
+        keysToProcess = Object.keys(dynamicFields);
+      }
+
+      const otherFields: {key: string, val: any}[] = [];
+      keysToProcess.forEach(key => {
+        const val = dynamicFields[key];
+        const lowerKey = key.toLowerCase().replace(/[\s_]/g, '');
+        const isHandled = handledObstetricKeys.some(hk => lowerKey === hk.toLowerCase().replace(/[\s_]/g, ''));
+        
+        if (!isHandled && val && String(val).trim()) {
+          otherFields.push({key, val});
+        }
+      });
+
+      if (otherFields.length > 0) {
+        let gridHtml = `<div class="exam-grid-two-cols">`;
+        for (let i = 0; i < otherFields.length; i++) {
+          const field = otherFields[i];
+          let label = field.key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+          
+          const labelMap: Record<string, string> = { 
+            'colouterino': 'COLO UTERINO', 'utero': 'ÚTERO', 'vesiculavitelinica': 'VESÍCULA VITELÍNICA',
+            'ovarios': 'OVÁRIOS', 'corpoluteo': 'CORPO LÚTEO', 'fundodosacodedouglas': 'FUNDO DO SACO DE DOUGLAS',
+            'figado': 'FÍGADO', 'viasbiliares': 'VIAS BILIARES', 'vesiculabiliar': 'VESÍCULA BILIAR', 
+            'pancreaseretroperitonio': 'PÂNCREAS E RETROPERITÔNIO', 'baco': 'BAÇO', 
+            'rins': 'RINS', 'bexiga': 'BEXIGA', 'apendicececal': 'APÊNDICE CECAL', 
+            'cavidadeabdominal': 'CAVIDADE ABDOMINAL', 'aortaabdominal': 'AORTA ABDOMINAL',
+            'rimdireito': 'RIM DIREITO', 'rimesquerdo': 'RIM ESQUERDO', 'medidadosrins': 'MEDIDA DOS RINS',
+            'prostata': 'PRÓSTATA'
+          };
+          
+          const lowerKey = field.key.toLowerCase().replace(/[\s_]/g, '');
+          if (labelMap[lowerKey]) {
+            label = labelMap[lowerKey];
+          }
+
+          if (i === otherFields.length - 1 && otherFields.length % 2 !== 0) {
+             gridHtml += `<div class="section" style="grid-column: 1 / -1; width: calc(50% - 4px); margin: 0 auto;"><div class="section-title">${label.toUpperCase()}</div><div class="content-box">${String(field.val)}</div></div>`;
+          } else {
+             gridHtml += `<div class="section"><div class="section-title">${label.toUpperCase()}</div><div class="content-box">${String(field.val)}</div></div>`;
+          }
+        }
+        gridHtml += `</div>`;
+        examSectionsHtml += gridHtml;
+      }
+
       const sectionsOrder = [
         { key: 'impressaodiagnostica', label: 'IMPRESSÃO DIAGNÓSTICA', style: 'style="background:#f0fdf4; font-weight:600;"' },
         { key: 'achadosadicionais', label: 'ACHADOS ADICIONAIS', style: '' },
@@ -572,7 +668,7 @@ Deno.serve(async (req) => {
         keysToProcess = dynamicFields._ordered_keys.split(',');
         // Garantir que não perdemos chaves preenchidas que não estavam em _ordered_keys
         Object.keys(dynamicFields).forEach(k => {
-          if (!keysToProcess.includes(k) && !ignoreKeys.some(ik => k.toLowerCase().includes(ik.toLowerCase()))) {
+          if (!keysToProcess.includes(k) && !ignoreKeys.some(ik => k.toLowerCase().replace(/[\s_]/g, '').includes(ik.toLowerCase().replace(/[\s_]/g, '')))) {
             keysToProcess.push(k);
           }
         });
@@ -611,8 +707,8 @@ Deno.serve(async (req) => {
         const val = dynamicFields[key];
         // Tratar as chaves ignorando case para evitar duplicidade ou perda
         const lowerKey = key.toLowerCase().replace(/[\s_]/g, '');
-        const isStacked = stackedKeys.some(sk => lowerKey.includes(sk));
-        const isIgnore = ignoreKeys.some(ik => lowerKey.includes(ik.toLowerCase()));
+        const isStacked = stackedKeys.some(sk => lowerKey.includes(sk.toLowerCase().replace(/[\s_]/g, '')));
+        const isIgnore = ignoreKeys.some(ik => lowerKey.includes(ik.toLowerCase().replace(/[\s_]/g, '')));
         
         if (!isStacked && !isIgnore && val && String(val).trim()) {
           otherFields.push({key, val});

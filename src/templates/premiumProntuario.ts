@@ -474,9 +474,9 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
 
     <!-- Template de Rodapé Reutilizável para JS -->
     <template id="footer-template">
-        <footer>
-            <div class="signature-area">
-                <img src="{{ $json['rt-assinatura'] }}" class="sig-img">
+        <footer style="justify-content: {{ $json['page3-footer-justify'] }};">
+            <div class="signature-area" style="display: {{ $json['rt-display-style'] }};">
+                <img src="{{ $json['rt-assinatura'] }}" class="sig-img" style="display: {{ $json['rt-img-display-style'] }};">
                 <div class="sig-line"></div>
                 <p class="sig-name">{{ $json['rt-nome'] }}</p>
                 <p class="sig-role">{{ $json['rt-profissao'] }}</p>
@@ -484,7 +484,7 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
                 <p class="sig-role" style="color: var(--accent); margin-top: 2px;">RT PELA EMISSÃO DO LAUDO</p>
             </div>
 
-            <div class="qr-section">
+            <div class="qr-section" style="display: {{ $json['rt-display-style'] }};">
                 <a href="{{ $json.siteUrl }}" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 4px;">
                     <div class="qr-code-wrapper">
                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ $json.siteUrl }}" class="qr-img" alt="QR Code">
@@ -492,14 +492,14 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
                     <p class="qr-text">Avalie meu atendimento</p>
                     <p class="qr-url">{{ $json.siteUrl }}</p>
                 </a>
-                <div class="clinic-contact" style="border-top: none; padding-top: 0; margin-top: 5px;">
+                <div class="clinic-contact" style="border-top: none; padding-top: 0; margin-top: 5px; display: {{ $json['address-display-style'] }};">
                     <p>{{ $json.clinicAddress }}</p>
                     <p>{{ $json.clinicPhone }}</p>
                 </div>
             </div>
 
-            <div class="signature-area">
-                <img src="{{ $json['assinatura-base64-profissional'] }}" class="sig-img">
+            <div class="signature-area" style="display: {{ $json['sig-display-style'] }};">
+                <img src="{{ $json['assinatura-base64-profissional'] }}" class="sig-img" style="display: {{ $json['sig-img-display-style'] }};">
                 <div class="sig-line"></div>
                 <p class="sig-name">{{ $json['nome-profissional'] }}</p>
                 <p class="sig-role">{{ $json.Profissao }}</p>
@@ -568,12 +568,8 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
             <div class="content-box" style="color: #b91c1c; font-weight: 500;">{{ $json.ALERGIAS }}</div>
         </div>
 
-        <footer>
-            <div class="signature-area" style="opacity: 0;">
-                <div class="sig-line"></div>
-            </div>
-
-            <div class="qr-section">
+        <footer style="justify-content: {{ $json['page1-footer-justify'] }};">
+            <div class="qr-section" style="display: {{ $json['page1-rt-display'] }};">
                 <a href="{{ $json.siteUrl }}" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 4px;">
                     <div class="qr-code-wrapper">
                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ $json.siteUrl }}" class="qr-img" alt="QR Code">
@@ -581,14 +577,14 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
                     <p class="qr-text">Avalie meu atendimento</p>
                     <p class="qr-url">{{ $json.siteUrl }}</p>
                 </a>
-                <div class="clinic-contact" style="border-top: none; padding-top: 0; margin-top: 5px;">
+                <div class="clinic-contact" style="border-top: none; padding-top: 0; margin-top: 5px; display: {{ $json['address-display-style'] }};">
                     <p>{{ $json.clinicAddress }}</p>
                     <p>{{ $json.clinicPhone }}</p>
                 </div>
             </div>
 
-            <div class="signature-area">
-                <img src="{{ $json['assinatura-base64-profissional'] }}" class="sig-img">
+            <div class="signature-area" style="display: {{ $json['sig-display-style'] }};">
+                <img src="{{ $json['assinatura-base64-profissional'] }}" class="sig-img" style="display: {{ $json['sig-img-display-style'] }};">
                 <div class="sig-line"></div>
                 <p class="sig-name">{{ $json['nome-professional'] || $json['nome-profissional'] }}</p>
                 <p class="sig-role">{{ $json.Profissao }}</p>
@@ -636,12 +632,8 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
             <div class="content-box" style="min-height: 30mm;">{{ $json['EXAMES SOLICITADOS'] }}</div>
         </div>
 
-        <footer>
-            <div class="signature-area" style="opacity: 0;">
-                <div class="sig-line"></div>
-            </div>
-
-            <div class="qr-section">
+        <footer style="justify-content: {{ $json['page2-footer-justify'] }};">
+            <div class="qr-section" style="display: {{ $json['page2-rt-display'] }};">
                 <a href="{{ $json.siteUrl }}" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 4px;">
                     <div class="qr-code-wrapper">
                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ $json.siteUrl }}" class="qr-img" alt="QR Code">
@@ -649,14 +641,14 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
                     <p class="qr-text">Avalie meu atendimento</p>
                     <p class="qr-url">{{ $json.siteUrl }}</p>
                 </a>
-                <div class="clinic-contact" style="border-top: none; padding-top: 0; margin-top: 5px;">
+                <div class="clinic-contact" style="border-top: none; padding-top: 0; margin-top: 5px; display: {{ $json['address-display-style'] }};">
                     <p>{{ $json.clinicAddress }}</p>
                     <p>{{ $json.clinicPhone }}</p>
                 </div>
             </div>
 
-            <div class="signature-area">
-                <img src="{{ $json['assinatura-base64-profissional'] }}" class="sig-img">
+            <div class="signature-area" style="display: {{ $json['sig-display-style'] }};">
+                <img src="{{ $json['assinatura-base64-profissional'] }}" class="sig-img" style="display: {{ $json['sig-img-display-style'] }};">
                 <div class="sig-line"></div>
                 <p class="sig-name">{{ $json['nome-professional'] || $json['nome-profissional'] }}</p>
                 <p class="sig-role">{{ $json.Profissao }}</p>
@@ -741,9 +733,9 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
             </div>
         </div>
 
-        <footer>
-            <div class="signature-area">
-                <img src="{{ $json['rt-assinatura'] }}" class="sig-img">
+        <footer style="justify-content: {{ $json['page3-footer-justify'] }};">
+            <div class="signature-area" style="display: {{ $json['rt-display-style'] }};">
+                <img src="{{ $json['rt-assinatura'] }}" class="sig-img" style="display: {{ $json['rt-img-display-style'] }};">
                 <div class="sig-line"></div>
                 <p class="sig-name">{{ $json['rt-nome'] }}</p>
                 <p class="sig-role">{{ $json['rt-profissao'] }}</p>
@@ -751,7 +743,7 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
                 <p class="sig-role" style="color: var(--accent); margin-top: 2px;">RT PELA EMISSÃO DO LAUDO</p>
             </div>
 
-            <div class="qr-section">
+            <div class="qr-section" style="display: {{ $json['rt-display-style'] }};">
                 <a href="{{ $json.siteUrl }}" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 4px;">
                     <div class="qr-code-wrapper">
                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ $json.siteUrl }}" class="qr-img" alt="QR Code">
@@ -759,14 +751,14 @@ export const PREMIUM_PRONTUARIO_TEMPLATE = `
                     <p class="qr-text">Avalie meu atendimento</p>
                     <p class="qr-url">{{ $json.siteUrl }}</p>
                 </a>
-                <div class="clinic-contact" style="border-top: none; padding-top: 0; margin-top: 5px;">
+                <div class="clinic-contact" style="border-top: none; padding-top: 0; margin-top: 5px; display: {{ $json['address-display-style'] }};">
                     <p>{{ $json.clinicAddress }}</p>
                     <p>{{ $json.clinicPhone }}</p>
                 </div>
             </div>
 
-            <div class="signature-area">
-                <img src="{{ $json['assinatura-base64-profissional'] }}" class="sig-img">
+            <div class="signature-area" style="display: {{ $json['sig-display-style'] }};">
+                <img src="{{ $json['assinatura-base64-profissional'] }}" class="sig-img" style="display: {{ $json['sig-img-display-style'] }};">
                 <div class="sig-line"></div>
                 <p class="sig-name">{{ $json['nome-professional'] || $json['nome-profissional'] }}</p>
                 <p class="sig-role">{{ $json.Profissao }}</p>

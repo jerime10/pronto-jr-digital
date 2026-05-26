@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ActionButtonGuard } from '@/components/PermissionGuard';
 import { ProfessionalSignatureInfo } from '@/types/siteSettingsTypes';
+import { Checkbox } from '@/components/ui/checkbox';
 import { SUPPORTED_ASSET_TYPES, MAX_ASSET_SIZE } from '@/types/documentAssetTypes';
 
 const DocumentAssetsUploader: React.FC = () => {
@@ -30,6 +31,9 @@ const DocumentAssetsUploader: React.FC = () => {
     removeSignature,
     removeRtSignature,
     removeAttendantLogo,
+    toggleSignatureVisibility,
+    showProfessionalSignature,
+    showRtSignature,
     attendantLogoData,
   } = useDocumentAssets();
 
@@ -594,6 +598,17 @@ const DocumentAssetsUploader: React.FC = () => {
                       Salvar Informações
                     </Button>
                   </ActionButtonGuard>
+
+                  <div className="flex items-center space-x-2 mt-4 pt-4 border-t">
+                    <Checkbox 
+                      id="showProfessionalSignature" 
+                      checked={showProfessionalSignature} 
+                      onCheckedChange={(checked) => toggleSignatureVisibility('professional', checked as boolean)} 
+                    />
+                    <Label htmlFor="showProfessionalSignature" className="text-sm font-normal cursor-pointer">
+                      Exibir esta assinatura no rodapé do PDF
+                    </Label>
+                  </div>
                 </div>
               </div>
 
@@ -754,6 +769,17 @@ const DocumentAssetsUploader: React.FC = () => {
                       Salvar Informações do RT
                     </Button>
                   </ActionButtonGuard>
+
+                  <div className="flex items-center space-x-2 mt-4 pt-4 border-t">
+                    <Checkbox 
+                      id="showRtSignature" 
+                      checked={showRtSignature} 
+                      onCheckedChange={(checked) => toggleSignatureVisibility('rt', checked as boolean)} 
+                    />
+                    <Label htmlFor="showRtSignature" className="text-sm font-normal cursor-pointer">
+                      Exibir assinatura do RT no rodapé do PDF
+                    </Label>
+                  </div>
                 </div>
               </div>
 

@@ -64,7 +64,6 @@ function App() {
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <SimpleAuthProvider>
           <Toaster position="top-right" richColors />
-        <Toaster position="top-right" />
         <Routes>
           {/* Public Routes */}
           <Route 

@@ -260,6 +260,19 @@ export function useDocumentAssets() {
     }
   };
 
+  // Toggle signature visibility
+  const toggleSignatureVisibility = async (type: 'professional' | 'rt', value: boolean) => {
+    try {
+      await saveAssetsMutation.mutateAsync({
+        [type === 'professional' ? 'showProfessionalSignature' : 'showRtSignature']: value,
+      });
+      toast.success(`Exibição da assinatura ${type === 'professional' ? 'do profissional' : 'do RT'} atualizada!`);
+    } catch (error) {
+      console.error(`Error toggling ${type} signature:`, error);
+      toast.error('Erro ao atualizar exibição da assinatura');
+    }
+  };
+
   return {
     assets,
     isLoading,
@@ -277,6 +290,9 @@ export function useDocumentAssets() {
     removeSignature,
     removeRtSignature,
     removeAttendantLogo,
+    toggleSignatureVisibility,
+    showProfessionalSignature: assets?.showProfessionalSignature !== false,
+    showRtSignature: assets?.showRtSignature !== false,
     attendantLogoData: assets?.attendantLogoData || null,
   };
 }
