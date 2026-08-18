@@ -73,14 +73,14 @@ const PREMIUM_TEMPLATE = `
             filter: contrast(1.2) brightness(1.1);
         }
         .rt-area .sig-img {
-            height: 32mm; /* Aumentado um pouquinho mais */
-            max-width: 65mm;
-            top: 12px; /* Descendo um pouquinho mais */
+            height: 40mm;
+            max-width: 85mm;
+            top: 12px;
             margin-bottom: -28px;
         }
         .sig-area .sig-img {
-            height: 18mm; /* Diminuído um pouco mais */
-            max-width: 50mm; /* Limitado para não ficar muito longo */
+            height: 28mm;
+            max-width: 75mm;
             top: 8px;
             margin-bottom: -18px;
         }
@@ -155,7 +155,7 @@ const PREMIUM_TEMPLATE = `
         }
         .images-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4mm; margin-top: 2mm; }
         .img-card { border: 1px solid var(--border); padding: 3px; border-radius: 6px; text-align: center; }
-        .img-frame { height: 60mm; background: #000; border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .img-frame { height: 62mm; background: #000; border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         .exam-img { max-width: 100%; max-height: 100%; object-fit: contain; }
     </style>
 </head>
@@ -530,10 +530,10 @@ Deno.serve(async (req) => {
       if (sig1 || sig2) {
         const justify = (sig1 && sig2) ? 'space-between' : 'center';
         return `
-          <footer style="justify-content: ${justify}; border-top: none; padding-top: 0; margin-bottom: -5mm;">
-            <div style="display: flex; justify-content: ${justify}; width: 100%; align-items: flex-end; padding: 0 10mm;">
-              ${sig1 ? `<div style="text-align: center;"><img src="${sig1}" style="height: 25mm; width: auto; max-width: 60mm; object-fit: contain; filter: contrast(1.1) brightness(1.05);"></div>` : ''}
-              ${sig2 ? `<div style="text-align: center;"><img src="${sig2}" style="height: 25mm; width: auto; max-width: 60mm; object-fit: contain; filter: contrast(1.1) brightness(1.05);"></div>` : ''}
+          <footer style="display: flex; justify-content: ${justify}; align-items: flex-end; width: 100%; height: 28.75mm; min-height: 28.75mm; max-height: 28.75mm; margin: 0; padding: 0 10mm; margin-bottom: -5mm; border: none; box-sizing: border-box;">
+            <div style="display: flex; justify-content: ${justify}; align-items: flex-end; width: 100%; height: 28.75mm; margin: 0; padding: 0; box-sizing: border-box;">
+              ${sig1 ? `<div style="width: 69mm; max-width: 69mm; min-width: 69mm; height: 28.75mm; min-height: 28.75mm; max-height: 28.75mm; display: flex; align-items: center; justify-content: center; margin: 0; padding: 0; overflow: hidden; box-sizing: border-box; line-height: 0;"><img src="${sig1}" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; margin: auto; filter: contrast(1.1) brightness(1.05);"></div>` : ''}
+              ${sig2 ? `<div style="width: 69mm; max-width: 69mm; min-width: 69mm; height: 28.75mm; min-height: 28.75mm; max-height: 28.75mm; display: flex; align-items: center; justify-content: center; margin: 0; padding: 0; overflow: hidden; box-sizing: border-box; line-height: 0;"><img src="${sig2}" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; margin: auto; filter: contrast(1.1) brightness(1.05);"></div>` : ''}
             </div>
           </footer>
         `;
