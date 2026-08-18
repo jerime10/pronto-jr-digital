@@ -234,6 +234,8 @@ export const AtendimentoTabs: React.FC<AtendimentoTabsProps> = ({
         <ImageUploadTab
           images={form.images}
           onImagesChange={(images) => updateFormField('images', images)}
+          dynamicFields={dynamicFields}
+          onDynamicFieldsChange={onDynamicFieldsChange}
         />
       </TabsContent>
     </Tabs>

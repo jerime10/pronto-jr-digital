@@ -214,21 +214,7 @@ const PREMIUM_TEMPLATE = `
             </div>
         </div>
 
-        <footer style="justify-content: {{ page1-footer-justify }}">
-            <div class="rt-area" style="display:{{ page1-rt-display }}">
-                {{ PAGE_1_RT_CONTENT }}
-            </div>
-            <div class="footer-address" style="display:{{ address-display-style }}">
-                {{ formattedAddress }}
-            </div>
-            <div class="sig-area" style="display:{{ sig-display-style }}">
-                <img src="{{ assinatura-base64-profissional }}" class="sig-img" style="display:{{ sig-img-display-style }}">
-                <div class="sig-line"></div>
-                <p class="sig-name">{{ nome-profissional }}</p>
-                <p class="sig-details">{{ orgao-classe }}</p>
-                <p class="sig-details">{{ Profissao }}</p>
-            </div>
-        </footer>
+        {{ PAGE_1_FOOTER }}
     </div>
 
     <!-- Página 2: Evolução Clínica -->
@@ -249,21 +235,7 @@ const PREMIUM_TEMPLATE = `
             </div>
         </div>
 
-        <footer style="justify-content: {{ page2-footer-justify }}">
-            <div class="rt-area" style="display:{{ page2-rt-display }}">
-                {{ PAGE_2_RT_CONTENT }}
-            </div>
-            <div class="footer-address" style="display:{{ address-display-style }}">
-                {{ formattedAddress }}
-            </div>
-            <div class="sig-area" style="display:{{ sig-display-style }}">
-                <img src="{{ assinatura-base64-profissional }}" class="sig-img" style="display:{{ sig-img-display-style }}">
-                <div class="sig-line"></div>
-                <p class="sig-name">{{ nome-profissional }}</p>
-                <p class="sig-details">{{ orgao-classe }}</p>
-                <p class="sig-details">{{ Profissao }}</p>
-            </div>
-        </footer>
+        {{ PAGE_2_FOOTER }}
     </div>
 
     <!-- Página 3: RESULTADO DE EXAME -->
@@ -284,27 +256,7 @@ const PREMIUM_TEMPLATE = `
             {{ EXAM_SECTIONS_HTML }}
         </div>
 
-        <footer style="justify-content: {{ page3-footer-justify }}">
-            <div class="rt-area" style="display:{{ rt-display-style }}">
-                <img src="{{ rt-assinatura }}" class="sig-img" style="display:{{ rt-img-display-style }}">
-                <div class="sig-line"></div>
-                <p class="sig-name">{{ rt-nome }}</p>
-                <p class="sig-details">{{ rt-registro }}</p>
-                <p class="sig-details">{{ rt-profissao }}</p>
-                <p class="sig-role">RT PELA EMISSÃO DO LAUDO</p>
-            </div>
-            <div class="footer-address" style="display:{{ address-display-style }}">
-                {{ formattedAddress }}
-            </div>
-            <div class="sig-area" style="display:{{ sig-display-style }}">
-                <img src="{{ assinatura-base64-profissional }}" class="sig-img" style="display:{{ sig-img-display-style }}">
-                <div class="sig-line"></div>
-                <p class="sig-name">{{ nome-profissional }}</p>
-                <p class="sig-details">{{ orgao-classe }}</p>
-                <p class="sig-details">{{ Profissao }}</p>
-                <p class="sig-role">EXECUTOR DO EXAME</p>
-            </div>
-        </footer>
+        {{ PAGE_3_FOOTER }}
     </div>
     
     {{ IMAGES_PAGES }}
@@ -352,11 +304,11 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // 2. Buscar configurações do site para o QR Code e URL (URL Site)
+    // 2. Buscar configurações do site
     console.log(`[PDF] 📡 Buscando configurações do site...`);
     const { data: settingsData } = await supabase
       .from('site_settings')
-      .select('medical_record_url_site_jrs')
+      .select('medical_record_url_site_jrs, logo_data, signature_data, signature_professional_name, signature_professional_title, signature_professional_registry, rt_signature_data, rt_name, rt_title, rt_registry, show_rt_signature, show_professional_signature, show_address, clinic_name, clinic_address, clinic_phone')
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -373,7 +325,31 @@ Deno.serve(async (req) => {
       }
     }
 
+    const clinicAddress = settingsData?.clinic_address || data.clinicAddress || '';
+    const clinicPhone = settingsData?.clinic_phone || data.clinicPhone || '';
+    
+    let firstPageHeaderDetailsHtml = '';
+    if (clinicAddress || clinicPhone) {
+      firstPageHeaderDetailsHtml = `
+        <div style="font-size: 6.5pt; color: var(--text-muted); font-weight: 500; text-transform: uppercase; margin-top: 4px; line-height: 1.3;">
+          ${clinicAddress ? `<div style="word-break: break-word; max-width: 60mm; margin: 0 auto;">${clinicAddress}</div>` : ''}
+          ${clinicPhone ? `<div style="margin-top: 1px;">Tel: ${clinicPhone}</div>` : ''}
+        </div>
+      `;
+    }
+
     // Preparar conteúdo do QR Code para as páginas 1 e 2
+    const firstPageQrContent = siteUrl ? `
+        <a href="${siteUrl}" style="text-decoration: none; color: inherit; display: block;">
+            <div class="qr-container">
+                <img src="${qrCodeBase64}" class="qr-code">
+                <span class="site-link">${siteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+                <p class="qr-message">Avalie meu atendimento</p>
+                ${firstPageHeaderDetailsHtml}
+            </div>
+        </a>
+    ` : '';
+
     const qrContent = siteUrl ? `
         <a href="${siteUrl}" style="text-decoration: none; color: inherit; display: block;">
             <div class="qr-container">
@@ -385,7 +361,7 @@ Deno.serve(async (req) => {
     ` : '';
     
     // Inserir no objeto data para que o substituidor de placeholders o encontre
-    data['PAGE_1_RT_CONTENT'] = qrContent;
+    data['PAGE_1_RT_CONTENT'] = firstPageQrContent;
     data['PAGE_2_RT_CONTENT'] = qrContent;
 
     // 2. Buscar os dados atualizados diretamente do banco para garantir sincronia total
@@ -435,6 +411,56 @@ Deno.serve(async (req) => {
       data.final = data.final || 'Não informado';
     }
 
+    // Mesclar dados de site_settings como fallback e garantia absoluta de conformidade
+    if (settingsData) {
+      if (!data.clinicName) data.clinicName = settingsData.clinic_name || 'CONSULTÓRIO JRS';
+      if (!data.clinicAddress) data.clinicAddress = settingsData.clinic_address || 'Endereço não configurado';
+      if (!data.clinicPhone) data.clinicPhone = settingsData.clinic_phone || 'Telefone não configurado';
+      
+      if (!data['assetsData-logomarca-consultorio']) {
+        data['assetsData-logomarca-consultorio'] = settingsData.logo_data || '';
+      }
+      
+      // Assinatura do Profissional
+      if (!data['assinatura-base64-profissional']) {
+        data['assinatura-base64-profissional'] = settingsData.signature_data || '';
+      }
+      if (!data['nome-profissional']) {
+        data['nome-profissional'] = settingsData.signature_professional_name || '';
+      }
+      if (!data['Profissao']) {
+        data['Profissao'] = settingsData.signature_professional_title || '';
+      }
+      if (!data['orgao-classe']) {
+        data['orgao-classe'] = settingsData.signature_professional_registry || '';
+      }
+      
+      // RT
+      if (!data['rt-assinatura']) {
+        data['rt-assinatura'] = settingsData.rt_signature_data || '';
+      }
+      if (!data['rt-nome']) {
+        data['rt-nome'] = settingsData.rt_name || '';
+      }
+      if (!data['rt-profissao']) {
+        data['rt-profissao'] = settingsData.rt_title || '';
+      }
+      if (!data['rt-registro']) {
+        data['rt-registro'] = settingsData.rt_registry || '';
+      }
+
+      // Visibilidade
+      if (data.showAddress === undefined || data.showAddress === null) {
+        data.showAddress = settingsData.show_address !== false;
+      }
+      if (data.showRtSignature === undefined || data.showRtSignature === null) {
+        data.showRtSignature = settingsData.show_rt_signature !== false;
+      }
+      if (data.showProfessionalSignature === undefined || data.showProfessionalSignature === null) {
+        data.showProfessionalSignature = settingsData.show_professional_signature !== false;
+      }
+    }
+
     const addr = data.clinicAddress || '';
     let formattedAddress = '';
     
@@ -457,10 +483,10 @@ Deno.serve(async (req) => {
     data.formattedAddress = formattedAddress;
 
     // Lógica de visibilidade dos rodépés (Respeitando as preferências do usuário)
-    // Usamos === true para que apenas booleano verdadeiro exiba a seção
-    const showAddr = data.showAddress === true;
-    const showSig  = data.showProfessionalSignature === true;
-    const showRt   = data.showRtSignature === true;
+    // Usamos === true para que apenas booleano verdadeiro exiba a seção, ou suportamos a string "true"
+    const showAddr = data.showAddress === true || data.showAddress === 'true';
+    const showSig  = data.showProfessionalSignature === true || data.showProfessionalSignature === 'true';
+    const showRt   = data.showRtSignature === true || data.showRtSignature === 'true';
 
     const qrCodeVisible = (!!qrContent) && showRt;
     const addressVisible = (!!formattedAddress) && showAddr;
@@ -488,6 +514,38 @@ Deno.serve(async (req) => {
 
     console.log(`[PDF] 👁️ Visibilidade: addr=${showAddr} sig=${showSig} rt=${showRt} | page1Count=${page1VisibleCount}`);
 
+    const parsedDynamicFields = data.dynamic_fields_json ? JSON.parse(data.dynamic_fields_json) : {};
+    const pageSigs = parsedDynamicFields.page_signatures
+      ? (typeof parsedDynamicFields.page_signatures === 'string'
+        ? JSON.parse(parsedDynamicFields.page_signatures)
+        : parsedDynamicFields.page_signatures)
+      : {};
+
+    // Helper function to build custom footer HTML or standard footer fallback
+    const buildFooterHtml = (pageId: string) => {
+      const sigs = pageSigs[pageId] || [];
+      const sig1 = sigs[0] || '';
+      const sig2 = sigs[1] || '';
+      
+      if (sig1 || sig2) {
+        const justify = (sig1 && sig2) ? 'space-between' : 'center';
+        return `
+          <footer style="justify-content: ${justify}; border-top: none; padding-top: 0; margin-bottom: -5mm;">
+            <div style="display: flex; justify-content: ${justify}; width: 100%; align-items: flex-end; padding: 0 10mm;">
+              ${sig1 ? `<div style="text-align: center;"><img src="${sig1}" style="height: 25mm; width: auto; max-width: 60mm; object-fit: contain; filter: contrast(1.1) brightness(1.05);"></div>` : ''}
+              ${sig2 ? `<div style="text-align: center;"><img src="${sig2}" style="height: 25mm; width: auto; max-width: 60mm; object-fit: contain; filter: contrast(1.1) brightness(1.05);"></div>` : ''}
+            </div>
+          </footer>
+        `;
+      }
+      return ''; // Blank by default if no signature is selected
+    };
+
+    // Map the footers for Page 1, 2, 3
+    data['PAGE_1_FOOTER'] = buildFooterHtml('geral');
+    data['PAGE_2_FOOTER'] = buildFooterHtml('evolucao');
+    data['PAGE_3_FOOTER'] = buildFooterHtml('laudo');
+
     // 4. Processar Imagens no Servidor
     let imagesHtml = '';
     const imgs = [];
@@ -500,11 +558,15 @@ Deno.serve(async (req) => {
 
     if(imgs.length > 0) {
       for(let j=0; j<imgs.length; j+=6) {
+        const pageNum = Math.floor(j/6)+1;
+        const pageKey = `imagens_pag_${pageNum}`;
+        const footerContent = buildFooterHtml(pageKey);
+
         imagesHtml += `<div class="page">
           <header>
             <div class="header-content">
               <div class="clinic-info"><h1>${data.clinicName}</h1></div>
-              <div style="text-align:right; font-size:8pt; color:var(--text-muted);"><p>Imagens - Pág ${Math.floor(j/6)+1}</p></div>
+              <div style="text-align:right; font-size:8pt; color:var(--text-muted);"><p>Imagens - Pág ${pageNum}</p></div>
             </div>
           </header>
           <div class="main-content">
@@ -514,25 +576,7 @@ Deno.serve(async (req) => {
           imagesHtml += `<div class="img-card"><div class="img-frame"><img src="${img.s}" class="exam-img"></div><p style="font-size:7pt;margin-top:3px;">${img.t}</p></div>`;
         });
         imagesHtml += `</div></div>
-          <footer style="justify-content: ${data['page3-footer-justify']}">
-            <div class="rt-area" style="display:${data['rt-display-style']}">
-                <img src="${data['rt-assinatura'] || ''}" class="sig-img" style="display:${data['rt-img-display-style']}">
-                <div class="sig-line"></div>
-                <p class="sig-name">${data['rt-nome'] || ''}</p>
-                <p class="sig-details">${data['rt-registro'] || ''}</p>
-                <p class="sig-details">${data['rt-profissao'] || ''}</p>
-                <p class="sig-role">RT PELA EMISSÃO DO LAUDO</p>
-            </div>
-            <div class="footer-address" style="display:${data['address-display-style']}">${formattedAddress}</div>
-            <div class="sig-area" style="display:${data['sig-display-style']}">
-                <img src="${data['assinatura-base64-profissional'] || ''}" class="sig-img" style="display:${data['sig-img-display-style']}">
-                <div class="sig-line"></div>
-                <p class="sig-name">${data['nome-profissional'] || ''}</p>
-                <p class="sig-details">${data['orgao-classe'] || ''}</p>
-                <p class="sig-details">${data['Profissao'] || ''}</p>
-                <p class="sig-role">EXECUTOR DO EXAME</p>
-            </div>
-          </footer>
+          ${footerContent}
         </div>`;
       }
     }
@@ -586,7 +630,7 @@ Deno.serve(async (req) => {
         'bpd', 'hc', 'ac', 'fl',
         'bcf', 'af', 'situacao', 'apresentacao',
         'impressaodiagnostica', 'achadosadicionais', 'recomendacoes', 'observacoes',
-        'modelTitle', 'modelId', '_ordered_keys'
+        'modelTitle', 'modelId', '_ordered_keys', 'page_signatures'
       ];
 
       let keysToProcess: string[] = [];
@@ -660,7 +704,7 @@ Deno.serve(async (req) => {
       data['TITULO MODELO RESULTADO EXAME'] = data['TITULO MODELO RESULTADO EXAME'] || 'RESULTADO DE EXAME';
       
       const stackedKeys = ['impressaodiagnostica', 'recomendacoes', 'observacoes'];
-      const ignoreKeys = ['modelTitle', 'modelId', '_ordered_keys', ...stackedKeys];
+      const ignoreKeys = ['modelTitle', 'modelId', '_ordered_keys', 'page_signatures', ...stackedKeys];
       
       // Usar a ordem definida pelo frontend, ou fallback para as chaves do objeto
       let keysToProcess: string[] = [];
@@ -791,7 +835,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         html: finalHtml,
         options: { format: 'A4', printBackground: true, margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' } },
-        gotoOptions: { waitUntil: 'networkidle0', timeout: 45000 }
+        gotoOptions: { waitUntil: 'domcontentloaded', timeout: 30000 }
       })
     });
 
