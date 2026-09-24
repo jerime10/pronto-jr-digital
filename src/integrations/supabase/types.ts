@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -331,28 +331,70 @@ export type Database = {
       }
       medical_record_drafts: {
         Row: {
+          allergies: string | null
+          appointment_id: string | null
+          attendance_end_at: string | null
+          attendance_start_at: string | null
           created_at: string
+          custom_prescription: string | null
+          dum: string | null
+          evolution: string | null
+          exam_observations: string | null
+          exam_requests: Json | null
+          exam_results: string | null
           form_data: Json
+          history: string | null
           id: string
+          images_data: Json | null
+          main_complaint: string | null
           patient_id: string
+          prescription_model_id: string | null
           professional_id: string
           title: string | null
           updated_at: string
         }
         Insert: {
+          allergies?: string | null
+          appointment_id?: string | null
+          attendance_end_at?: string | null
+          attendance_start_at?: string | null
           created_at?: string
+          custom_prescription?: string | null
+          dum?: string | null
+          evolution?: string | null
+          exam_observations?: string | null
+          exam_requests?: Json | null
+          exam_results?: string | null
           form_data: Json
+          history?: string | null
           id?: string
+          images_data?: Json | null
+          main_complaint?: string | null
           patient_id: string
+          prescription_model_id?: string | null
           professional_id: string
           title?: string | null
           updated_at?: string
         }
         Update: {
+          allergies?: string | null
+          appointment_id?: string | null
+          attendance_end_at?: string | null
+          attendance_start_at?: string | null
           created_at?: string
+          custom_prescription?: string | null
+          dum?: string | null
+          evolution?: string | null
+          exam_observations?: string | null
+          exam_requests?: Json | null
+          exam_results?: string | null
           form_data?: Json
+          history?: string | null
           id?: string
+          images_data?: Json | null
+          main_complaint?: string | null
           patient_id?: string
+          prescription_model_id?: string | null
           professional_id?: string
           title?: string | null
           updated_at?: string
@@ -387,6 +429,7 @@ export type Database = {
           images_data: Json | null
           main_complaint: string | null
           patient_id: string
+          prescription_id: string | null
           prescription_model_id: string | null
           professional_id: string
           updated_at: string | null
@@ -410,6 +453,7 @@ export type Database = {
           images_data?: Json | null
           main_complaint?: string | null
           patient_id: string
+          prescription_id?: string | null
           prescription_model_id?: string | null
           professional_id: string
           updated_at?: string | null
@@ -433,6 +477,7 @@ export type Database = {
           images_data?: Json | null
           main_complaint?: string | null
           patient_id?: string
+          prescription_id?: string | null
           prescription_model_id?: string | null
           professional_id?: string
           updated_at?: string | null
@@ -467,6 +512,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "medical_records_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "medical_records_prescription_model_id_fkey"
             columns: ["prescription_model_id"]
             isOneToOne: false
@@ -475,8 +527,72 @@ export type Database = {
           },
         ]
       }
+      medications: {
+        Row: {
+          atc_code: string | null
+          component: string | null
+          concentration: string
+          control_category: string | null
+          created_at: string | null
+          default_duration: string
+          default_posology: string
+          default_schedule: string | null
+          full_name: string
+          id: string
+          instructions: string | null
+          is_active: boolean | null
+          keywords: string[] | null
+          name: string
+          pharmaceutical_form: string
+          route: string
+          therapeutic_class: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          atc_code?: string | null
+          component?: string | null
+          concentration: string
+          control_category?: string | null
+          created_at?: string | null
+          default_duration: string
+          default_posology: string
+          default_schedule?: string | null
+          full_name: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean | null
+          keywords?: string[] | null
+          name: string
+          pharmaceutical_form: string
+          route?: string
+          therapeutic_class?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          atc_code?: string | null
+          component?: string | null
+          concentration?: string
+          control_category?: string | null
+          created_at?: string | null
+          default_duration?: string
+          default_posology?: string
+          default_schedule?: string | null
+          full_name?: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean | null
+          keywords?: string[] | null
+          name?: string
+          pharmaceutical_form?: string
+          route?: string
+          therapeutic_class?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       "modelo-result-exames": {
         Row: {
+          ai_prompt: string | null
           created_at: string | null
           id: string
           name: string
@@ -485,6 +601,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          ai_prompt?: string | null
           created_at?: string | null
           id?: string
           name: string
@@ -493,6 +610,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          ai_prompt?: string | null
           created_at?: string | null
           id?: string
           name?: string
@@ -544,6 +662,63 @@ export type Database = {
         }
         Relationships: []
       }
+      prescription_items: {
+        Row: {
+          created_at: string | null
+          duration: string
+          id: string
+          is_custom: boolean | null
+          item_number: number | null
+          medication_id: string | null
+          medication_name: string
+          posology: string
+          prescription_id: string
+          route: string
+          schedule_instructions: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration: string
+          id?: string
+          is_custom?: boolean | null
+          item_number?: number | null
+          medication_id?: string | null
+          medication_name: string
+          posology: string
+          prescription_id: string
+          route?: string
+          schedule_instructions?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duration?: string
+          id?: string
+          is_custom?: boolean | null
+          item_number?: number | null
+          medication_id?: string | null
+          medication_name?: string
+          posology?: string
+          prescription_id?: string
+          route?: string
+          schedule_instructions?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prescription_items_medication_id_fkey"
+            columns: ["medication_id"]
+            isOneToOne: false
+            referencedRelation: "medications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prescription_items_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prescription_models: {
         Row: {
           created_at: string | null
@@ -567,6 +742,94 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      prescriptions: {
+        Row: {
+          appointment_id: string | null
+          created_at: string | null
+          date_formatted: string
+          default_route: string | null
+          footer_config: Json
+          header_config: Json
+          id: string
+          medical_record_id: string | null
+          notes: string | null
+          patient_age: string | null
+          patient_id: string
+          patient_name: string
+          professional_cbo: string | null
+          professional_name: string
+          professional_register: string
+          professional_role: string | null
+          type: string
+          updated_at: string | null
+          workplace: string | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          created_at?: string | null
+          date_formatted: string
+          default_route?: string | null
+          footer_config?: Json
+          header_config?: Json
+          id?: string
+          medical_record_id?: string | null
+          notes?: string | null
+          patient_age?: string | null
+          patient_id: string
+          patient_name: string
+          professional_cbo?: string | null
+          professional_name: string
+          professional_register: string
+          professional_role?: string | null
+          type: string
+          updated_at?: string | null
+          workplace?: string | null
+        }
+        Update: {
+          appointment_id?: string | null
+          created_at?: string | null
+          date_formatted?: string
+          default_route?: string | null
+          footer_config?: Json
+          header_config?: Json
+          id?: string
+          medical_record_id?: string | null
+          notes?: string | null
+          patient_age?: string | null
+          patient_id?: string
+          patient_name?: string
+          professional_cbo?: string | null
+          professional_name?: string
+          professional_register?: string
+          professional_role?: string | null
+          type?: string
+          updated_at?: string | null
+          workplace?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prescriptions_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prescriptions_medical_record_id_fkey"
+            columns: ["medical_record_id"]
+            isOneToOne: false
+            referencedRelation: "medical_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prescriptions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       professionals: {
         Row: {
@@ -800,11 +1063,16 @@ export type Database = {
           clinic_name: string | null
           clinic_phone: string | null
           font_family: string | null
+          groq_api_key: string | null
           id: string
           logo_data: string | null
           logo_url: string | null
+          medical_record_url_site_jrs: string | null
           medical_record_webhook_url: string | null
           n8n_webhook_url: string | null
+          openai_api_key: string | null
+          openrouter_api_key: string | null
+          openrouter_model: string | null
           pdf_custom_styles: string | null
           pdf_exams_template: string | null
           pdf_footer_template: string | null
@@ -813,21 +1081,28 @@ export type Database = {
           pdf_prescription_template: string | null
           pix_key: string | null
           primary_color: string | null
+          prompt_evolucao: string | null
+          prompt_exames: string | null
+          prompt_queixa: string | null
           public_registration_url: string | null
+          rt_name: string | null
+          rt_registry: string | null
+          rt_signature_data: string | null
+          rt_title: string | null
           setting_key: string | null
           setting_value: string | null
+          show_address: boolean | null
+          show_professional_signature: boolean | null
+          show_rt_signature: boolean | null
           signature_data: string | null
           signature_professional_name: string | null
           signature_professional_registry: string | null
           signature_professional_title: string | null
-          show_rt_signature: boolean | null
-          show_address: boolean | null
-          show_professional_signature: boolean | null
+          singleton_guard: boolean | null
           updated_at: string | null
           updated_by: string | null
           whatsapp_recurring_reminder_webhook_url: string | null
           whatsapp_reminder_webhook_url: string | null
-          medical_record_url_site_jrs: string | null
         }
         Insert: {
           accent_color?: string | null
@@ -836,11 +1111,16 @@ export type Database = {
           clinic_name?: string | null
           clinic_phone?: string | null
           font_family?: string | null
+          groq_api_key?: string | null
           id?: string
           logo_data?: string | null
           logo_url?: string | null
+          medical_record_url_site_jrs?: string | null
           medical_record_webhook_url?: string | null
           n8n_webhook_url?: string | null
+          openai_api_key?: string | null
+          openrouter_api_key?: string | null
+          openrouter_model?: string | null
           pdf_custom_styles?: string | null
           pdf_exams_template?: string | null
           pdf_footer_template?: string | null
@@ -849,21 +1129,28 @@ export type Database = {
           pdf_prescription_template?: string | null
           pix_key?: string | null
           primary_color?: string | null
+          prompt_evolucao?: string | null
+          prompt_exames?: string | null
+          prompt_queixa?: string | null
           public_registration_url?: string | null
+          rt_name?: string | null
+          rt_registry?: string | null
+          rt_signature_data?: string | null
+          rt_title?: string | null
           setting_key?: string | null
           setting_value?: string | null
+          show_address?: boolean | null
+          show_professional_signature?: boolean | null
+          show_rt_signature?: boolean | null
           signature_data?: string | null
           signature_professional_name?: string | null
           signature_professional_registry?: string | null
           signature_professional_title?: string | null
-          show_rt_signature?: boolean | null
-          show_address?: boolean | null
-          show_professional_signature?: boolean | null
+          singleton_guard?: boolean | null
           updated_at?: string | null
           updated_by?: string | null
           whatsapp_recurring_reminder_webhook_url?: string | null
           whatsapp_reminder_webhook_url?: string | null
-          medical_record_url_site_jrs?: string | null
         }
         Update: {
           accent_color?: string | null
@@ -872,11 +1159,16 @@ export type Database = {
           clinic_name?: string | null
           clinic_phone?: string | null
           font_family?: string | null
+          groq_api_key?: string | null
           id?: string
           logo_data?: string | null
           logo_url?: string | null
+          medical_record_url_site_jrs?: string | null
           medical_record_webhook_url?: string | null
           n8n_webhook_url?: string | null
+          openai_api_key?: string | null
+          openrouter_api_key?: string | null
+          openrouter_model?: string | null
           pdf_custom_styles?: string | null
           pdf_exams_template?: string | null
           pdf_footer_template?: string | null
@@ -885,21 +1177,28 @@ export type Database = {
           pdf_prescription_template?: string | null
           pix_key?: string | null
           primary_color?: string | null
+          prompt_evolucao?: string | null
+          prompt_exames?: string | null
+          prompt_queixa?: string | null
           public_registration_url?: string | null
+          rt_name?: string | null
+          rt_registry?: string | null
+          rt_signature_data?: string | null
+          rt_title?: string | null
           setting_key?: string | null
           setting_value?: string | null
+          show_address?: boolean | null
+          show_professional_signature?: boolean | null
+          show_rt_signature?: boolean | null
           signature_data?: string | null
           signature_professional_name?: string | null
           signature_professional_registry?: string | null
           signature_professional_title?: string | null
-          show_rt_signature?: boolean | null
-          show_address?: boolean | null
-          show_professional_signature?: boolean | null
+          singleton_guard?: boolean | null
           updated_at?: string | null
           updated_by?: string | null
           whatsapp_recurring_reminder_webhook_url?: string | null
           whatsapp_reminder_webhook_url?: string | null
-          medical_record_url_site_jrs?: string | null
         }
         Relationships: []
       }
@@ -1278,12 +1577,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1307,11 +1606,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1332,11 +1631,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1357,11 +1656,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1374,11 +1673,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
