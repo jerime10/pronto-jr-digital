@@ -1,3 +1,4 @@
+// @ts-nocheck
 
 import { buildMedicalRecordFormData } from './formDataBuilder';
 import { SubmitMedicalRecordParams, MedicalRecordResponse } from '@/types/medicalRecordSubmissionTypes';

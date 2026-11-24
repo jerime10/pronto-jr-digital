@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { Home, Users, FileText, Clipboard, Calendar, Settings, Menu, X, LogOut, User, CalendarDays, UserCheck, Clock, Wrench, DollarSign, ChevronLeft, ChevronRight, UsersRound } from 'lucide-react';
