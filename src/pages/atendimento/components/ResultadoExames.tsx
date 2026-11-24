@@ -1147,7 +1147,7 @@ export const ResultadoExames: React.FC<ResultadoExamesProps> = ({
       const longMmFields = ['diametrobiparietal', 'circunferenciacefalica', 'circunferenciaabdominal', 'comprimentofemur', 'liquidoamniotico'];
       
       if (exactMmFields.includes(lowerKey) || longMmFields.some(field => lowerKey.includes(field))) {
-        const numbers = stringValue.replace(/\D/g, '');
+        const numbers = stringValue.replace(/,/g, '.').replace(/[^\d.]/g, '').replace(/^\./, '').replace(/(\..*)\./g, '$1');
         return numbers ? `${numbers}mm` : '';
       }
 
